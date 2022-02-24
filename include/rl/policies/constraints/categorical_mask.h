@@ -4,14 +4,14 @@
 #include "base.h"
 
 
-namespace rl::env::constraints
+namespace rl::policies::constraints
 {
     class CategoricalMask : public Base
     {
         public:
-            CategoricalMask(torch::Tensor mask);
+            CategoricalMask(const torch::Tensor &mask);
 
-            const torch::Tensor contains(const torch::Tensor value) const;
+            const torch::Tensor contains(const torch::Tensor &value) const;
         private:
             torch::Tensor mask;
     };

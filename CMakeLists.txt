@@ -13,7 +13,6 @@ option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})
 
 add_library(rl SHARED)
 add_library(rl::rl ALIAS rl)
-
 set_property(TARGET rl PROPERTY CXX_STANDARD 20)
 
 target_include_directories(rl PUBLIC include)

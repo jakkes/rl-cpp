@@ -4,7 +4,7 @@
 #include <torch/torch.h>
 
 
-namespace rl::env::constraints
+namespace rl::policies::constraints
 {
     class Base
     {

@@ -3,7 +3,7 @@
 
 #include <torch/torch.h>
 
-#include "constraints/base.h"
+#include "rl/policies/constraints/base.h"
 
 
 namespace rl::env
@@ -11,7 +11,7 @@ namespace rl::env
     struct State
     {
         torch::Tensor state;
-        std::unique_ptr<constraints::Base> action_constraint;
+        std::unique_ptr<rl::policies::constraints::Base> action_constraint;
     };
 }
 

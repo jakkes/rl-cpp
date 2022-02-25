@@ -7,7 +7,7 @@ endif()
 cmake_minimum_required(VERSION 3.18)
 set(CMAKE_CUDA_ARCHITECTURES "75")
 
-project(rl LANGUAGES CXX CUDA)
+project(rl LANGUAGES CXX)
 
 option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})
 

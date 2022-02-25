@@ -4,6 +4,7 @@
 
 #include "base.h"
 #include "categorical.h"
+#include "rejection_sampler.h"
 
 #include "constraints/constraints.h"
 

@@ -11,9 +11,12 @@ namespace rl::policies::constraints
         public:
             CategoricalMask(const torch::Tensor &mask);
 
-            const torch::Tensor contains(const torch::Tensor &value) const;
+            torch::Tensor contains(const torch::Tensor &value) const;
         private:
-            torch::Tensor mask;
+            const torch::Tensor mask;
+            const bool batch;
+            const int64_t batchsize;
+            torch::Tensor batchvec;
     };
 }
 

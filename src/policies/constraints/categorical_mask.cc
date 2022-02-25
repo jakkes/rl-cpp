@@ -8,16 +8,38 @@
 
 namespace rl::policies::constraints
 {
-    static std::set<torch::ScalarType> allowed_dtypes{{ torch::kInt64, torch::kInt32, torch::kInt16, torch::kInt8 }};
-
     CategoricalMask::CategoricalMask(const torch::Tensor &mask)
-    : mask{mask} {}
+    : mask{mask}, batch{mask.sizes().size() == 2}, batchsize{mask.size(0)}
+    {
+        if (!rl::torchutils::is_bool_dtype(mask)) {
+            throw std::invalid_argument{"Mask must be of type boolean."};
+        }
+        if (mask.sizes().size() < 1) {
+            throw std::invalid_argument{"Mask must have at least one dimension."};
+        }
+        if (mask.sizes().size() > 2) {
+            throw std::invalid_argument{"Mask must have at most two dimensions."};
+        }
+        if (mask.isnan().any().item().toBool()) {
+            throw std::runtime_error{"Mask must not contain NaN."};
+        }
 
-    const torch::Tensor CategoricalMask::contains(const torch::Tensor &value) const
+        batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(mask.device()));
+    }
+
+    torch::Tensor CategoricalMask::contains(const torch::Tensor &value) const
     {
         if (!rl::torchutils::is_int_dtype(value)) {
             throw std::runtime_error{"Categorical mask received value of unknown data type."};
         }
-        return torch::tensor({0, 1});
+        if (batch) {
+            assert(value.sizes().size() == 2);
+            return mask.index({batchvec, value});
+        }
+        else
+        {
+            assert(value.sizes().size() == 1);
+            return mask.index({value});
+        }
     }
 }

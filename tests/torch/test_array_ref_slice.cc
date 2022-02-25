@@ -1,4 +1,4 @@
-#include <iostream>
+#include <rl/torchutils.h>
 
 #include <gtest/gtest.h>
 #include <torch/torch.h>
@@ -6,25 +6,16 @@
 
 TEST(test_torch, test_array_ref_slice)
 {
-    auto x1 = torch::rand({1,2,3,4}).sizes().slice(1);
-    auto x2 = torch::rand({1,2,3,4}).sizes().slice(2);
-    auto x3 = torch::rand({1,2,3,4}).sizes().slice(3);
-    auto x4 = torch::rand({1,2,3,4}).sizes().slice(4);
-    auto xm1 = torch::rand({1,2,3,4}).sizes().slice(-1);
+    auto shape = torch::rand({1, 2, 3, 4, 5}).sizes();
+    
+    auto x1 = rl::torchutils::slice_shape(shape, 3);
+    ASSERT_EQ(x1.size(), 2);
+    ASSERT_EQ(x1[0], 4);
+    ASSERT_EQ(x1[1], 5);
 
-    for (auto v : x1) std::cout << v;
-    std::cout << "\n";
-
-    for (auto v : x2) std::cout << v;
-    std::cout << "\n";
-
-    for (auto v : x3) std::cout << v;
-    std::cout << "\n";
-
-    for (auto v : x4) std::cout << v;
-    std::cout << "\n";
-
-    for (auto v : xm1) std::cout << v;
-    std::cout << "\n";
-
+    auto x2 = rl::torchutils::slice_shape(shape, -2);
+    ASSERT_EQ(x2.size(), 3);
+    ASSERT_EQ(x2[0], 1);
+    ASSERT_EQ(x2[1], 2);
+    ASSERT_EQ(x2[2], 3);
 }

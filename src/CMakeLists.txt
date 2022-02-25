@@ -4,6 +4,7 @@ target_sources(
         agents/ppo/agent.cc
         
         policies/categorical.cc
+            policies/constraints/cat.cc
             policies/constraints/categorical_mask.cc
 
         torchutils.cc

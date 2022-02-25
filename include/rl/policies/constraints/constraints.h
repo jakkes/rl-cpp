@@ -3,6 +3,8 @@
 
 
 #include "base.h"
+#include "cat.h"
 #include "categorical_mask.h"
+
 
 #endif /* RL_POLICIES_CONSTRAINTS_CONSTRAINTS_H_ */

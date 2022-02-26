@@ -1,5 +1,7 @@
 #include "rl/policies/constraints/cat.h"
 
+#include "rl/cpputils.h"
+
 
 namespace rl::policies::constraints
 {
@@ -14,6 +16,17 @@ namespace rl::policies::constraints
 
     torch::Tensor Concat::contains(const torch::Tensor &value) const
     {
-        return torch::randn({1,2});
+        auto re = torch::ones(
+            rl::cpputils::slice(value.sizes(), 0, -1),
+            torch::TensorOptions{}
+                .dtype(torch::kBool)
+                .device(value.device())
+        );
+
+        for (const auto &constraint : constraints) {
+            re.logical_and_(constraint->contains(value));
+        }
+
+        return re;
     }
 }

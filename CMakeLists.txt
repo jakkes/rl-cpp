@@ -20,7 +20,7 @@ target_include_directories(rl PUBLIC include)
 find_package(Torch REQUIRED)
 target_link_libraries(rl PUBLIC torch)
 
-add_subdirectory(src)
+add_subdirectory(src/rl)
 add_subdirectory(libs)
 
 if (RL_BUILD_TESTS)

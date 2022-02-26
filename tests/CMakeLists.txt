@@ -11,8 +11,7 @@ endfunction()
 rl_add_test_target(env test_env.cc)
 rl_append_test(env env/test_simple_env.cc)
 
-rl_add_test_target(torch test_torch.cc)
-rl_append_test(torch torch/test_array_ref_slice.cc)
+rl_add_test_target(torchutils test_torchutils.cc)
 
 rl_add_test_target(policies test_policies.cc)
 rl_append_test(
@@ -20,4 +19,10 @@ rl_append_test(
         policies/test_categorical.cc
         policies/constraints/test_cat.cc
         policies/constraints/test_categorical_mask.cc
+)
+
+rl_add_test_target(cpputils test_cpputils.cc)
+rl_append_test(
+    cpputils
+        cpputils/test_slice.cc
 )

@@ -11,8 +11,6 @@ endfunction()
 rl_add_test_target(env test_env.cc)
 rl_append_test(env env/test_simple_env.cc)
 
-rl_add_test_target(torchutils test_torchutils.cc)
-
 rl_add_test_target(policies test_policies.cc)
 rl_append_test(policies policies/test_categorical.cc)
 rl_append_test(policies policies/test_rejection_sampler.cc)

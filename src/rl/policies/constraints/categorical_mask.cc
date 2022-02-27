@@ -33,12 +33,11 @@ namespace rl::policies::constraints
             throw std::runtime_error{"Categorical mask received value of unknown data type."};
         }
         if (batch) {
-            assert(value.sizes().size() == 2);
+            assert(value.sizes().size() == 1);
             return mask.index({batchvec, value});
         }
         else
         {
-            assert(value.sizes().size() == 1);
             return mask.index({value});
         }
     }

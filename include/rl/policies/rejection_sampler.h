@@ -12,9 +12,6 @@
 
 namespace rl::policies
 {
-    namespace constraints {
-        class Base;
-    }
 
     class RejectionSampler : public Base
     {
@@ -28,11 +25,10 @@ namespace rl::policies
                 const constraints::Concat &constraints
             );
 
-            void include(const constraints::Base &constraint) override;
+            void include(std::shared_ptr<constraints::Base> constraint) override;
 
-            const torch::Tensor sample() const;
-            const torch::Tensor log_prob(const torch::Tensor &value) const;
-            std::unique_ptr<Base> clone() const;
+            torch::Tensor sample() const;
+            torch::Tensor log_prob(const torch::Tensor &value) const;
         
         private:
             std::unique_ptr<Base> distribution;

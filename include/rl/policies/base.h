@@ -13,9 +13,12 @@ namespace rl::policies
 
     class Base{
         public:
-            virtual const torch::Tensor sample() const = 0;
-            virtual const torch::Tensor log_prob(const torch::Tensor &value) const = 0;
-            virtual void include(const constraints::Base &constraint) const = 0;
+            virtual torch::Tensor sample() const = 0;
+            virtual torch::Tensor log_prob(const torch::Tensor &value) const = 0;
+            virtual void include(std::shared_ptr<constraints::Base> constraint)
+            {
+                throw UnsupportedConstraintException{};
+            }
     };
 }
 

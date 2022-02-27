@@ -12,8 +12,8 @@ namespace rl::policies
     class Categorical : public Base{
         public:
             Categorical(const torch::Tensor &probabilities);
-            const torch::Tensor sample() const;
-            const torch::Tensor log_prob(const torch::Tensor &value) const;
+            torch::Tensor sample() const;
+            torch::Tensor log_prob(const torch::Tensor &value) const;
             const torch::Tensor get_probabilities() const;
 
         private:

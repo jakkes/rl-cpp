@@ -42,13 +42,13 @@ namespace rl::policies
         return probabilities;
     }
 
-    const torch::Tensor Categorical::sample() const
+    torch::Tensor Categorical::sample() const
     {
         auto sample = batch ? torch::rand({batchsize, 1}, cumsummed.options()) : torch::rand({1}, cumsummed.options());
         return (sample > cumsummed).sum(-1);
     }
 
-    const torch::Tensor Categorical::log_prob(const torch::Tensor &value) const
+    torch::Tensor Categorical::log_prob(const torch::Tensor &value) const
     {
         assert (rl::torchutils::is_int_dtype(value));
         

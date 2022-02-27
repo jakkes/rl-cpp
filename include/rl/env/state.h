@@ -11,7 +11,7 @@ namespace rl::env
     struct State
     {
         torch::Tensor state;
-        std::unique_ptr<rl::policies::constraints::Base> action_constraint;
+        std::shared_ptr<rl::policies::constraints::Base> action_constraint;
     };
 }
 

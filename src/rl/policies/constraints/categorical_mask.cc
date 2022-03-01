@@ -41,4 +41,19 @@ namespace rl::policies::constraints
             return mask.index({value});
         }
     }
+
+    std::unique_ptr<Base> CategoricalMask::stack(const std::vector<std::shared_ptr<Base>> &constraints) const
+    {
+        std::vector<torch::Tensor> masks;
+        masks.reserve(constraints.size());
+
+        for (auto &constraint : constraints)
+        {
+            auto ptr = dynamic_cast<CategoricalMask*>(constraint.get());
+            assert(!ptr->batch);
+            masks.push_back(ptr->mask);
+        }
+
+        return std::make_unique<CategoricalMask>(torch::stack(masks));
+    }
 }

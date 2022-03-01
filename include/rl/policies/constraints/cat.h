@@ -16,6 +16,7 @@ namespace rl::policies::constraints
             Concat(std::initializer_list<std::shared_ptr<Base>> constraints);
             void push_back(std::shared_ptr<Base> constraint);
             torch::Tensor contains(const torch::Tensor &x) const;
+            std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints) const;
 
         private:
             std::vector<std::shared_ptr<Base>> constraints;

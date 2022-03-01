@@ -8,5 +8,7 @@ target_sources(
             policies/constraints/cat.cc
             policies/constraints/categorical_mask.cc
 
+        buffers/state_transition.cc
+
         torchutils.cc
 )

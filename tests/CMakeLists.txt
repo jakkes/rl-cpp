@@ -22,3 +22,6 @@ rl_append_test(
     cpputils
         cpputils/test_slice.cc
 )
+
+rl_add_test_target(buffers test_buffers.cc)
+rl_append_test(buffers buffers/test_state_transition.cc)

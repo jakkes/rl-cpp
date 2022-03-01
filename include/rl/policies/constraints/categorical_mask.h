@@ -12,6 +12,7 @@ namespace rl::policies::constraints
             CategoricalMask(const torch::Tensor &mask);
 
             torch::Tensor contains(const torch::Tensor &value) const;
+            std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints) const;
         private:
             const torch::Tensor mask;
             const bool batch;

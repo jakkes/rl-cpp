@@ -30,4 +30,9 @@ namespace rl::policies::constraints
 
         return re;
     }
+
+    std::unique_ptr<Base> Concat::stack(const std::vector<std::shared_ptr<Base>> &constraints) const
+    {
+        throw 1;
+    }
 }

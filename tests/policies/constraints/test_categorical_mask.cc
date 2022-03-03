@@ -28,6 +28,13 @@ void run_categorical_mask(torch::Device device)
     ASSERT_FALSE(r.index({1, 1}).item().toBool());
     ASSERT_FALSE(r.index({2, 0}).item().toBool());
     ASSERT_FALSE(r.index({2, 1}).item().toBool());
+
+    auto stacked_c = stack<CategoricalMask>({c, c});
+    auto stacked_r = stacked_c->contains(
+        torch::tensor({0, 2}, torch::TensorOptions{}.dtype(torch::kLong).device(device))
+    );
+    ASSERT_TRUE(stacked_r.index({0}).item().toBool());
+    ASSERT_FALSE(stacked_r.index({1}).item().toBool());
 }
 
 TEST(test_policy_constraints, categorical_mask_cpu)

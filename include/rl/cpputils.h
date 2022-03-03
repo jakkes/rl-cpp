@@ -4,6 +4,14 @@
 
 #include <vector>
 
+#define RL_OPTION(TypeName, ValueName) \
+auto &ValueName##_(const TypeName &value) \
+{ \
+    this->ValueName = value; \
+    return *this; \
+} \
+TypeName ValueName
+
 
 namespace rl::cpputils
 {

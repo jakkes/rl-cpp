@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "base.h"
+#include "stack.h"
 
 
 namespace rl::policies::constraints
@@ -14,13 +15,16 @@ namespace rl::policies::constraints
         public:
             Concat(const std::vector<std::shared_ptr<Base>> &constraints);
             Concat(std::initializer_list<std::shared_ptr<Base>> constraints);
-            void push_back(std::shared_ptr<Base> constraint);
             torch::Tensor contains(const torch::Tensor &x) const;
-            std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints) const;
-
+            std::function<std::unique_ptr<Base>(const std::vector<std::shared_ptr<Base>>&)> stack_fn() const;
+            void push_back(std::shared_ptr<Base> constraint);
+            size_t size() const;
         private:
             std::vector<std::shared_ptr<Base>> constraints;
     };
+
+    template<>
+    std::unique_ptr<Concat> stack<Concat>(const std::vector<std::shared_ptr<Concat>> &constraints);
 }
 
 #endif /* RL_POLICIES_CONSTRAINTS_CAT_H_ */

@@ -53,6 +53,9 @@ void run_state_transition(torch::Device device)
             torch::zeros({100}, torch::TensorOptions{}.dtype(torch::kLong).device(device))
         ).any().item().toBool()
     );
+
+    ASSERT_TRUE(sample->next_states->state.sum({-1}).sub_(1.1+1.2+1.3).abs_().lt_(1e-6).all().item().toBool());
+    ASSERT_TRUE(sample->states->state.sum({-1}).sub_(0.1+0.2+0.3).abs_().lt_(1e-6).all().item().toBool());
 }
 
 TEST(test_buffers, test_state_transition_cpu)

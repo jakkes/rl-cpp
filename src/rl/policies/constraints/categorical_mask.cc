@@ -42,16 +42,19 @@ namespace rl::policies::constraints
         }
     }
 
-    std::unique_ptr<Base> CategoricalMask::stack(const std::vector<std::shared_ptr<Base>> &constraints) const
+    std::function<std::unique_ptr<Base>(const std::vector<std::shared_ptr<Base>>&)> CategoricalMask::stack_fn() const
+    {
+        return __stack_recast<CategoricalMask>;
+    }
+
+    template<>
+    std::unique_ptr<CategoricalMask> stack<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints)
     {
         std::vector<torch::Tensor> masks;
         masks.reserve(constraints.size());
 
-        for (auto &constraint : constraints)
-        {
-            auto ptr = dynamic_cast<CategoricalMask*>(constraint.get());
-            assert(!ptr->batch);
-            masks.push_back(ptr->mask);
+        for (auto &constraint : constraints) {
+            masks.push_back(constraint->mask);
         }
 
         return std::make_unique<CategoricalMask>(torch::stack(masks));

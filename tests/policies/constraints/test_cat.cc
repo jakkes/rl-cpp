@@ -10,19 +10,22 @@ using namespace rl::policies::constraints;
 
 void run_concat(torch::Device device)
 {
-    auto c1 = std::make_shared<CategoricalMask>(
+    std::shared_ptr<Base> c1 = std::make_shared<CategoricalMask>(
         torch::tensor({true, true, false}, torch::TensorOptions{}.dtype(torch::kBool).device(device))
     );
 
-    auto c2 = std::make_shared<CategoricalMask>(
+    std::shared_ptr<Base> c2 = std::make_shared<CategoricalMask>(
         torch::tensor({false, true, true}, torch::TensorOptions{}.dtype(torch::kBool).device(device))
     );
+    std::vector<std::shared_ptr<Base>> c1c2{c1, c2};
 
-    Concat cat{ {c1, c2} };
+    auto cat = std::make_shared<Concat>(c1c2);
 
-    ASSERT_FALSE(cat.contains(torch::tensor(0, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
-    ASSERT_TRUE(cat.contains(torch::tensor(1, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
-    ASSERT_FALSE(cat.contains(torch::tensor(2, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
+    ASSERT_FALSE(cat->contains(torch::tensor(0, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
+    ASSERT_TRUE(cat->contains(torch::tensor(1, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
+    ASSERT_FALSE(cat->contains(torch::tensor(2, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
+
+    auto cat2 = std::make_shared<Concat>(c1c2);
 }
 
 TEST(test_policy_constraints, concat_cpu)

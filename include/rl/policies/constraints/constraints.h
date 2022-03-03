@@ -3,6 +3,7 @@
 
 
 #include "base.h"
+#include "stack.h"
 #include "cat.h"
 #include "categorical_mask.h"
 

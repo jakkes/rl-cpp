@@ -15,10 +15,10 @@ namespace rl::agents::ppo::trainers
         return - torch::min(clipped, pr).mean();
     }
 
-    inline static
+    static
     torch::Tensor compute_deltas(torch::Tensor rewards, torch::Tensor V, torch::Tensor not_terminals, float discount)
     {
-        return rewards + discount * not_terminals * V.index({Slice(), Slice(1, None)}).detach() - V.index({Slice(), Slice(None, -1)});
+        return rewards + discount * not_terminals * V.index({"...", Slice(1, None)}).detach() - V.index({"...", Slice(None, -1)});
     }
 
     static
@@ -27,27 +27,32 @@ namespace rl::agents::ppo::trainers
         float d = discount * gae_discount;
         auto A = torch::empty_like(deltas);
 
-        A.index_put_({Slice(), -1}, deltas.index({Slice(), -1}));
+        A.index_put_({"...", -1}, deltas.index({"...", -1}));
         for (int k = A.size(1) - 2; k > -1; k--) {
-            A.index_put_({Slice(), k}, deltas.index({Slice(), k}) + d * not_terminals.index({Slice(), k}) * A.index({Slice(), k + 1}));
+            A.index_put_({"...", k}, deltas.index({"...", k}) + d * not_terminals.index({"...", k}) * A.index({"...", k + 1}));
         }
 
         return A;
     }
 
     Basic::Basic(
-        torch::nn::Module model,
-        std::function<std::unique_ptr<rl::policies::Base>(torch::Tensor)> policy_fn,
+        rl::agents::ppo::Module model,
         std::unique_ptr<torch::optim::Optimizer> optimizer,
         std::unique_ptr<rl::env::Base> env,
         const BasicOptions &options
-    ) : model{model}, policy_fn{policy_fn}, optimizer{std::move(optimizer)},
-        env{std::move(env)}, options{options}
+    ) : model{model}, optimizer{std::move(optimizer)},
+        env{std::move(env)},options{options}
     {}
 
     template<class Rep, class Period>
     void Basic::run(std::chrono::duration<Rep, Period> duration)
     {
-        
+        auto start = std::chrono::steady_clock::now();
+        auto end = start + duration;
+
+        while (std::chrono::steady_clock::now() < end)
+        {
+            
+        }
     }
 }

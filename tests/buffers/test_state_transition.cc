@@ -1,22 +1,19 @@
 #include <torch/torch.h>
 #include <gtest/gtest.h>
 
-#include <rl/policies/constraints/constraints.h>
-#include <rl/buffers/state_transition.h>
-#include <rl/env/observation.h>
-#include <rl/env/state.h>
+#include "rl/rl.h"
 
 using namespace rl;
 
 
 void run_state_transition(torch::Device device)
 {
-    buffers::StateTransition buffer{
+    auto buffer = std::make_shared<buffers::StateTransition>(
         10,
         buffers::StateTransitionOptions{}.device_(device)
-    };
+    );
 
-    ASSERT_EQ(buffer.size(), 0);
+    ASSERT_EQ(buffer->size(), 0);
     
     auto state = std::make_shared<env::State>();
     state->action_constraint = std::make_shared<policies::constraints::CategoricalMask>(
@@ -34,13 +31,14 @@ void run_state_transition(torch::Device device)
     next_state->state = torch::tensor({1.1, 1.2, 1.3},
                         torch::TensorOptions{}.device(device).dtype(torch::kFloat32));
 
-    for (int i = 0; i < 4; i++) buffer.add(state, 1.0, false, next_state);
-    ASSERT_EQ(buffer.size(), 4);
+    for (int i = 0; i < 4; i++) buffer->add(state, 1.0, false, next_state);
+    ASSERT_EQ(buffer->size(), 4);
 
-    for (int i = 0; i < 10; i++) buffer.add(state, 1.0, false, next_state);
-    ASSERT_EQ(buffer.size(), 10);
+    for (int i = 0; i < 100; i++) buffer->add(state, 1.0, false, next_state);
+    ASSERT_EQ(buffer->size(), 10);
 
-    auto sample = buffer.sample(100);
+    auto sampler = buffers::samplers::Uniform<buffers::StateTransition>(buffer);
+    auto sample = sampler.sample(100);
 
     ASSERT_EQ(sample->size(), 100);
     ASSERT_TRUE(

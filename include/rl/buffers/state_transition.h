@@ -21,7 +21,7 @@ namespace rl::buffers
         auto &device_(torch::Device device) { this->device = device; return *this; }
     };
 
-    struct StateTransitionSample
+    struct StateTransitionBatch
     {
         std::shared_ptr<rl::env::State> states;
         torch::Tensor rewards;
@@ -49,7 +49,8 @@ namespace rl::buffers
             );
 
             int64_t size() const;
-            std::unique_ptr<StateTransitionSample> sample(int64_t n = 1);
+            std::unique_ptr<StateTransitionBatch> get(torch::Tensor indices);
+            std::unique_ptr<StateTransitionBatch> get(const std::vector<int64_t> &indices);
 
         private:
             const StateTransitionOptions options;

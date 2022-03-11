@@ -11,6 +11,7 @@ target_sources(
             policies/constraints/categorical_mask.cc
 
         buffers/state_transition.cc
+        buffers/tensor.cc
 
         torchutils.cc
 )

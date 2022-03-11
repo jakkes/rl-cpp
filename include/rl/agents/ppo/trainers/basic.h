@@ -10,6 +10,7 @@
 #include "rl/cpputils.h"
 #include "rl/env/env.h"
 #include "rl/policies/policies.h"
+#include "rl/agents/ppo/module.h"
 
 
 namespace rl::agents::ppo::trainers
@@ -28,8 +29,7 @@ namespace rl::agents::ppo::trainers
     class Basic{
         public:
             Basic(
-                torch::nn::Module model,
-                std::function<std::unique_ptr<rl::policies::Base>(torch::Tensor)> policy_fn,
+                rl::agents::ppo::Module model,
                 std::unique_ptr<torch::optim::Optimizer> optimizer,
                 std::unique_ptr<rl::env::Base> env,
                 const BasicOptions &options={}
@@ -39,8 +39,7 @@ namespace rl::agents::ppo::trainers
             void run(std::chrono::duration<Rep, Period> duration);
 
         private:
-            torch::nn::Module model;
-            std::function<std::unique_ptr<rl::policies::Base>(torch::Tensor)> policy_fn;
+            rl::agents::ppo::Module model;
             std::unique_ptr<torch::optim::Optimizer> optimizer;
             std::unique_ptr<rl::env::Base> env;
             BasicOptions options;

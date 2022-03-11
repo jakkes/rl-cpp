@@ -64,7 +64,7 @@ namespace rl::buffers
             this->next_states[memory_index] = next_states[i];
         }
 
-        auto indices = (torch::arange(static_cast<int>(bs)) + static_cast<int64_t>(this->memory_index)) % capacity;
+        auto indices = (torch::arange(static_cast<int64_t>(bs)) + static_cast<int64_t>(this->memory_index)) % capacity;
         this->rewards.index_put_(
             {indices},
             torch::tensor(rewards, torch::TensorOptions{}
@@ -88,12 +88,12 @@ namespace rl::buffers
         }
     }
 
-    std::unique_ptr<StateTransitionSample> StateTransition::sample(int64_t n)
+    std::unique_ptr<StateTransitionBatch> StateTransition::get(torch::Tensor indices)
     {
+        auto n = indices.size(0);
         std::lock_guard<std::mutex> lock_guard{lock};
-        auto indices = torch::randint(size(), {n}, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
 
-        auto re = std::make_unique<StateTransitionSample>();
+        auto re = std::make_unique<StateTransitionBatch>();
         re->rewards = rewards.index({indices});
         re->terminals = terminals.index({indices});
 
@@ -118,5 +118,12 @@ namespace rl::buffers
         re->next_states->action_constraint = rl::policies::constraints::stack<rl::policies::constraints::Base>(next_constraints);
 
         return re;
+    }
+
+    std::unique_ptr<StateTransitionBatch> StateTransition::get(const std::vector<int64_t> &indices)
+    {
+        return get(
+            torch::tensor(indices, torch::TensorOptions{}.dtype(torch::kLong))
+        );
     }
 }

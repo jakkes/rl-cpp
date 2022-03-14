@@ -38,10 +38,10 @@ namespace rl::agents::ppo::trainers
     Basic::Basic(
         rl::agents::ppo::Module model,
         std::unique_ptr<torch::optim::Optimizer> optimizer,
-        std::unique_ptr<rl::env::Base> env,
+        std::shared_ptr<rl::env::Factory> env_factory,
         const BasicOptions &options
     ) : model{model}, optimizer{std::move(optimizer)},
-        env{std::move(env)},options{options}
+        env_factory{env_factory}, options{options}
     {}
 
     template<class Rep, class Period>

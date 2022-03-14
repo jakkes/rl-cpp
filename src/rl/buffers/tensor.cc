@@ -34,6 +34,12 @@ namespace rl::buffers
         return memory_index;
     }
 
+    void Tensor::clear() {
+        std::lock_guard<std::mutex> guard{lock};
+        looped = false;
+        memory_index = 0;
+    }
+
     std::unique_ptr<std::vector<torch::Tensor>> Tensor::get(torch::Tensor indices)
     {
         auto re = std::make_unique<std::vector<torch::Tensor>>();

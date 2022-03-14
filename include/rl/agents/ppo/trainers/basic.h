@@ -21,9 +21,10 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(float, eps) = 0.1;
         RL_OPTION(float, discount) = 0.99;
         RL_OPTION(float, gae_discount) = 0.95;
-        RL_OPTION(int64_t, batchsize) = 32;
-        RL_OPTION(int64_t, epochs) = 10;
+        RL_OPTION(int64_t, update_steps) = 10;
         RL_OPTION(int64_t, sequence_length) = 64;
+        RL_OPTION(int, envs) = 16;
+        RL_OPTION(int, env_workers) = 4;
     };
 
     class Basic{
@@ -31,7 +32,7 @@ namespace rl::agents::ppo::trainers
             Basic(
                 rl::agents::ppo::Module model,
                 std::unique_ptr<torch::optim::Optimizer> optimizer,
-                std::unique_ptr<rl::env::Base> env,
+                std::shared_ptr<rl::env::Factory> env_factory,
                 const BasicOptions &options={}
             );
 
@@ -41,7 +42,7 @@ namespace rl::agents::ppo::trainers
         private:
             rl::agents::ppo::Module model;
             std::unique_ptr<torch::optim::Optimizer> optimizer;
-            std::unique_ptr<rl::env::Base> env;
+            std::shared_ptr<rl::env::Factory> env_factory;
             BasicOptions options;
     };
 }

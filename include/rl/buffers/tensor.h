@@ -21,6 +21,7 @@ namespace rl::buffers
             );
 
             torch::Tensor add(const std::vector<torch::Tensor> &data);
+            void clear();
 
             int64_t size() const;
             std::unique_ptr<std::vector<torch::Tensor>> get(torch::Tensor indices);

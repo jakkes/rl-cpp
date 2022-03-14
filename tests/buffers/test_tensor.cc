@@ -36,6 +36,14 @@ void run_tensor(torch::Device device)
         });
     }
     ASSERT_EQ(buffer->size(), 10);
+    buffer->clear();
+    ASSERT_EQ(buffer->size(), 0);
+    for (int i = 0; i < 20; i++) {
+        buffer->add({
+            torch::rand({1, 1, 2, 3}, options1),
+            torch::randint(2, {1, 4, 5, 6}, options2)
+        });
+    }
 
     auto sample = sampler.sample(100);
     ASSERT_EQ(sample->size(), 2);

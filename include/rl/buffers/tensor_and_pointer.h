@@ -34,6 +34,11 @@ namespace rl::buffers
 
             int64_t size() { return tensor.size(); }
 
+            void clear() { 
+                std::lock_guard<std::mutex> guard{lock};
+                tensor.clear();
+            }
+
             torch::Tensor add(
                 const std::vector<torch::Tensor> &tensor_data,
                 const std::vector<std::shared_ptr<T>> &ptr_data

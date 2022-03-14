@@ -22,6 +22,11 @@ namespace rl::env
             virtual std::unique_ptr<const Observation> step(torch::Tensor action) = 0;
             virtual std::unique_ptr<const State> reset() = 0;
     };
+
+    class Factory {
+        public:
+            virtual std::unique_ptr<Base> get() const = 0;
+    };
 }
 
 #endif /* RL_ENV_BASE_H_ */

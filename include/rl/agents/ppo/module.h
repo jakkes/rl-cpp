@@ -17,13 +17,11 @@ namespace rl::agents::ppo
         torch::Tensor value;
     };
 
-    class ModuleImpl : public torch::nn::Module
+    class Module : public torch::nn::Module
     {
         public:
             virtual std::unique_ptr<ModuleOutput> forward(const torch::Tensor &input) const = 0;
     };
-
-    TORCH_MODULE(Module);
 }
 
 #endif /* INCLUDE_RL_AGENTS_PPO_MODULE_H_ */

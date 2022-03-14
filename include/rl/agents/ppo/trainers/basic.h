@@ -4,6 +4,7 @@
 #include <memory>
 #include <chrono>
 #include <functional>
+#include <atomic>
 
 #include <torch/torch.h>
 
@@ -17,7 +18,6 @@ namespace rl::agents::ppo::trainers
 {
 
     struct BasicOptions{
-        RL_OPTION(int64_t, buffer_size) = 1000;
         RL_OPTION(float, eps) = 0.1;
         RL_OPTION(float, discount) = 0.99;
         RL_OPTION(float, gae_discount) = 0.95;
@@ -30,7 +30,7 @@ namespace rl::agents::ppo::trainers
     class Basic{
         public:
             Basic(
-                rl::agents::ppo::Module model,
+                std::shared_ptr<rl::agents::ppo::Module> model,
                 std::unique_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 const BasicOptions &options={}
@@ -40,10 +40,12 @@ namespace rl::agents::ppo::trainers
             void run(std::chrono::duration<Rep, Period> duration);
 
         private:
-            rl::agents::ppo::Module model;
+            std::shared_ptr<rl::agents::ppo::Module> model;
             std::unique_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::env::Factory> env_factory;
             BasicOptions options;
+
+            void _run();
     };
 }
 

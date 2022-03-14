@@ -21,6 +21,8 @@ namespace rl::env
         public:
             virtual std::unique_ptr<const Observation> step(torch::Tensor action) = 0;
             virtual std::unique_ptr<const State> reset() = 0;
+            virtual std::unique_ptr<const State> state() = 0;
+            virtual bool is_terminal() = 0;
     };
 
     class Factory {

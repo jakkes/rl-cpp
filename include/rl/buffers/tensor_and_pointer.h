@@ -76,6 +76,8 @@ namespace rl::buffers
                 return get(torch::tensor(indices, torch::TensorOptions{}.dtype(torch::kLong)));
             }
 
+            std::unique_ptr<TensorAndPointerBatch<T>> get_all() { return get(torch::arange(size())); }
+
         private:
             std::mutex lock{};
             Tensor tensor;

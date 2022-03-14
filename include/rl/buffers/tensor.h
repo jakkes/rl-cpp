@@ -20,7 +20,7 @@ namespace rl::buffers
                 const std::vector<torch::TensorOptions> &tensor_options
             );
 
-            void add(const std::vector<torch::Tensor> &data);
+            torch::Tensor add(const std::vector<torch::Tensor> &data);
 
             int64_t size() const;
             std::unique_ptr<std::vector<torch::Tensor>> get(torch::Tensor indices);

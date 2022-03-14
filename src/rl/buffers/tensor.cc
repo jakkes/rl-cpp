@@ -52,7 +52,7 @@ namespace rl::buffers
         return get(torch::tensor(indices, torch::TensorOptions{}.dtype(torch::kLong)));
     }
 
-    void Tensor::add(const std::vector<torch::Tensor> &data)
+    torch::Tensor Tensor::add(const std::vector<torch::Tensor> &data)
     {
         if (data.size() != this->data.size()) {
             throw std::invalid_argument{"Invalid number of tensors."};
@@ -64,7 +64,7 @@ namespace rl::buffers
         std::lock_guard<std::mutex> guard{lock};
 
         auto indices = (torch::arange(bs) + static_cast<int64_t>(memory_index)) % capacity;
-        
+
         for (int i = 0; i < data.size(); i++) {
             this->data[i].index_put_(
                 {indices},
@@ -77,5 +77,7 @@ namespace rl::buffers
             memory_index = memory_index % capacity;
             looped = true;
         }
+
+        return indices;
     }
 }

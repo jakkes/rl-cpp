@@ -7,3 +7,6 @@
 [submodule "libs/thread-pool"]
 	path = libs/thread-pool
 	url = https://github.com/bshoshany/thread-pool.git
+[submodule "libs/argparse"]
+	path = libs/argparse
+	url = https://github.com/p-ranav/argparse.git

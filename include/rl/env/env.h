@@ -6,4 +6,6 @@
 #include "observation.h"
 #include "state.h"
 
+#include "cart_pole.h"
+
 #endif /* RL_ENV_ENV_H_ */

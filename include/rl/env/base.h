@@ -19,9 +19,9 @@ namespace rl::env
      */
     class Base{
         public:
-            virtual std::unique_ptr<const Observation> step(torch::Tensor action) = 0;
-            virtual std::unique_ptr<const State> reset() = 0;
-            virtual std::unique_ptr<const State> state() = 0;
+            virtual std::unique_ptr<Observation> step(const torch::Tensor &action) = 0;
+            virtual std::unique_ptr<State> reset() = 0;
+            virtual std::unique_ptr<State> state() = 0;
             virtual bool is_terminal() = 0;
     };
 

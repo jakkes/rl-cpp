@@ -3,6 +3,8 @@ target_sources(
     PUBLIC
         agents/ppo/agent.cc
             agents/ppo/trainers/basic.cc
+
+        env/cart_pole.cc
         
         policies/categorical.cc
         policies/rejection_sampler.cc

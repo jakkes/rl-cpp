@@ -197,8 +197,12 @@ namespace rl::agents::ppo::trainers
         env_factory{env_factory}, options{options}
     {}
 
-    void Basic::_run(std::atomic<bool> &stop_flag)
+    template<class Rep, class Period>
+    void Basic::run(std::chrono::duration<Rep, Period> duration)
     {
+        auto start = std::chrono::steady_clock::now();
+        auto end = start + duration;
+
         thread_pool pool(options.env_workers);
 
         std::vector<std::shared_ptr<env::Base>> envs{};
@@ -207,8 +211,7 @@ namespace rl::agents::ppo::trainers
             envs.push_back(env_factory->get());
         }
 
-        while (!stop_flag)
-        {
+        while (std::chrono::steady_clock::now() < end) {
             auto sequences = run_sequences(envs, model, options.sequence_length, pool);
             CompiledSequences compiled{*sequences};
 
@@ -219,22 +222,5 @@ namespace rl::agents::ppo::trainers
                 optimizer->step();
             }
         }
-    }
-
-    template<class Rep, class Period>
-    void Basic::run(std::chrono::duration<Rep, Period> duration)
-    {
-        auto start = std::chrono::steady_clock::now();
-        auto end = start + duration;
-
-        std::atomic<bool> stop_flag{false};
-        std::thread run_thread = std::thread(&Basic::_run, this, std::ref(stop_flag));
-
-        while (std::chrono::steady_clock::now() < end) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-
-        stop_flag = true;
-        run_thread.join();
     }
 }

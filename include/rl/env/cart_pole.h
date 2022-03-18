@@ -24,7 +24,17 @@ namespace rl::env
             float x, v, theta, omega;
             bool terminal{true};
             int steps{0};
-            int max_steps;
+            const int max_steps;
+    };
+
+    class CartPoleFactory : public Factory
+    {
+        public:
+            CartPoleFactory(int max_steps);
+
+            std::unique_ptr<Base> get() const;
+        private:
+            const int max_steps;
     };
 }
 

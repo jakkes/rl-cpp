@@ -44,8 +44,6 @@ namespace rl::agents::ppo::trainers
             std::unique_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::env::Factory> env_factory;
             BasicOptions options;
-
-            void _run(std::atomic<bool> &stop_flag);
     };
 }
 

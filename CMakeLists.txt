@@ -10,6 +10,7 @@ set(CMAKE_CUDA_ARCHITECTURES "75")
 project(rl LANGUAGES CXX)
 
 option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})
+option(RL_BUILD_EXAMPLES "build examples" ${MAIN_FILE})
 
 add_library(rl SHARED)
 add_library(rl::rl ALIAS rl)
@@ -26,4 +27,8 @@ add_subdirectory(libs)
 if (RL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if (RL_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()

@@ -86,4 +86,11 @@ namespace rl::env
     }
 
     bool CartPole::is_terminal() { return terminal; }
+
+    CartPoleFactory::CartPoleFactory(int max_steps) : max_steps{max_steps} {}
+
+    std::unique_ptr<Base> CartPoleFactory::get() const 
+    {
+        return std::make_unique<CartPole>(max_steps);
+    }
 }

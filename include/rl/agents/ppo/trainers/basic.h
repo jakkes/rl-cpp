@@ -45,7 +45,7 @@ namespace rl::agents::ppo::trainers
             std::shared_ptr<rl::env::Factory> env_factory;
             BasicOptions options;
 
-            void _run();
+            void _run(std::atomic<bool> &stop_flag);
     };
 }
 

@@ -1,5 +1,6 @@
 function(rl_add_test_target testname source)
     add_executable(rl-test-${testname} ${source})
+    set_property(TARGET rl-test-${testname} PROPERTY CXX_STANDARD 20)
     target_link_libraries(rl-test-${testname} PUBLIC gtest rl::rl)
     add_test(test-${testname} rl-test-${testname})
 endfunction()

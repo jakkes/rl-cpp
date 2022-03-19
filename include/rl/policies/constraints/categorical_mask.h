@@ -16,10 +16,11 @@ namespace rl::policies::constraints
 
             friend std::unique_ptr<CategoricalMask> stack<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:
-            const torch::Tensor mask;
-            const bool batch;
-            const int64_t batchsize;
-            torch::Tensor batchvec;
+            torch::Tensor mask{};
+            torch::Tensor batchvec{};
+            bool batch{};
+            int64_t dim{};
+            int64_t batchsize{0};
     };
 
     template<>

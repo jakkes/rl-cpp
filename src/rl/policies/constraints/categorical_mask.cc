@@ -9,7 +9,6 @@
 namespace rl::policies::constraints
 {
     CategoricalMask::CategoricalMask(const torch::Tensor &mask)
-    : mask{mask}, batch{mask.sizes().size() == 2}, batchsize{mask.size(0)}
     {
         if (!rl::torchutils::is_bool_dtype(mask)) {
             throw std::invalid_argument{"Mask must be of type boolean."};
@@ -17,11 +16,18 @@ namespace rl::policies::constraints
         if (mask.sizes().size() < 1) {
             throw std::invalid_argument{"Mask must have at least one dimension."};
         }
-        if (mask.sizes().size() > 2) {
-            throw std::invalid_argument{"Mask must have at most two dimensions."};
-        }
         if (mask.isnan().any().item().toBool()) {
             throw std::runtime_error{"Mask must not contain NaN."};
+        }
+
+        batch = mask.sizes().size() > 1;
+        dim = mask.size(-1);
+
+        if (batch) {
+            this->mask = mask.view({-1, dim});
+            batchsize = mask.size(0);
+        } else {
+            this->mask = mask;
         }
 
         batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(mask.device()));
@@ -33,8 +39,9 @@ namespace rl::policies::constraints
             throw std::runtime_error{"Categorical mask received value of unknown data type."};
         }
         if (batch) {
-            assert(value.sizes().size() == 1);
-            return mask.index({batchvec, value});
+            assert(value.sizes().size() > 0);
+            auto shape = value.sizes();
+            return mask.index({batchvec, value.view({-1})}).view(shape);
         }
         else
         {

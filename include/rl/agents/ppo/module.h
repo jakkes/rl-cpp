@@ -20,7 +20,7 @@ namespace rl::agents::ppo
     class Module : public torch::nn::Module
     {
         public:
-            virtual std::unique_ptr<ModuleOutput> forward(const torch::Tensor &input) const = 0;
+            virtual std::unique_ptr<ModuleOutput> forward(const torch::Tensor &input) = 0;
     };
 }
 

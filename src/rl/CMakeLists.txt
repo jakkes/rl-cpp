@@ -5,6 +5,7 @@ target_sources(
             agents/ppo/trainers/basic.cc
 
         env/cart_pole.cc
+        env/base.cc
         
         policies/categorical.cc
         policies/rejection_sampler.cc

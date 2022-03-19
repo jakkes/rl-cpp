@@ -30,8 +30,8 @@ namespace rl::env
 
     std::unique_ptr<State> CartPole::state() {
         auto re = std::make_unique<State>();
-        re->state = torch::tensor({x, v, theta, omega});
-        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool)));
+        re->state = torch::tensor({x, v, theta, omega}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
+        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)));
         return re;
     }
 
@@ -89,7 +89,7 @@ namespace rl::env
 
     CartPoleFactory::CartPoleFactory(int max_steps) : max_steps{max_steps} {}
 
-    std::unique_ptr<Base> CartPoleFactory::get() const 
+    std::unique_ptr<Base> CartPoleFactory::get_impl() const 
     {
         return std::make_unique<CartPole>(max_steps);
     }

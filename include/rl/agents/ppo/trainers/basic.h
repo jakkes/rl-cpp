@@ -25,13 +25,14 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int64_t, sequence_length) = 64;
         RL_OPTION(int, envs) = 16;
         RL_OPTION(int, env_workers) = 4;
+        RL_OPTION(bool, cuda) = false;
     };
 
     class Basic{
         public:
             Basic(
                 std::shared_ptr<rl::agents::ppo::Module> model,
-                std::unique_ptr<torch::optim::Optimizer> optimizer,
+                std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 const BasicOptions &options={}
             );
@@ -41,7 +42,7 @@ namespace rl::agents::ppo::trainers
 
         private:
             std::shared_ptr<rl::agents::ppo::Module> model;
-            std::unique_ptr<torch::optim::Optimizer> optimizer;
+            std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::env::Factory> env_factory;
             BasicOptions options;
     };

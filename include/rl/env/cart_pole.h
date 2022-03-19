@@ -32,8 +32,8 @@ namespace rl::env
         public:
             CartPoleFactory(int max_steps);
 
-            std::unique_ptr<Base> get() const;
         private:
+            std::unique_ptr<Base> get_impl() const override;
             const int max_steps;
     };
 }

@@ -23,11 +23,24 @@ namespace rl::env
             virtual std::unique_ptr<State> reset() = 0;
             virtual std::unique_ptr<State> state() = 0;
             virtual bool is_terminal() = 0;
+
+            void cuda() { is_cuda_ = true; }
+            void cpu() { is_cuda_ = false; }
+            inline bool is_cuda() { return is_cuda_; }
+        
+        private:
+            bool is_cuda_{false};
     };
 
     class Factory {
         public:
-            virtual std::unique_ptr<Base> get() const = 0;
+            std::unique_ptr<Base> get() const;
+            void cuda();
+            void cpu();
+
+        private:
+            bool is_cuda{false};
+            virtual std::unique_ptr<Base> get_impl() const = 0;
     };
 }
 

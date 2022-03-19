@@ -96,7 +96,7 @@ namespace rl::agents::ppo::trainers
             assert(i < states.size());
             states[i] = torch::stack(sequence.states);
             actions[i] = torch::stack(sequence.actions);
-            rewards[i] = torch::tensor(sequence.rewards, states[0].options());
+            rewards[i] = torch::tensor(sequence.rewards, torch::TensorOptions{}.dtype(states[i].dtype()).device(states[i].device()));
             not_terminals[i] = torch::tensor(sequence.not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(rewards[i].device()));
             action_probabilities[i] = torch::stack(sequence.action_probabilities);
             state_values[i] = torch::stack(sequence.state_values);
@@ -190,10 +190,10 @@ namespace rl::agents::ppo::trainers
 
     Basic::Basic(
         std::shared_ptr<agents::ppo::Module> model,
-        std::unique_ptr<torch::optim::Optimizer> optimizer,
+        std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<env::Factory> env_factory,
         const BasicOptions &options
-    ) : model{model}, optimizer{std::move(optimizer)},
+    ) : model{model}, optimizer{optimizer},
         env_factory{env_factory}, options{options}
     {}
 
@@ -223,4 +223,6 @@ namespace rl::agents::ppo::trainers
             }
         }
     }
+
+    template void Basic::run<int64_t, std::ratio<1L>>(std::chrono::duration<int64_t, std::ratio<1L>> duration);
 }

@@ -7,9 +7,9 @@
 #include <torch/torch.h>
 
 
-void print(torch::Tensor &x) {
+void tprint(torch::Tensor &x) {
     std::cout << x << "\n";
 }
-void print(torch::Tensor &&x) { print(x); }
+void tprint(torch::Tensor &&x) { print(x); }
 
 #endif /* RL_TORCHDEBUG_H_ */

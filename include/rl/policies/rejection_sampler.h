@@ -28,6 +28,8 @@ namespace rl::policies
             void include(std::shared_ptr<constraints::Base> constraint) override;
 
             torch::Tensor sample() const;
+            
+            torch::Tensor prob(const torch::Tensor &value) const;
             torch::Tensor log_prob(const torch::Tensor &value) const;
         
         private:

@@ -14,9 +14,11 @@ namespace rl::policies::constraints
             torch::Tensor contains(const torch::Tensor &value) const;
             std::function<std::unique_ptr<Base>(const std::vector<std::shared_ptr<Base>>&)>stack_fn() const;
 
+            inline const torch::Tensor mask() const { return _mask; }
+
             friend std::unique_ptr<CategoricalMask> stack<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:
-            torch::Tensor mask{};
+            torch::Tensor _mask{};
             torch::Tensor batchvec{};
             bool batch{};
             int64_t dim{};

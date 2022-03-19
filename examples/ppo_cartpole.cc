@@ -1,6 +1,8 @@
 #include <argparse/argparse.hpp>
 #include <rl/rl.h>
 
+#include <torchdebug.h>
+
 
 using namespace rl;
 
@@ -35,7 +37,7 @@ class Model : public rl::agents::ppo::Module
         torch::nn::Linear policy;
 
         Model() :
-            base{register_module("base", torch::nn::Linear{4, 64})},
+            base{register_module("base", torch::nn::Linear{5, 64})},
             value{register_module("value", torch::nn::Linear{64, 1})},
             policy{register_module("policy", torch::nn::Linear{64, 2})}
         {}
@@ -45,7 +47,7 @@ class Model : public rl::agents::ppo::Module
         {
             auto re = std::make_unique<rl::agents::ppo::ModuleOutput>();
             auto base = torch::relu(this->base->forward(input));
-            re->value = value->forward(base).squeeze_(-1);
+            re->value = value->forward(base).squeeze(-1);
             re->policy = std::make_unique<policies::Categorical>(torch::softmax(policy->forward(base), -1));
             return re;
         }
@@ -54,7 +56,6 @@ class Model : public rl::agents::ppo::Module
 
 int main(int argc, char **argv)
 {
-
     auto args = parse_args(argc, argv);
 
     auto model = std::make_shared<Model>();

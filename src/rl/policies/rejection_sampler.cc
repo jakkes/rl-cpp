@@ -21,6 +21,10 @@ namespace rl::policies
         return distribution->log_prob(value);
     }
 
+    torch::Tensor RejectionSampler::prob(const torch::Tensor &value) const {
+        return distribution->prob(value);
+    }
+
     torch::Tensor RejectionSampler::sample() const
     {
         auto sample = distribution->sample();

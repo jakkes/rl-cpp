@@ -30,7 +30,8 @@ namespace rl::env
 
     std::unique_ptr<State> CartPole::state() {
         auto re = std::make_unique<State>();
-        re->state = torch::tensor({x, v, theta, omega}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
+        float progress = (steps * 1.0 / max_steps - 0.5) * 2;
+        re->state = torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
         re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)));
         return re;
     }

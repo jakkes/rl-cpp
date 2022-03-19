@@ -68,7 +68,7 @@ namespace rl::agents::ppo::trainers
             not_terminals.reserve(length);
             action_probabilities.reserve(length);
             state_values.reserve(length);   // Final state values not necessary
-            constraints.reserve(length+1);
+            constraints.reserve(length + 1);
         }
     };
 
@@ -176,14 +176,17 @@ namespace rl::agents::ppo::trainers
     static
     torch::Tensor loss_fn(const CompiledSequences &sequences, const std::shared_ptr<agents::ppo::Module> &model, const BasicOptions &options)
     {
-        auto model_output = model->forward(sequences.states);
+        auto model_output = model->forward(sequences.states.index({Slice(), Slice(0, -1)}));
         model_output->policy->include(sequences.constraints);
-        auto action_probabilities = model_output->policy->log_prob(sequences.actions).exp_();
+        auto action_probabilities = model_output->policy->prob(sequences.actions);
 
-        auto deltas = compute_deltas(sequences.rewards, model_output->value, sequences.not_terminals, options.discount);
+        auto last_state_output = model->forward(sequences.states.index({Slice(), Slice(-2, -1)}));
+        auto values = torch::cat({model_output->value, last_state_output->value}, 1);
+
+        auto deltas = compute_deltas(sequences.rewards, values, sequences.not_terminals, options.discount);
         auto advantages = compute_advantages(deltas, sequences.not_terminals, options.discount, options.gae_discount);
-        auto policy_loss = compute_policy_loss(advantages, sequences.action_probabilities, action_probabilities, options.eps);
         auto value_loss = compute_value_loss(deltas);
+        auto policy_loss = compute_policy_loss(advantages, sequences.action_probabilities, action_probabilities, options.eps);
 
         return value_loss + policy_loss;
     }

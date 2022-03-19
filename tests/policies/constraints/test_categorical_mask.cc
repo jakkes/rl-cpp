@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
 #include <torch/torch.h>
 
-#include <rl/policies/constraints/constraints.h>
+#include <rl/policies/policies.h>
 
 
 using namespace rl::policies::constraints;
+using namespace rl::policies;
 
 
 void run_categorical_mask(torch::Device device)
@@ -84,5 +85,55 @@ TEST(test_policy_constraints, categorical_mask_batch_gpu)
 {
     if (!torch::cuda::is_available()) GTEST_SKIP();
     run_categorical_mask_batch(torch::kCUDA);
+}
+
+
+void run_categorical_mask_on_categorical_policy(torch::Device device)
+{
+    auto d = Categorical{
+        torch::tensor(
+            {
+                {0.1, 0.5, 10.0, 0.4},
+                {1.0, 1.0, 1.0, 1.0}
+            },
+            torch::TensorOptions{}.device(device)
+        )
+    };
+    auto c = std::make_shared<CategoricalMask>(
+        torch::tensor(
+            {
+                {true, true, false, true},
+                {false, false, false, true}
+            },
+            torch::TensorOptions{}.dtype(torch::kBool).device(device)
+        )
+    );
+    d.include(c);
+
+    auto sample = d.sample();
+    ASSERT_EQ(sample.size(0), 2);
+    ASSERT_NE(sample.index({0}).item().toLong(), 2);
+    ASSERT_EQ(sample.index({1}).item().toLong(), 3);
+
+    auto logprob = d.log_prob(sample);
+    ASSERT_FLOAT_EQ(
+        logprob.index({0}).item().toFloat(),
+        std::log(d.get_probabilities().index({0, sample.index({0}).item().toLong()}).item().toFloat())
+    );
+
+    ASSERT_FLOAT_EQ(
+        logprob.index({1}).item().toFloat(),
+        0.0
+    );
+}
+
+TEST(test_policy_constraints, categorical_mask_on_categorical_policy_cpu)
+{
+    run_categorical_mask_on_categorical_policy(torch::kCPU);
+}
+
+TEST(test_policy_constraints, categorical_mask_on_categorical_policy_cuda)
+{
+    run_categorical_mask_on_categorical_policy(torch::kCUDA);
 }
 

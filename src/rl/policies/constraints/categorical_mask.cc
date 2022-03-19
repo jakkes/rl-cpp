@@ -24,10 +24,10 @@ namespace rl::policies::constraints
         dim = mask.size(-1);
 
         if (batch) {
-            this->mask = mask.view({-1, dim});
+            this->_mask = mask.view({-1, dim});
             batchsize = mask.size(0);
         } else {
-            this->mask = mask;
+            this->_mask = mask;
         }
 
         batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(mask.device()));
@@ -41,11 +41,11 @@ namespace rl::policies::constraints
         if (batch) {
             assert(value.sizes().size() > 0);
             auto shape = value.sizes();
-            return mask.index({batchvec, value.view({-1})}).view(shape);
+            return _mask.index({batchvec, value.view({-1})}).view(shape);
         }
         else
         {
-            return mask.index({value});
+            return _mask.index({value});
         }
     }
 
@@ -61,7 +61,7 @@ namespace rl::policies::constraints
         masks.reserve(constraints.size());
 
         for (auto &constraint : constraints) {
-            masks.push_back(constraint->mask);
+            masks.push_back(constraint->_mask);
         }
 
         return std::make_unique<CategoricalMask>(torch::stack(masks));

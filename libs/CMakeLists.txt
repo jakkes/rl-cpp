@@ -8,3 +8,8 @@ if (NOT TARGET argparse)
     add_subdirectory(argparse)
 endif()
 target_link_libraries(rl PUBLIC argparse)
+
+if (NOT TARGET tensorboard_logger)
+    add_subdirectory(tensorboard_logger)
+endif()
+target_link_libraries(rl PUBLIC tensorboard_logger)

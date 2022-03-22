@@ -10,9 +10,6 @@
 [submodule "libs/argparse"]
 	path = libs/argparse
 	url = https://github.com/p-ranav/argparse.git
-[submodule "libs/tensorboard_logger"]
-	path = libs/tensorboard_logger
-	url = https://github.com/RustingSword/tensorboard_logger.git
 [submodule "libs/thread-safe-collections"]
 	path = libs/thread-safe-collections
 	url = https://github.com/jakkes/thread-safe-collections.git

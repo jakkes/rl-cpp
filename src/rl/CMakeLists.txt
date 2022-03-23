@@ -4,17 +4,20 @@ target_sources(
         agents/ppo/agent.cc
             agents/ppo/trainers/basic.cc
 
+        buffers/state_transition.cc
+        buffers/tensor.cc
+
         env/cart_pole.cc
         env/base.cc
+
+        logging/client/base.cc
+        logging/client/ema.cc
         
         policies/categorical.cc
         policies/rejection_sampler.cc
             policies/constraints/stack.cc
             policies/constraints/cat.cc
             policies/constraints/categorical_mask.cc
-
-        buffers/state_transition.cc
-        buffers/tensor.cc
 
         torchutils.cc
 )

@@ -2,6 +2,6 @@
 #define RL_LOGGING_LOGGING_H_
 
 
-#include "client/base.h"
+#include "client/client.h"
 
 #endif /* RL_LOGGING_LOGGING_H_ */

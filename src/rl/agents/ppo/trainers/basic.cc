@@ -13,6 +13,8 @@
 using namespace torch::indexing;
 using namespace rl;
 
+using Logger = std::shared_ptr<rl::logging::client::Base>;
+
 namespace rl::agents::ppo::trainers
 {
     static
@@ -126,7 +128,7 @@ namespace rl::agents::ppo::trainers
     };
 
     static
-    void run_sequence(std::shared_ptr<env::Base> env, std::shared_ptr<agents::ppo::Module> model, int length, Sequences *out, int out_i)
+    void run_sequence(std::shared_ptr<env::Base> env, std::shared_ptr<agents::ppo::Module> model, int length, Sequences *out, int out_i, const Logger &logger)
     {
         torch::NoGradGuard no_grad{};
         Sequence sequence{length};
@@ -134,11 +136,14 @@ namespace rl::agents::ppo::trainers
         for (int i = 0; i < length; i++)
         {
             auto state = env->state();
-            if (env->is_terminal()) state = env->reset();
+            bool was_terminal = env->is_terminal();
+            if (was_terminal) state = env->reset();
             sequence.states.push_back(state->state);
             sequence.constraints.push_back(state->action_constraint);
 
             auto model_output = model->forward(state->state.unsqueeze(0));
+            model_output->policy->include(state->action_constraint);
+            
             sequence.state_values.push_back(model_output->value.index({0}));
 
             auto action = model_output->policy->sample().index({0});
@@ -148,6 +153,11 @@ namespace rl::agents::ppo::trainers
             auto observation = env->step(action);
             sequence.not_terminals.push_back(!observation->terminal);
             sequence.rewards.push_back(observation->reward);
+
+            if (was_terminal && logger) {
+                logger->log_scalar("PPO/StartValue", model_output->value.index({0}).item().toFloat());
+                logger->log_scalar("PPO/StartEntropy", model_output->policy->entropy().index({0}).item().toFloat());
+            }
         }
 
         auto final_state = env->state();
@@ -161,13 +171,14 @@ namespace rl::agents::ppo::trainers
         const std::vector<std::shared_ptr<env::Base>> &envs,
         std::shared_ptr<agents::ppo::Module> model,
         int length,
-        thread_pool &pool
+        thread_pool &pool,
+        const Logger &logger
     )
     {
         auto re = std::make_unique<Sequences>(envs.size());
 
         for (int i = 0; i < envs.size(); i++) {
-            pool.push_task(run_sequence, envs[i], model, length, re.get(), i);
+            pool.push_task(run_sequence, envs[i], model, length, re.get(), i, logger);
         }
         pool.wait_for_tasks();
         return re;
@@ -176,15 +187,15 @@ namespace rl::agents::ppo::trainers
     static
     torch::Tensor loss_fn(const CompiledSequences &sequences, const std::shared_ptr<agents::ppo::Module> &model, const BasicOptions &options)
     {
-        auto model_output = model->forward(sequences.states.index({Slice(), Slice(0, -1)}));
+        auto model_output = model->forward(sequences.states.index({Slice(), Slice(None, -1)}));
         model_output->policy->include(sequences.constraints);
         auto action_probabilities = model_output->policy->prob(sequences.actions);
 
-        auto last_state_output = model->forward(sequences.states.index({Slice(), Slice(-2, -1)}));
+        auto last_state_output = model->forward(sequences.states.index({Slice(), Slice(-1, None)}));
         auto values = torch::cat({model_output->value, last_state_output->value}, 1);
 
         auto deltas = compute_deltas(sequences.rewards, values, sequences.not_terminals, options.discount);
-        auto advantages = compute_advantages(deltas, sequences.not_terminals, options.discount, options.gae_discount);
+        auto advantages = compute_advantages(deltas.detach(), sequences.not_terminals, options.discount, options.gae_discount);
         auto value_loss = compute_value_loss(deltas);
         auto policy_loss = compute_policy_loss(advantages, sequences.action_probabilities, action_probabilities, options.eps);
 
@@ -215,7 +226,7 @@ namespace rl::agents::ppo::trainers
         }
 
         while (std::chrono::steady_clock::now() < end) {
-            auto sequences = run_sequences(envs, model, options.sequence_length, pool);
+            auto sequences = run_sequences(envs, model, options.sequence_length, pool, options.logger);
             CompiledSequences compiled{*sequences};
 
             for (int i = 0; i < options.update_steps; i++) {
@@ -223,6 +234,8 @@ namespace rl::agents::ppo::trainers
                 optimizer->zero_grad();
                 loss.backward();
                 optimizer->step();
+
+                if (options.logger) options.logger->log_scalar("PPO/Loss", loss.item().toFloat());
             }
         }
     }

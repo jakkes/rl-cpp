@@ -1,3 +1,5 @@
+#include <initializer_list>
+
 #include <argparse/argparse.hpp>
 #include <rl/rl.h>
 
@@ -13,6 +15,18 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
         .add_argument("--duration")
         .help("Train duration, seconds.")
         .default_value(60)
+        .scan<'i', int>();
+    
+    parser
+        .add_argument("--envs")
+        .help("Number of environment sequences handled in parallell.")
+        .default_value<int>(32)
+        .scan<'i', int>();
+
+    parser
+        .add_argument("--env-worker-threads")
+        .help("Environment rollouts are parallellized across threads.")
+        .default_value<int>(4)
         .scan<'i', int>();
 
     try {
@@ -59,10 +73,10 @@ int main(int argc, char **argv)
     auto args = parse_args(argc, argv);
 
     auto model = std::make_shared<Model>();
-    auto env_factory = std::make_shared<env::CartPoleFactory>(200);
+    auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999}, 5);
+    auto env_factory = std::make_shared<env::CartPoleFactory>(200, logger);
     
-    if (torch::cuda::is_available())
-    {
+    if (torch::cuda::is_available()) {
         env_factory->cuda();
         model->to(torch::kCUDA);
     }
@@ -71,7 +85,12 @@ int main(int argc, char **argv)
     agents::ppo::trainers::Basic trainer{
         model,
         optimizer,
-        env_factory
+        env_factory,
+        agents::ppo::trainers::BasicOptions{}
+            .cuda_(torch::cuda::is_available())
+            .env_workers_(args.get<int>("--env-worker-threads"))
+            .envs_(args.get<int>("--envs"))
+            .logger_(logger)
     };
 
     trainer.run(std::chrono::seconds(args.get<int>("--duration")));

@@ -14,6 +14,7 @@ namespace rl::policies
     class Base{
         public:
             virtual torch::Tensor sample() const = 0;
+            virtual torch::Tensor entropy() const = 0;
             virtual torch::Tensor log_prob(const torch::Tensor &value) const = 0;
             virtual torch::Tensor prob(const torch::Tensor &value) const = 0;
             virtual void include(std::shared_ptr<constraints::Base> constraint)

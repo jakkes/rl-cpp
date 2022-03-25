@@ -11,7 +11,7 @@ namespace rl::logging::client
     class Base
     {
         public:
-            virtual void log_scalar(const std::string &name, float value) {
+            virtual void log_scalar(const std::string &name, double value) {
                 throw std::runtime_error{"log_scalar not implemented."};
             }
     };

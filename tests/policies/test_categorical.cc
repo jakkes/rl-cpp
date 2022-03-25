@@ -34,6 +34,10 @@ void run_categorical(torch::Device device)
         logprob.index({1}).item().toFloat(),
         0.0
     );
+
+    auto entropy = d.entropy();
+    ASSERT_FLOAT_EQ(entropy.index({0}).item().toFloat(), 0.94334839232f);
+    ASSERT_FLOAT_EQ(entropy.index({1}).item().toFloat(), 0.0);
 }
 
 TEST(test_policies, test_categorical_cpu)

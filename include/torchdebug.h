@@ -12,4 +12,16 @@ void tprint(torch::Tensor &x) {
 }
 void tprint(torch::Tensor &&x) { print(x); }
 
+void tprinti(torch::Tensor &x, int i, int j) { tprint(x.index({i, j})); }
+void tprinti(torch::Tensor &&x, int i, int j) { tprinti(x, i, j); }
+
+void tprinti(torch::Tensor &x, int i, int j, int k) { tprint(x.index({i, j, k})); }
+void tprinti(torch::Tensor &&x, int i, int j, int k) { tprinti(x, i, j, k); }
+
+void tprinti(torch::Tensor &x, int i, int j, int k, int l) { tprint(x.index({i, j, k, l})); }
+void tprinti(torch::Tensor &&x, int i, int j, int k, int l) { tprinti(x, i, j, k, l); }
+
+void tprinti(torch::Tensor &x, int i, int j, int k, int l, int m) { tprint(x.index({i, j, k, l, m})); }
+void tprinti(torch::Tensor &&x, int i, int j, int k, int l, int m) { tprinti(x, i, j, k, l, m); }
+
 #endif /* RL_TORCHDEBUG_H_ */

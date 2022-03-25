@@ -6,7 +6,7 @@
 namespace rl::logging::client
 {
 
-    EMA::EMA(const std::vector<float> &smoothing_values, int output_period_s)
+    EMA::EMA(const std::vector<double> &smoothing_values, int output_period_s)
     : smoothing_values{smoothing_values}, output_period{output_period_s}
     {
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
@@ -17,9 +17,10 @@ namespace rl::logging::client
     {
         is_running = false;
         if (queue_consuming_thread.joinable()) queue_consuming_thread.join();
+        if (output_producing_thread.joinable()) output_producing_thread.join();
     }
 
-    void EMA::log_scalar(const std::string &name, float value)
+    void EMA::log_scalar(const std::string &name, double value)
     {
         scalar_queue.enqueue({name, value});
     }

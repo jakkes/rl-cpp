@@ -12,6 +12,7 @@
 #include "rl/env/env.h"
 #include "rl/policies/policies.h"
 #include "rl/agents/ppo/module.h"
+#include "rl/logging/client/base.h"
 
 
 namespace rl::agents::ppo::trainers
@@ -26,6 +27,8 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int, envs) = 16;
         RL_OPTION(int, env_workers) = 4;
         RL_OPTION(bool, cuda) = false;
+
+        RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger){};
     };
 
     class Basic{

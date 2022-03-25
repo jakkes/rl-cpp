@@ -35,4 +35,9 @@ namespace rl::policies
         }
         return sample;
     }
+
+    torch::Tensor RejectionSampler::entropy() const
+    {
+        return distribution->entropy();
+    }
 }

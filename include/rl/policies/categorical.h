@@ -15,6 +15,7 @@ namespace rl::policies
             Categorical(const torch::Tensor &probabilities);
             
             torch::Tensor sample() const;
+            torch::Tensor entropy() const;
             
             torch::Tensor log_prob(const torch::Tensor &value) const;
             torch::Tensor prob(const torch::Tensor &value) const;

@@ -53,7 +53,7 @@ namespace rl::policies
         auto categorical_mask = std::dynamic_pointer_cast<constraints::CategoricalMask>(constraint);
 
         if (categorical_mask) {
-            auto mask = categorical_mask->mask();
+            auto mask = categorical_mask->mask().view({-1, dim});
             probabilities.view({-1, dim}).index_put_({~mask}, 0.0);
             check_probabilities();
             compute_internals();
@@ -69,6 +69,13 @@ namespace rl::policies
     torch::Tensor Categorical::sample() const
     {
         return (torch::rand(sample_shape, cumsummed.options()) > cumsummed).sum(-1).clamp_max_(dim-1);
+    }
+
+    torch::Tensor Categorical::entropy() const
+    {
+        auto logged = probabilities.log();
+        logged.index_put_({logged.isinf()}, 0.0);
+        return - (probabilities * logged).sum(-1);
     }
 
     torch::Tensor Categorical::log_prob(const torch::Tensor &value) const

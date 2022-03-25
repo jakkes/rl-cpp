@@ -40,6 +40,7 @@ namespace rl::env
     {
         terminal = false;
         steps = 0;
+        total_reward = 0.0;
         x = die();
         v = die();
         theta = die();
@@ -83,15 +84,28 @@ namespace rl::env
         observation->state = state();
         observation->terminal = terminal;
 
+        total_reward += observation->reward;
+
+        if (terminal) log_terminal();
+
         return observation;
     }
 
     bool CartPole::is_terminal() { return terminal; }
 
-    CartPoleFactory::CartPoleFactory(int max_steps) : max_steps{max_steps} {}
+    void CartPole::log_terminal() {
+        if (!logger) return;
+        logger->log_scalar("CartPole/Reward", total_reward);
+    }
+
+    CartPoleFactory::CartPoleFactory(int max_steps,
+                                std::shared_ptr<rl::logging::client::Base> logger)
+    : max_steps{max_steps}, logger{logger} {}
 
     std::unique_ptr<Base> CartPoleFactory::get_impl() const 
     {
-        return std::make_unique<CartPole>(max_steps);
+        auto env = std::make_unique<CartPole>(max_steps);
+        env->set_logger(logger);
+        return env;
     }
 }

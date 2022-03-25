@@ -6,6 +6,8 @@
 
 #include <torch/torch.h>
 
+#include "rl/logging/client/base.h"
+
 #include "observation.h"
 #include "state.h"
 
@@ -24,10 +26,15 @@ namespace rl::env
             virtual std::unique_ptr<State> state() = 0;
             virtual bool is_terminal() = 0;
 
-            void cuda() { is_cuda_ = true; }
-            void cpu() { is_cuda_ = false; }
+            void set_logger(std::shared_ptr<rl::logging::client::Base> logger);
+
+            void cuda();
+            void cpu();
             inline bool is_cuda() { return is_cuda_; }
         
+        protected:
+            std::shared_ptr<rl::logging::client::Base> logger;
+
         private:
             bool is_cuda_{false};
     };

@@ -24,17 +24,21 @@ namespace rl::env
             float x, v, theta, omega;
             bool terminal{true};
             int steps{0};
+            float total_reward{0.0};
             const int max_steps;
+
+            void log_terminal();
     };
 
     class CartPoleFactory : public Factory
     {
         public:
-            CartPoleFactory(int max_steps);
+            CartPoleFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
 
         private:
             std::unique_ptr<Base> get_impl() const override;
             const int max_steps;
+            std::shared_ptr<rl::logging::client::Base> logger;
     };
 }
 

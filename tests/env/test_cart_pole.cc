@@ -8,7 +8,7 @@ using namespace rl;
 
 TEST(test_env, test_cart_pole_single_action)
 {
-    env::CartPole env{200};
+    env::CartPoleContinuous env{200};
 
     env.reset();
     float reward = 0;
@@ -35,7 +35,7 @@ TEST(test_env, test_cart_pole_single_action)
 TEST(test_env, test_cart_pole_random_action)
 {
     float reward = 0;
-    env::CartPole env{200};
+    env::CartPoleContinuous env{200};
 
     for (int i = 0; i < 1000; i++) {
         env.reset();

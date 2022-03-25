@@ -18,6 +18,7 @@ target_sources(
             policies/constraints/stack.cc
             policies/constraints/cat.cc
             policies/constraints/categorical_mask.cc
+            policies/constraints/box.cc
 
         torchutils.cc
 )

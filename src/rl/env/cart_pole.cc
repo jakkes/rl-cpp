@@ -3,6 +3,7 @@
 #include <random>
 
 #include "rl/policies/constraints/categorical_mask.h"
+#include "rl/policies/constraints/box.h"
 
 
 namespace rl::env
@@ -26,17 +27,26 @@ namespace rl::env
     );
     
 
-    CartPole::CartPole(int max_steps) : max_steps{max_steps} {}
+    CartPoleContinuous::CartPoleContinuous(int max_steps) : max_steps{max_steps} {}
 
-    std::unique_ptr<State> CartPole::state() {
-        auto re = std::make_unique<State>();
+    torch::Tensor CartPoleContinuous::state_vector() {
         float progress = (steps * 1.0 / max_steps - 0.5) * 2;
-        re->state = torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
-        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)));
+        return torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
+    }
+
+    std::unique_ptr<State> CartPoleContinuous::state() {
+        auto re = std::make_unique<State>();
+        re->state = state_vector();
+        torch::TensorOptions constraint_options{};
+        constraint_options.device(is_cuda() ? torch::kCUDA : torch::kCPU);
+        re->action_constraint = std::make_shared<rl::policies::constraints::Box>(
+            torch::tensor(-1.0, constraint_options),
+            torch::tensor(1.0, constraint_options)
+        );
         return re;
     }
 
-    std::unique_ptr<State> CartPole::reset()
+    std::unique_ptr<State> CartPoleContinuous::reset()
     {
         terminal = false;
         steps = 0;
@@ -49,18 +59,16 @@ namespace rl::env
         return state();
     }
 
-    std::unique_ptr<Observation> CartPole::step(const torch::Tensor &action) {
-        return step(action.item().toLong());
+    std::unique_ptr<Observation> CartPoleContinuous::step(const torch::Tensor &action) {
+        return step(action.item().toFloat());
     }
 
-    std::unique_ptr<Observation> CartPole::step(int action)
+    std::unique_ptr<Observation> CartPoleContinuous::step(float action)
     {
         if (terminal) throw std::runtime_error{"Cannot step when in a terminal state."};
+        if (action < -1 || action > 1) throw std::invalid_argument{"Action must be in [-1, 1]"};
 
-        float force;
-        if (action == 0) force = -FORCE_MAGNITUDE;
-        else if (action == 1) force = FORCE_MAGNITUDE;
-        else throw std::invalid_argument{"Unknown action " + std::to_string(action)};
+        float force = action * FORCE_MAGNITUDE;
 
         auto costheta = std::cos(theta);
         auto sintheta = std::sin(theta);
@@ -91,11 +99,26 @@ namespace rl::env
         return observation;
     }
 
-    bool CartPole::is_terminal() { return terminal; }
+    bool CartPoleContinuous::is_terminal() { return terminal; }
 
-    void CartPole::log_terminal() {
+    void CartPoleContinuous::log_terminal() {
         if (!logger) return;
         logger->log_scalar("CartPole/Reward", total_reward);
+    }
+
+    std::unique_ptr<State> CartPoleDiscrete::state() {
+        auto re = std::make_unique<State>();
+        re->state = state_vector();
+        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)));
+        return re;
+    }
+
+    std::unique_ptr<Observation> CartPoleDiscrete::step(const torch::Tensor &action)
+    {
+        int a = action.item().toLong();
+        if (a != 0 && a != 1) throw std::invalid_argument{"Unknown action, must be 0 or 1."};
+
+        return CartPoleContinuous::step(static_cast<float>(a * 2 - 1));
     }
 
     CartPoleFactory::CartPoleFactory(int max_steps,
@@ -104,7 +127,7 @@ namespace rl::env
 
     std::unique_ptr<Base> CartPoleFactory::get_impl() const 
     {
-        auto env = std::make_unique<CartPole>(max_steps);
+        auto env = std::make_unique<CartPoleContinuous>(max_steps);
         env->set_logger(logger);
         return env;
     }

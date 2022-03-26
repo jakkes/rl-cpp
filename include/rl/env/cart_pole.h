@@ -34,17 +34,30 @@ namespace rl::env
             void log_terminal();
     };
 
+    class CartPoleContinuousFactory : public Factory
+    {
+        public:
+            CartPoleContinuousFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
+
+        private:
+            std::unique_ptr<Base> get_impl() const override;
+            const int max_steps;
+            std::shared_ptr<rl::logging::client::Base> logger;
+    };
+
     class CartPoleDiscrete : public CartPoleContinuous
     {
         public:
+            using CartPoleContinuous::CartPoleContinuous;
+
             std::unique_ptr<State> state() override;
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;
     };
 
-    class CartPoleFactory : public Factory
+    class CartPoleDiscreteFactory : public Factory
     {
         public:
-            CartPoleFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
+            CartPoleDiscreteFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
 
         private:
             std::unique_ptr<Base> get_impl() const override;

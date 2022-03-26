@@ -106,6 +106,19 @@ namespace rl::env
         logger->log_scalar("CartPole/Reward", total_reward);
     }
 
+
+    CartPoleContinuousFactory::CartPoleContinuousFactory(int max_steps,
+                                std::shared_ptr<rl::logging::client::Base> logger)
+    : max_steps{max_steps}, logger{logger} {}
+
+    std::unique_ptr<Base> CartPoleContinuousFactory::get_impl() const 
+    {
+        auto env = std::make_unique<CartPoleContinuous>(max_steps);
+        env->set_logger(logger);
+        return env;
+    }
+
+
     std::unique_ptr<State> CartPoleDiscrete::state() {
         auto re = std::make_unique<State>();
         re->state = state_vector();
@@ -127,13 +140,14 @@ namespace rl::env
         return CartPoleContinuous::step(static_cast<float>(a * 2 - 1));
     }
 
-    CartPoleFactory::CartPoleFactory(int max_steps,
+
+    CartPoleDiscreteFactory::CartPoleDiscreteFactory(int max_steps,
                                 std::shared_ptr<rl::logging::client::Base> logger)
     : max_steps{max_steps}, logger{logger} {}
 
-    std::unique_ptr<Base> CartPoleFactory::get_impl() const 
+    std::unique_ptr<Base> CartPoleDiscreteFactory::get_impl() const 
     {
-        auto env = std::make_unique<CartPoleContinuous>(max_steps);
+        auto env = std::make_unique<CartPoleDiscrete>(max_steps);
         env->set_logger(logger);
         return env;
     }

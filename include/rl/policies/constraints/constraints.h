@@ -4,8 +4,8 @@
 
 #include "base.h"
 #include "stack.h"
-#include "cat.h"
 #include "categorical_mask.h"
+#include "box.h"
 
 
 #endif /* RL_POLICIES_CONSTRAINTS_CONSTRAINTS_H_ */

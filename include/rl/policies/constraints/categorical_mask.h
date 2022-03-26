@@ -12,11 +12,10 @@ namespace rl::policies::constraints
         public:
             CategoricalMask(const torch::Tensor &mask);
             torch::Tensor contains(const torch::Tensor &value) const;
-            std::function<std::unique_ptr<Base>(const std::vector<std::shared_ptr<Base>>&)>stack_fn() const;
 
             inline const torch::Tensor mask() const { return _mask; }
 
-            friend std::unique_ptr<CategoricalMask> stack<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
+            friend std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:
             torch::Tensor _mask{};
             torch::Tensor batchvec{};
@@ -26,7 +25,7 @@ namespace rl::policies::constraints
     };
 
     template<>
-    std::unique_ptr<CategoricalMask> stack<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
+    std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
 }
 
 #endif /* RL_ENV_CONSTRAINTS_CATEGORICAL_MASK_H_ */

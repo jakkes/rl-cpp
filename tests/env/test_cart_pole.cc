@@ -13,7 +13,7 @@ TEST(test_env, test_cart_pole_single_action)
     env.reset();
     float reward = 0;
     while (!env.is_terminal()) {
-        auto obs = env.step(1);
+        auto obs = env.step(1.0);
         reward += obs->reward;
     }
 
@@ -23,7 +23,7 @@ TEST(test_env, test_cart_pole_single_action)
     env.reset();
     reward = 0;
     while (!env.is_terminal()) {
-        auto obs = env.step(0);
+        auto obs = env.step(-1.0);
         reward += obs->reward;
     }
 
@@ -40,7 +40,7 @@ TEST(test_env, test_cart_pole_random_action)
     for (int i = 0; i < 1000; i++) {
         env.reset();
         while (!env.is_terminal()) {
-            auto obs = env.step(torch::randint(2, {}));
+            auto obs = env.step(2 * (torch::rand({}) - 0.5));
             reward += obs->reward;
         }
     }

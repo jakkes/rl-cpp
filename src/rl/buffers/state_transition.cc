@@ -112,10 +112,10 @@ namespace rl::buffers
 
         re->states = std::make_shared<rl::env::State>();
         re->states->state = torch::stack(states);
-        re->states->action_constraint = rl::policies::constraints::stack<rl::policies::constraints::Base>(constraints);
+        re->states->action_constraint = rl::policies::constraints::stack(constraints);
         re->next_states = std::make_shared<rl::env::State>();
         re->next_states->state = torch::stack(next_states);
-        re->next_states->action_constraint = rl::policies::constraints::stack<rl::policies::constraints::Base>(next_constraints);
+        re->next_states->action_constraint = rl::policies::constraints::stack(next_constraints);
 
         return re;
     }

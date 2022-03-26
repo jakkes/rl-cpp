@@ -6,6 +6,7 @@
 
 #include "rl/torchutils.h"
 #include "rl/policies/constraints/categorical_mask.h"
+#include "rl/policies/unsupported_constraint_exception.h"
 
 
 namespace rl::policies
@@ -57,8 +58,10 @@ namespace rl::policies
             probabilities.view({-1, dim}).index_put_({~mask}, 0.0);
             check_probabilities();
             compute_internals();
+            return;
         }
-        else return Base::include(constraint);
+
+        throw UnsupportedConstraintException{};
     }
 
     const torch::Tensor Categorical::get_probabilities() const

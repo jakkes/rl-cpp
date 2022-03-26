@@ -37,8 +37,8 @@ namespace rl::env
     std::unique_ptr<State> CartPoleContinuous::state() {
         auto re = std::make_unique<State>();
         re->state = state_vector();
-        torch::TensorOptions constraint_options{};
-        constraint_options.device(is_cuda() ? torch::kCUDA : torch::kCPU);
+        auto constraint_options = torch::TensorOptions{}
+                                    .device(is_cuda() ? torch::kCUDA : torch::kCPU);
         re->action_constraint = std::make_shared<rl::policies::constraints::Box>(
             torch::tensor(-1.0, constraint_options),
             torch::tensor(1.0, constraint_options)

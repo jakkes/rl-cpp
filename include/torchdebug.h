@@ -12,6 +12,9 @@ void tprint(torch::Tensor &x) {
 }
 void tprint(torch::Tensor &&x) { print(x); }
 
+void tprinti(torch::Tensor &x, int i) { tprint(x.index({i})); }
+void tprinti(torch::Tensor &&x, int i) { tprinti(x, i); }
+
 void tprinti(torch::Tensor &x, int i, int j) { tprint(x.index({i, j})); }
 void tprinti(torch::Tensor &&x, int i, int j) { tprinti(x, i, j); }
 

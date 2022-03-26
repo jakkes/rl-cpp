@@ -14,9 +14,7 @@ target_sources(
         logging/client/ema.cc
         
         policies/categorical.cc
-        policies/rejection_sampler.cc
             policies/constraints/stack.cc
-            policies/constraints/cat.cc
             policies/constraints/categorical_mask.cc
             policies/constraints/box.cc
 

@@ -16,12 +16,12 @@ namespace rl::env
             CartPoleContinuous(int max_steps);
 
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;
+            std::unique_ptr<Observation> step(float action);
             std::unique_ptr<State> state() override;
             std::unique_ptr<State> reset() override;
             bool is_terminal() override;
 
         protected:
-            std::unique_ptr<Observation> step(float action);
             torch::Tensor state_vector();
 
         private:
@@ -39,7 +39,7 @@ namespace rl::env
         public:
             std::unique_ptr<State> state() override;
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;
-    }
+    };
 
     class CartPoleFactory : public Factory
     {

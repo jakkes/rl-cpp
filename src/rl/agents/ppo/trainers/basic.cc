@@ -102,7 +102,7 @@ namespace rl::agents::ppo::trainers
             not_terminals[i] = torch::tensor(sequence.not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(rewards[i].device()));
             action_probabilities[i] = torch::stack(sequence.action_probabilities);
             state_values[i] = torch::stack(sequence.state_values);
-            constraints[i] = sequence.constraints[0]->stack_fn()(sequence.constraints);
+            constraints[i] = rl::policies::constraints::stack(sequence.constraints);
         }
     };
 
@@ -123,7 +123,7 @@ namespace rl::agents::ppo::trainers
             not_terminals = torch::stack(sequences.not_terminals);
             action_probabilities = torch::stack(sequences.action_probabilities);
             state_values = torch::stack(sequences.state_values);
-            constraints = sequences.constraints[0]->stack_fn()(sequences.constraints);
+            constraints = rl::policies::constraints::stack(sequences.constraints);
         }
     };
 

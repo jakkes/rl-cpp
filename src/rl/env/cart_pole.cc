@@ -109,7 +109,13 @@ namespace rl::env
     std::unique_ptr<State> CartPoleDiscrete::state() {
         auto re = std::make_unique<State>();
         re->state = state_vector();
-        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::ones({2}, torch::TensorOptions{}.dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)));
+        re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(
+            torch::ones(
+                {2},
+                torch::TensorOptions{}
+                    .dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)
+            )
+        );
         return re;
     }
 

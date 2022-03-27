@@ -60,4 +60,19 @@ namespace rl::policies
         auto x = invmap(value, a, b);
         return (alpha - 1) * x.log() + (beta - 1) * (1 - x).log() - c.log();
     }
+
+    torch::Tensor Beta::sample() const
+    {
+        throw std::runtime_error{"Not implemented."};
+    }
+
+    torch::Tensor Beta::entropy() const
+    {
+        throw std::runtime_error{"Not implemented."};
+    }
+
+    void Beta::include(std::shared_ptr<constraints::Base> constraint)
+    {
+        throw std::runtime_error{"Not implemented."};
+    }
 }

@@ -1,6 +1,6 @@
 target_sources(
     rl
-    PUBLIC
+    PRIVATE
         agents/ppo/agent.cc
             agents/ppo/trainers/basic.cc
 

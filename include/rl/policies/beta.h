@@ -24,7 +24,8 @@ namespace rl::policies
             void include(std::shared_ptr<constraints::Base> constraint);
 
         private:
-            torch::Tensor alpha, beta, a, b, c;
+            torch::Tensor alpha, beta, a, b, c, cdf, pdf, x;
+            std::vector<int64_t> sample_shape;
     };
 }
 

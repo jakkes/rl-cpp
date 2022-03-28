@@ -28,6 +28,9 @@ namespace rl::policies::constraints
 
             torch::Tensor contains(const torch::Tensor &x) const override;
 
+            const torch::Tensor upper_bound() const;
+            const torch::Tensor lower_bound() const;
+
             friend std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints);
         private:
             const BoxOptions options;

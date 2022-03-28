@@ -30,6 +30,9 @@ namespace rl::policies::constraints
         return upper_fulfilled.logical_and_(lower_fulfilled);
     }
 
+    const torch::Tensor Box::lower_bound() const { return lower; }
+    const torch::Tensor Box::upper_bound() const { return upper; }
+
     template<>
     std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints)
     {

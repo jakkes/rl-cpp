@@ -4,6 +4,7 @@
 
 #include "base.h"
 #include "categorical.h"
+#include "beta.h"
 
 #include "constraints/constraints.h"
 

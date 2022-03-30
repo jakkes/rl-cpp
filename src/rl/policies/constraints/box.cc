@@ -16,7 +16,11 @@ namespace rl::policies::constraints
 
     Box::Box(torch::Tensor lower_bound, torch::Tensor upper_bound, const BoxOptions &options)
     : lower{lower_bound}, upper{upper_bound}, options{options}
-    {}
+    {
+        if (!torch::all(lower < upper).item().toBool()) {
+            throw std::invalid_argument{"Lower bound must be smaller than upper bound."};
+        }
+    }
 
     torch::Tensor Box::contains(const torch::Tensor &x) const {
         auto upper_fulfilled = options.inclusive_upper ? x <= upper : x < upper;
@@ -32,6 +36,7 @@ namespace rl::policies::constraints
 
     const torch::Tensor Box::lower_bound() const { return lower; }
     const torch::Tensor Box::upper_bound() const { return upper; }
+    int Box::n_action_dims() const { return options.n_action_dims; }
 
     template<>
     std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints)

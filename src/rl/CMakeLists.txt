@@ -15,6 +15,7 @@ target_sources(
         
         policies/categorical.cc
         policies/beta.cc
+        policies/normal.cc
 
             policies/constraints/stack.cc
             policies/constraints/categorical_mask.cc

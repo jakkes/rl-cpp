@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "rl/cpputils.h"
+#include "rl/cpputils/slice_vector.h"
 
 
 TEST(test_cpputils, vec_slice)

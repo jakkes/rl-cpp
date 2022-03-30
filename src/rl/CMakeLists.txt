@@ -7,6 +7,8 @@ target_sources(
         buffers/state_transition.cc
         buffers/tensor.cc
 
+        cpputils/metronome.cc
+
         env/cart_pole.cc
         env/base.cc
 

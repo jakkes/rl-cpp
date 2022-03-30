@@ -17,6 +17,7 @@ add_library(rl::rl ALIAS rl)
 set_property(TARGET rl PROPERTY CXX_STANDARD 20)
 
 target_include_directories(rl PUBLIC include)
+target_include_directories(rl PRIVATE src/rl)
 
 find_package(Torch REQUIRED)
 target_link_libraries(rl PUBLIC torch)

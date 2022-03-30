@@ -64,14 +64,10 @@ class Model : public rl::agents::ppo::Module
             auto re = std::make_unique<rl::agents::ppo::ModuleOutput>();
             auto base = torch::relu(this->base->forward(input));
             re->value = value->forward(base).squeeze(-1);
-            auto policy_output = policy->forward(base).exp();
-            auto alpha = policy_output.index({"...", 0});
-            auto beta = policy_output.index({"...", 1});
-            re->policy = std::make_unique<policies::Beta>(
-                alpha,
-                beta,
-                -1.0 * torch::ones_like(alpha),
-                torch::ones_like(alpha)
+            auto policy_output = policy->forward(base);
+            re->policy = std::make_unique<policies::Normal>(
+                policy_output.index({"...", 0}).tanh(),
+                policy_output.index({"...", 1}).exp()
             );
             return re;
         }

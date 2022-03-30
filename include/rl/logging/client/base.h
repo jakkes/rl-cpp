@@ -14,6 +14,10 @@ namespace rl::logging::client
             virtual void log_scalar(const std::string &name, double value) {
                 throw std::runtime_error{"log_scalar not implemented."};
             }
+
+            virtual void log_frequency(const std::string &name, int occurances) {
+                throw std::runtime_error{"log_frequency not implemented."};
+            }
     };
 }
 

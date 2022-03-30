@@ -3,9 +3,11 @@
 
 #include <torch/torch.h>
 
+
+#include "rl/option.h"
+
 #include "base.h"
 #include "stack.h"
-#include "rl/cpputils.h"
 
 
 namespace rl::policies::constraints

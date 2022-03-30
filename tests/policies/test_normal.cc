@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <torch/torch.h>
-#include <rl/policies/normal.h>
-#include <rl/policies/constraints/box.h>
+#include <rl/rl.h>
 
 
 using namespace rl::policies;

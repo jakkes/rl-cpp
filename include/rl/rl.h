@@ -8,4 +8,6 @@
 #include "buffers/buffers.h"
 #include "logging/logging.h"
 
+#include "option.h"
+
 #endif /* RL_RL_H_ */

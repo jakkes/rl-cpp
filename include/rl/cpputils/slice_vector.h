@@ -1,16 +1,8 @@
-#ifndef RL_CPPUTILS_H_
-#define RL_CPPUTILS_H_
+#ifndef RL_CPPUTILS_SLICE_VECTOR_H_
+#define RL_CPPUTILS_SLICE_VECTOR_H_
 
 
 #include <vector>
-
-#define RL_OPTION(TypeName, ValueName) \
-auto &ValueName##_(const TypeName &value) \
-{ \
-    this->ValueName = value; \
-    return *this; \
-} \
-TypeName ValueName
 
 
 namespace rl::cpputils
@@ -23,4 +15,4 @@ namespace rl::cpputils
     }
 }
 
-#endif /* RL_CPPUTILS_H_ */
+#endif /* RL_CPPUTILS_SLICE_VECTOR_H_ */

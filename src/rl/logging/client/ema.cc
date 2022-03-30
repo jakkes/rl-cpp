@@ -25,6 +25,11 @@ namespace rl::logging::client
         scalar_queue.enqueue({name, value});
     }
 
+    void EMA::log_frequency(const std::string &name, int occurences)
+    {
+        this->occurences[name] += occurences;
+    }
+
     void EMA::queue_consumer()
     {
         while (is_running)
@@ -32,16 +37,16 @@ namespace rl::logging::client
             auto log = scalar_queue.dequeue(std::chrono::seconds(1));
             if (!log) continue;
 
-            std::lock_guard lock{estimate_update_mtx};
+            std::lock_guard lock{scalar_estimate_update_mtx};
             
-            if (estimates.find(log->first) == estimates.end()) new_log_name(log->first);
-            for (auto &estimate : estimates[log->first]) estimate.update(log->second);
+            if (scalar_estimates.find(log->first) == scalar_estimates.end()) new_scalar_log_name(log->first);
+            for (auto &estimate : scalar_estimates[log->first]) estimate.update(log->second);
         }
     }
 
-    void EMA::new_log_name(const std::string &name) {
-        estimates[name] = std::vector<Estimator>{};
-        auto &vec = estimates[name];
+    void EMA::new_scalar_log_name(const std::string &name) {
+        scalar_estimates[name] = std::vector<Estimator>{};
+        auto &vec = scalar_estimates[name];
         vec.reserve(smoothing_values.size());
         for (auto smoothing_value : smoothing_values) {
             vec.push_back(Estimator{smoothing_value});
@@ -60,10 +65,10 @@ namespace rl::logging::client
                 std::cout << "\n";
             };
 
-            std::lock_guard lock{estimate_update_mtx};
+            std::lock_guard lock{scalar_estimate_update_mtx};
 
             std::cout << "\n";
-            std::for_each(estimates.cbegin(), estimates.cend(), print_estimates);
+            std::for_each(scalar_estimates.cbegin(), scalar_estimates.cend(), print_estimates);
             std::cout << "\n";
         }
     }

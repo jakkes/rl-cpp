@@ -7,10 +7,15 @@ namespace rl::logging::client
 {
 
     EMA::EMA(const std::vector<double> &smoothing_values, int output_period_s)
-    : smoothing_values{smoothing_values}, output_period{output_period_s}
+    :
+    smoothing_values{smoothing_values},
+    output_period{output_period_s}
     {
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
         output_producing_thread = std::thread(&EMA::output_producer, this);
+        
+        metronome = new rl::cpputils::Metronome{std::bind(&EMA::metronome_callback, this)};
+        metronome->start(std::chrono::seconds(output_period_s));
     }
 
     EMA::~EMA()
@@ -18,6 +23,7 @@ namespace rl::logging::client
         is_running = false;
         if (queue_consuming_thread.joinable()) queue_consuming_thread.join();
         if (output_producing_thread.joinable()) output_producing_thread.join();
+        delete metronome;
     }
 
     void EMA::log_scalar(const std::string &name, double value)
@@ -27,6 +33,7 @@ namespace rl::logging::client
 
     void EMA::log_frequency(const std::string &name, int occurences)
     {
+        std::lock_guard lock{occurances_reset_mtx};
         this->occurences[name] += occurences;
     }
 
@@ -70,6 +77,16 @@ namespace rl::logging::client
             std::cout << "\n";
             std::for_each(scalar_estimates.cbegin(), scalar_estimates.cend(), print_estimates);
             std::cout << "\n";
+        }
+    }
+
+    void EMA::metronome_callback()
+    {
+        std::lock_guard lock{occurances_reset_mtx};
+
+        for (auto &pair : occurences) {
+            log_scalar(pair.first, pair.second);
+            pair.second = 0;
         }
     }
 }

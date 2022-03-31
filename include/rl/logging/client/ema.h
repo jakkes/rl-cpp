@@ -48,8 +48,9 @@ namespace rl::logging::client
             std::mutex scalar_estimate_update_mtx{};
             std::unordered_map<std::string, std::vector<Estimator>> scalar_estimates;
             
+            std::mutex occurances_reset_mtx{};
             std::unordered_map<std::string, std::atomic<size_t>> occurences;
-            rl::cpputils::Metronome metronome;
+            rl::cpputils::Metronome *metronome;
 
             std::vector<double> smoothing_values;
             int output_period;
@@ -62,7 +63,8 @@ namespace rl::logging::client
             void queue_consumer();
             void output_producer();
             void new_scalar_log_name(const std::string &name);
-            
+
+            void metronome_callback();
     };
 }
 

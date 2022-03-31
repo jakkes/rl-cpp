@@ -120,13 +120,24 @@ namespace rl::env
         return env;
     }
 
+    CartPoleDiscrete::CartPoleDiscrete(int max_steps, int action_space_dim)
+    : CartPoleContinuous{max_steps}, action_space_dim{action_space_dim}
+    {
+        actions.reserve(action_space_dim);
+        float spacing = 2.0f / action_space_dim;
+        actions.push_back(-1.0);
+        for (int i = 1; i < action_space_dim - 1; i++) {
+            actions.push_back(actions[i - 1] + spacing);
+        }
+        actions.push_back(1.0);
+    }
 
     std::unique_ptr<State> CartPoleDiscrete::state() {
         auto re = std::make_unique<State>();
         re->state = state_vector();
         re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(
             torch::ones(
-                {2},
+                {action_space_dim},
                 torch::TensorOptions{}
                     .dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)
             )
@@ -136,20 +147,17 @@ namespace rl::env
 
     std::unique_ptr<Observation> CartPoleDiscrete::step(const torch::Tensor &action)
     {
-        int a = action.item().toLong();
-        if (a != 0 && a != 1) throw std::invalid_argument{"Unknown action, must be 0 or 1."};
-
-        return CartPoleContinuous::step(static_cast<float>(a * 2 - 1));
+        return CartPoleContinuous::step(actions.at(action.item().toLong()));
     }
 
 
     CartPoleDiscreteFactory::CartPoleDiscreteFactory(int max_steps,
-                                std::shared_ptr<rl::logging::client::Base> logger)
-    : max_steps{max_steps}, logger{logger} {}
+                int action_space_dim, std::shared_ptr<rl::logging::client::Base> logger)
+    : max_steps{max_steps}, action_space_dim{action_space_dim}, logger{logger} {}
 
     std::unique_ptr<Base> CartPoleDiscreteFactory::get_impl() const 
     {
-        auto env = std::make_unique<CartPoleDiscrete>(max_steps);
+        auto env = std::make_unique<CartPoleDiscrete>(max_steps, action_space_dim);
         env->set_logger(logger);
         return env;
     }

@@ -85,7 +85,7 @@ namespace rl::logging::client
         std::lock_guard lock{occurances_reset_mtx};
 
         for (auto &pair : occurences) {
-            log_scalar(pair.first, pair.second);
+            log_scalar(pair.first, static_cast<double>(pair.second) / output_period);
             pair.second = 0;
         }
     }

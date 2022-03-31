@@ -21,14 +21,14 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
     
     parser
         .add_argument("--envs")
-        .help("Number of environment sequences handled in parallell.")
-        .default_value<int>(64)
+        .help("Number of environment sequences handled in paralell.")
+        .default_value<int>(32)
         .scan<'i', int>();
 
     parser
         .add_argument("--env-worker-threads")
         .help("Environment rollouts are parallellized across threads.")
-        .default_value<int>(16)
+        .default_value<int>(4)
         .scan<'i', int>();
 
     try {
@@ -55,7 +55,7 @@ class Model : public rl::agents::ppo::Module
         Model() :
             base{register_module("base", torch::nn::Linear{5, 64})},
             value{register_module("value", torch::nn::Linear{64, 1})},
-            policy{register_module("policy", torch::nn::Linear{64, 2})}
+            policy{register_module("policy", torch::nn::Linear{64, 1})}
         {}
 
         std::unique_ptr<rl::agents::ppo::ModuleOutput> forward(
@@ -64,10 +64,10 @@ class Model : public rl::agents::ppo::Module
             auto re = std::make_unique<rl::agents::ppo::ModuleOutput>();
             auto base = torch::relu(this->base->forward(input));
             re->value = value->forward(base).squeeze(-1);
-            auto policy_output = policy->forward(base);
+            auto policy_output = policy->forward(base).squeeze(-1).tanh();
             re->policy = std::make_unique<policies::Normal>(
-                policy_output.index({"...", 0}).tanh(),
-                policy_output.index({"...", 1}).exp()
+                policy_output,
+                0.2 * torch::ones_like(policy_output)
             );
             return re;
         }

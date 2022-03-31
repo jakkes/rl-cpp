@@ -29,6 +29,12 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
         .default_value<int>(4)
         .scan<'i', int>();
 
+    parser
+        .add_argument("--actions")
+        .help("Number of actions the action space is discretized into.")
+        .default_value<int>(2)
+        .scan<'i', int>();
+
     try {
         parser.parse_args(argc, argv);
     }
@@ -50,10 +56,10 @@ class Model : public rl::agents::ppo::Module
         torch::nn::Linear value;
         torch::nn::Linear policy;
 
-        Model() :
+        Model(int actions) :
             base{register_module("base", torch::nn::Linear{5, 64})},
             value{register_module("value", torch::nn::Linear{64, 1})},
-            policy{register_module("policy", torch::nn::Linear{64, 2})}
+            policy{register_module("policy", torch::nn::Linear{64, actions})}
         {}
 
         std::unique_ptr<rl::agents::ppo::ModuleOutput> forward(
@@ -72,9 +78,9 @@ int main(int argc, char **argv)
 {
     auto args = parse_args(argc, argv);
 
-    auto model = std::make_shared<Model>();
+    auto model = std::make_shared<Model>(args.get<int>("--actions"));
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999}, 5);
-    auto env_factory = std::make_shared<env::CartPoleDiscreteFactory>(200, logger);
+    auto env_factory = std::make_shared<env::CartPoleDiscreteFactory>(200, args.get<int>("--actions"), logger);
     
     if (torch::cuda::is_available()) {
         env_factory->cuda();

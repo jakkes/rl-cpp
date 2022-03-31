@@ -52,12 +52,12 @@ TEST(test_env, test_cart_pole_random_action)
 
 TEST(test_env, test_cart_pole_discrete_single_action)
 {
-    env::CartPoleDiscrete env{200};
+    env::CartPoleDiscrete env{200, 5};
 
     env.reset();
     float reward = 0;
     while (!env.is_terminal()) {
-        auto obs = env.step(torch::tensor(1));
+        auto obs = env.step(torch::tensor(4));
         reward += obs->reward;
     }
 
@@ -79,12 +79,12 @@ TEST(test_env, test_cart_pole_discrete_single_action)
 TEST(test_env, test_cart_pole_discrete_random_action)
 {
     float reward = 0;
-    env::CartPoleDiscrete env{200};
+    env::CartPoleDiscrete env{200, 10};
 
     for (int i = 0; i < 1000; i++) {
         env.reset();
         while (!env.is_terminal()) {
-            auto obs = env.step(torch::randint(2, {}));
+            auto obs = env.step(torch::randint(10, {}));
             reward += obs->reward;
         }
     }

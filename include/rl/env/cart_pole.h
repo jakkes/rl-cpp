@@ -48,20 +48,24 @@ namespace rl::env
     class CartPoleDiscrete : public CartPoleContinuous
     {
         public:
-            using CartPoleContinuous::CartPoleContinuous;
+            CartPoleDiscrete(int max_steps, int action_space_dim);
 
             std::unique_ptr<State> state() override;
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;
+
+        private:
+            const int action_space_dim;
+            std::vector<float> actions;
     };
 
     class CartPoleDiscreteFactory : public Factory
     {
         public:
-            CartPoleDiscreteFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
+            CartPoleDiscreteFactory(int max_steps, int action_space_dim, std::shared_ptr<rl::logging::client::Base> logger={});
 
         private:
             std::unique_ptr<Base> get_impl() const override;
-            const int max_steps;
+            const int max_steps, action_space_dim;
             std::shared_ptr<rl::logging::client::Base> logger;
     };
 }

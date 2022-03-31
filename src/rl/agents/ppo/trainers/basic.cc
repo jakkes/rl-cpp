@@ -235,6 +235,7 @@ namespace rl::agents::ppo::trainers
 
                 if (options.logger) options.logger->log_scalar("PPO/Loss", loss.item().toFloat());
             }
+            if (options.logger) options.logger->log_frequency("PPO/UpdateFrequency", options.update_steps);
         }
     }
 

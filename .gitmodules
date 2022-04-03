@@ -1,9 +1,6 @@
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/google/googletest.git
-[submodule "libs/polynomials-cpp"]
-	path = libs/polynomials-cpp
-	url = https://github.com/jakkes/polynomials-cpp.git
 [submodule "libs/thread-pool"]
 	path = libs/thread-pool
 	url = https://github.com/bshoshany/thread-pool.git

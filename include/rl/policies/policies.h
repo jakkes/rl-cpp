@@ -6,6 +6,7 @@
 #include "categorical.h"
 #include "beta.h"
 #include "normal.h"
+#include "gamma.h"
 
 #include "constraints/constraints.h"
 

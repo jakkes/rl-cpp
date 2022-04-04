@@ -71,7 +71,7 @@ namespace rl::policies
                 {not_done_indices.index({m1})},
                 _d.index({not_done_indices}).index({m1}) * v.index({m1})
             );
-            not_done_indices.index_put_(
+            out_not_done.index_put_(
                 {not_done_indices.index({m1})},
                 false
             );
@@ -85,7 +85,7 @@ namespace rl::policies
                 {not_done_indices.index({m2})},
                 _d.index({not_done_indices}).index({m2}) * v.index({m2})
             );
-            not_done_indices.index_put_(
+            out_not_done.index_put_(
                 {not_done_indices.index({m2})},
                 false
             );

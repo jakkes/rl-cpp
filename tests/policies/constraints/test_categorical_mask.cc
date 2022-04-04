@@ -2,13 +2,14 @@
 #include <torch/torch.h>
 
 #include <rl/policies/policies.h>
+#include "torch_test.h"
 
 
 using namespace rl::policies::constraints;
 using namespace rl::policies;
 
 
-void run_categorical_mask(torch::Device device)
+TORCH_TEST(policies, categorical_mask, device)
 {
     auto c = std::make_shared<CategoricalMask>(
         torch::tensor({true, true, false}, torch::TensorOptions{}.dtype(torch::kBool).device(device))
@@ -38,19 +39,8 @@ void run_categorical_mask(torch::Device device)
     ASSERT_FALSE(stacked_r.index({1}).item().toBool());
 }
 
-TEST(test_policy_constraints, categorical_mask_cpu)
-{
-    run_categorical_mask(torch::kCPU);
-}
 
-TEST(test_policy_constraints, categorical_mask_gpu)
-{
-    if (!torch::cuda::is_available()) GTEST_SKIP();
-    run_categorical_mask(torch::kCUDA);
-}
-
-
-void run_categorical_mask_batch(torch::Device device)
+TORCH_TEST(policies, categorical_mask_batch, device)
 {
     auto c = std::make_shared<CategoricalMask>(
         torch::tensor(
@@ -76,19 +66,8 @@ void run_categorical_mask_batch(torch::Device device)
     ASSERT_TRUE(r3.index({1}).item().toBool());
 }
 
-TEST(test_policy_constraints, categorical_mask_batch_cpu)
-{
-    run_categorical_mask_batch(torch::kCPU);
-}
 
-TEST(test_policy_constraints, categorical_mask_batch_gpu)
-{
-    if (!torch::cuda::is_available()) GTEST_SKIP();
-    run_categorical_mask_batch(torch::kCUDA);
-}
-
-
-void run_categorical_mask_on_categorical_policy(torch::Device device)
+TORCH_TEST(policies, categorical_mask_applied, device)
 {
     auto d = Categorical{
         torch::tensor(
@@ -126,14 +105,3 @@ void run_categorical_mask_on_categorical_policy(torch::Device device)
         0.0
     );
 }
-
-TEST(test_policy_constraints, categorical_mask_on_categorical_policy_cpu)
-{
-    run_categorical_mask_on_categorical_policy(torch::kCPU);
-}
-
-TEST(test_policy_constraints, categorical_mask_on_categorical_policy_cuda)
-{
-    run_categorical_mask_on_categorical_policy(torch::kCUDA);
-}
-

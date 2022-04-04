@@ -55,7 +55,7 @@ class Model : public rl::agents::ppo::Module
         Model() :
             base{register_module("base", torch::nn::Linear{5, 64})},
             value{register_module("value", torch::nn::Linear{64, 1})},
-            policy{register_module("policy", torch::nn::Linear{64, 1})}
+            policy{register_module("policy", torch::nn::Linear{64, 2})}
         {}
 
         std::unique_ptr<rl::agents::ppo::ModuleOutput> forward(
@@ -64,10 +64,14 @@ class Model : public rl::agents::ppo::Module
             auto re = std::make_unique<rl::agents::ppo::ModuleOutput>();
             auto base = torch::relu(this->base->forward(input));
             re->value = value->forward(base).squeeze(-1);
-            auto policy_output = policy->forward(base).squeeze(-1).tanh();
-            re->policy = std::make_unique<policies::Normal>(
-                policy_output,
-                0.2 * torch::ones_like(policy_output)
+            auto policy_output = policy->forward(base);
+            policy_output = torch::elu(policy_output) + 1;
+            
+            re->policy = std::make_unique<policies::Beta>(
+                policy_output.index({"...", 0}),
+                policy_output.index({"...", 1}),
+                - torch::ones_like(policy_output.index({"...", 1})),
+                torch::ones_like(policy_output.index({"...", 1}))
             );
             return re;
         }

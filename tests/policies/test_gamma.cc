@@ -8,24 +8,19 @@ using namespace rl::policies;
 
 TORCH_TEST(policies, sample_gamma, device)
 {
-    auto o = torch::TensorOptions{}.device(device).dtype(torch::kFloat64);
+    auto o = torch::TensorOptions{}.device(device).dtype(torch::kFloat32);
 
     Gamma g{
-        torch::tensor({0.5, 1.0, 2.0}, o),
-        torch::ones({3}, o)
+        torch::tensor({{2.5}, {0.5}}, o).expand({2, 100000}).clone(),
+        5.0 * torch::ones({2, 100000}, o)
     };
 
-    double a{0}, b{0}, c{0};
+    auto sample = g.sample();
+    auto error = sample.mean(-1).sub(5.0 * torch::tensor({2.5, 0.5}, o)).abs();
 
-    static int N{100000};
-    for (int i = 0; i < N; i++) {
-        auto sample = g.sample();
-        a += 1.0 / N * sample.index({0}).item().toDouble();
-        b += 1.0 / N * sample.index({1}).item().toDouble();
-        c += 1.0 / N * sample.index({2}).item().toDouble();
-    }
+    auto e1 = error.index({0}).item().toFloat();
+    auto e2 = error.index({1}).item().toFloat();
 
-    std::cout << a << "\n";
-    std::cout << b << "\n";
-    std::cout << c << "\n";
+    ASSERT_LT(e1, 1e-1);
+    ASSERT_LT(e2, 1e-1);
 }

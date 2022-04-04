@@ -31,10 +31,20 @@ namespace rl::policies
     _alpha{boost_alpha(alpha.view({-1}))},
     _is_alpha_boosted{is_alpha_boosted(alpha.view({-1}))},
     _scale{scale.view({-1})},
-    _d{d(alpha.view({-1}))},
-    _c{c(alpha.view({-1}))},
+    _d{d(boost_alpha(alpha.view({-1})))},
+    _c{c(boost_alpha(alpha.view({-1})))},
     shape{alpha.sizes().begin(), alpha.sizes().end()}
-    {}
+    {
+        if (_alpha.size(0) != _scale.size(0)) {
+            throw std::invalid_argument{"Alpha and scale must be of the same size."};
+        }
+        if (!_alpha.gt(0).all().item().toBool()) {
+            throw std::invalid_argument{"Alpha must be greater than zero."};
+        }
+        if (!_scale.gt(0).all().item().toBool()) {
+            throw std::invalid_argument{"Scale must be greater than zero."};
+        }
+    }
 
     torch::Tensor Gamma::sample() const
     {
@@ -59,7 +69,7 @@ namespace rl::policies
                 );
                 v.index_put_(
                     {mask},
-                    (1 + _c.index({not_done_indices[0]}) * x.index({mask})).pow_(3)
+                    (1 + _c.index({not_done_indices}).index({mask}) * x.index({mask})).pow_(3)
                 );
             }
 
@@ -91,7 +101,16 @@ namespace rl::policies
             );
         }
 
-        return _scale * out.view(shape);
+        if (_is_alpha_boosted.any().item().toBool()) {
+            auto uniform = torch::rand({_is_alpha_boosted.sum().item().toLong()}, out.options());
+            uniform.pow_(1.0 / (_alpha.index({_is_alpha_boosted}) - 1.0));
+            out.index_put_(
+                {_is_alpha_boosted},
+                out.index({_is_alpha_boosted}) * uniform
+            );
+        }
+
+        return (_scale * out).view(shape);
     }
 
     torch::Tensor Gamma::entropy() const {
@@ -99,11 +118,13 @@ namespace rl::policies
     }
 
     torch::Tensor Gamma::log_prob(const torch::Tensor &x) const {
-        throw std::runtime_error{"Not implemented."};
+        auto reshaped = x.view({-1});
+        auto out = (_alpha - 1) * reshaped.log() - reshaped / _scale - _alpha * _scale.log() - torch::special::gammaln(_alpha);
+        return out.view(x.sizes());
     }
 
     torch::Tensor Gamma::prob(const torch::Tensor &value) const {
-        throw std::runtime_error{"Not implemented."};
+        return log_prob(value).exp_();
     }
 
     void Gamma::include(std::shared_ptr<constraints::Base> constraint) {

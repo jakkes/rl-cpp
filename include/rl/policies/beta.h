@@ -5,6 +5,7 @@
 #include <torch/torch.h>
 
 #include "base.h"
+#include "gamma.h"
 
 
 namespace rl::policies
@@ -24,8 +25,8 @@ namespace rl::policies
             void include(std::shared_ptr<constraints::Base> constraint);
 
         private:
-            torch::Tensor alpha, beta, a, b, c, cdf, pdf, x;
-            std::vector<int64_t> sample_shape;
+            const Gamma x, y;
+            const torch::Tensor a, b, alpha, beta;
     };
 }
 

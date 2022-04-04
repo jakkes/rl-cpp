@@ -1,13 +1,5 @@
 #include "rl/policies/beta.h"
-
-#include <cmath>
-
-
 #include "rl/policies/constraints/constraints.h"
-
-
-#define RL_BETA_RESOLUTION 1000
-using namespace torch::indexing;
 
 
 namespace rl::policies
@@ -38,35 +30,15 @@ namespace rl::policies
     }
 
     Beta::Beta(torch::Tensor alpha, torch::Tensor beta, torch::Tensor a, torch::Tensor b)
-    : alpha{alpha}, beta{beta}, a{a}, b{b}
+    :
+    x{alpha, torch::ones_like(alpha)},
+    y{beta, torch::ones_like(beta)},
+    a{a},
+    b{b},
+    alpha{alpha},
+    beta{beta}
     {
-        auto flat_alpha = alpha.view({-1});
-        auto flat_beta = beta.view({-1});
-        auto flat_a = a.view({-1});
-        auto flat_b = b.view({-1});
-        auto flat_c = torch::empty_like(alpha.view({-1}));
-
-        x = torch::linspace(0.0, 1.0, RL_BETA_RESOLUTION + 2, flat_alpha.options()).index({Slice(1, -1)});
-
-        pdf = x.pow(alpha.unsqueeze(-1) - 1) * (1 - x).pow(beta.unsqueeze(-1) - 1);
-        pdf = pdf / pdf.sum(-1, true);
-        cdf = pdf.cumsum(-1);
-
-        for (int64_t i = 0; i < flat_alpha.size(0); i++) {
-            flat_c.index_put_({i}, std::beta(flat_alpha.index({i}).item().toFloat(), flat_beta.index({i}).item().toFloat()));
-        }
-
-        c = flat_c.view_as(a);
-
-        sample_shape.reserve(cdf.sizes().size());
-        sample_shape.clear();
-        int i = 0;
-        int64_t batchsize = 1;
-        for (; i < cdf.sizes().size() - 1; i++) {
-            batchsize *= cdf.size(i);
-            sample_shape.push_back(cdf.size(i));
-        }
-        sample_shape.push_back(1);
+        check_sizes(alpha, beta, a, b);
     }
 
     Beta::Beta(torch::Tensor alpha, torch::Tensor beta)
@@ -74,29 +46,36 @@ namespace rl::policies
 
     torch::Tensor Beta::prob(const torch::Tensor &value) const
     {
-        auto x = invmap(value, a, b);
-        return x.pow(alpha-1) * (1 - x).pow_(beta-1) / c;
+        return log_prob(value).exp_();
     }
 
     torch::Tensor Beta::log_prob(const torch::Tensor &value) const
     {
         auto x = invmap(value, a, b);
-        return (alpha - 1) * x.log() + (beta - 1) * (1 - x).log() - c.log();
+        return 
+            (alpha - 1) * x.log()
+            + (beta - 1) * (1 - x).log()
+            + torch::special::gammaln(alpha + beta)
+            - torch::special::gammaln(alpha)
+            - torch::special::gammaln(beta);
     }
 
     torch::Tensor Beta::sample() const
     {
-        auto indices = (torch::rand(sample_shape, cdf.options()) > cdf).sum(-1);
-        return map(
-            torch::ones_like(indices) * (indices + 1) / (RL_BETA_RESOLUTION + 1),
-            a,
-            b
-        );
+        auto X = x.sample();
+        auto Y = y.sample();
+        return map(X / (X + Y), a, b);
     }
 
     torch::Tensor Beta::entropy() const
     {
-        return - (x.log() * pdf / (RL_BETA_RESOLUTION + 1)).sum(-1);
+        return 
+            torch::special::gammaln(alpha + beta)
+            - torch::special::gammaln(alpha)
+            - torch::special::gammaln(beta)
+            - (alpha - 1) * torch::special::digamma(alpha)
+            - (beta - 1) * torch::special::digamma(beta)
+            + (alpha + beta - 2) * torch::special::digamma(alpha + beta);
     }
 
     void Beta::include(std::shared_ptr<constraints::Base> constraint)

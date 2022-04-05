@@ -126,12 +126,12 @@ namespace rl::agents::ppo::trainers
     };
 
     static
-    void run_sequence(std::shared_ptr<env::Base> env, std::shared_ptr<agents::ppo::Module> model, int length, Sequences *out, int out_i, const Logger &logger)
+    void run_sequence(std::shared_ptr<env::Base> env, std::shared_ptr<agents::ppo::Module> model, const BasicOptions &options, Sequences *out, int out_i)
     {
         torch::NoGradGuard no_grad{};
-        Sequence sequence{length};
+        Sequence sequence{options.sequence_length};
 
-        for (int i = 0; i < length; i++)
+        for (int i = 0; i < options.sequence_length; i++)
         {
             auto state = env->state();
             bool was_terminal = env->is_terminal();
@@ -152,9 +152,9 @@ namespace rl::agents::ppo::trainers
             sequence.not_terminals.push_back(!observation->terminal);
             sequence.rewards.push_back(observation->reward);
 
-            if (was_terminal && logger) {
-                logger->log_scalar("PPO/StartValue", model_output->value.index({0}).item().toFloat());
-                logger->log_scalar("PPO/StartEntropy", model_output->policy->entropy().index({0}).item().toFloat());
+            if (was_terminal && options.logger) {
+                if (options.log_start_value) options.logger->log_scalar("PPO/StartValue", model_output->value.index({0}).item().toFloat());
+                if (options.log_start_entropy) options.logger->log_scalar("PPO/StartEntropy", model_output->policy->entropy().index({0}).item().toFloat());
             }
         }
 
@@ -168,15 +168,14 @@ namespace rl::agents::ppo::trainers
     std::unique_ptr<Sequences> run_sequences(
         const std::vector<std::shared_ptr<env::Base>> &envs,
         std::shared_ptr<agents::ppo::Module> model,
-        int length,
-        thread_pool &pool,
-        const Logger &logger
+        const BasicOptions &options,
+        thread_pool &pool
     )
     {
         auto re = std::make_unique<Sequences>(envs.size());
 
         for (int i = 0; i < envs.size(); i++) {
-            pool.push_task(run_sequence, envs[i], model, length, re.get(), i, logger);
+            pool.push_task(run_sequence, envs[i], model, options, re.get(), i);
         }
         pool.wait_for_tasks();
         return re;
@@ -224,7 +223,7 @@ namespace rl::agents::ppo::trainers
         }
 
         while (std::chrono::steady_clock::now() < end) {
-            auto sequences = run_sequences(envs, model, options.sequence_length, pool, options.logger);
+            auto sequences = run_sequences(envs, model, options, pool);
             CompiledSequences compiled{*sequences};
 
             for (int i = 0; i < options.update_steps; i++) {
@@ -233,7 +232,9 @@ namespace rl::agents::ppo::trainers
                 loss.backward();
                 optimizer->step();
 
-                if (options.logger) options.logger->log_scalar("PPO/Loss", loss.item().toFloat());
+                if (options.logger && options.log_loss) {
+                    options.logger->log_scalar("PPO/Loss", loss.item().toFloat());
+                }
             }
             if (options.logger) options.logger->log_frequency("PPO/UpdateFrequency", options.update_steps);
         }

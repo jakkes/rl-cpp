@@ -21,13 +21,16 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(float, eps) = 0.1;
         RL_OPTION(float, discount) = 0.99;
         RL_OPTION(float, gae_discount) = 0.95;
-        RL_OPTION(int64_t, update_steps) = 10;
-        RL_OPTION(int64_t, sequence_length) = 64;
+        RL_OPTION(int, update_steps) = 10;
+        RL_OPTION(int, sequence_length) = 64;
         RL_OPTION(int, envs) = 16;
         RL_OPTION(int, env_workers) = 4;
         RL_OPTION(bool, cuda) = false;
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger){};
+        RL_OPTION(bool, log_start_entropy) = true;
+        RL_OPTION(bool, log_loss) = true;
+        RL_OPTION(bool, log_start_value) = true;
     };
 
     class Basic{

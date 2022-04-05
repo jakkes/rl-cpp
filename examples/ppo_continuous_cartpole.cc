@@ -101,6 +101,7 @@ int main(int argc, char **argv)
             .env_workers_(args.get<int>("--env-worker-threads"))
             .envs_(args.get<int>("--envs"))
             .logger_(logger)
+            .log_start_entropy_(false)
     };
 
     trainer.run(std::chrono::seconds(args.get<int>("--duration")));

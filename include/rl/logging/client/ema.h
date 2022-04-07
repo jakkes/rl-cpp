@@ -16,22 +16,52 @@
 
 namespace rl::logging::client
 {
+    /**
+     * @brief Simple logging client computing the exponential moving average (EMA)
+     * across different smoothing values, and outputting the smoothed values to STDOUT.
+     * 
+     */
     class EMA : public Base
     {
         public:
+            /**
+             * @brief Construct a new EMA object
+             * 
+             * @param smoothing_values Smoothing values to be used in the logging.
+             * @param output_period_s Period, in seconds, of the output.
+             */
             EMA(const std::vector<double> &smoothing_values, int output_period_s);
             ~EMA();
             
+            /// <inheritdoc/>
             void log_scalar(const std::string &name, double value) override;
+
+            /// <inheritdoc/>
             void log_frequency(const std::string &name, int occurances) override;
 
+            /**
+             * @brief EMA estimator.
+             * 
+             */
             class Estimator {
                 public:
+                    /**
+                     * @brief Construct a new Estimator object
+                     * 
+                     * @param smoothing EMA smoothing value.
+                     */
                     Estimator(double smoothing)
                     : smoothing{smoothing}, _x{smoothing}, inv_smoothing{1 - smoothing}
                     {}
 
+                    /**
+                     * @return double Current estimate.
+                     */
                     inline double get() const { return value / (1 - _x); }
+                    
+                    /**
+                     * @brief Update estimate.
+                     */
                     inline void update(double observation) {
                         value += inv_smoothing * (observation - value);
                         _x *= smoothing;

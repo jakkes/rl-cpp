@@ -8,13 +8,29 @@
 
 namespace rl::logging::client
 {
+    /**
+     * @brief Base logging client.
+     * 
+     */
     class Base
     {
         public:
+            /**
+             * @brief Logs a scalar value.
+             * 
+             * @param name Log key.
+             * @param value Log value.
+             */
             virtual void log_scalar(const std::string &name, double value) {
                 throw std::runtime_error{"log_scalar not implemented."};
             }
 
+            /**
+             * @brief Logs the frequency of which events occur.
+             * 
+             * @param name Log key.
+             * @param occurances Number of occurences to log.
+             */
             virtual void log_frequency(const std::string &name, int occurances) {
                 throw std::runtime_error{"log_frequency not implemented."};
             }

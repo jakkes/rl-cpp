@@ -19,6 +19,7 @@ target_sources(
         policies/beta.cc
         policies/normal.cc
         policies/gamma.cc
+        policies/factorized.cc
 
             policies/constraints/stack.cc
             policies/constraints/categorical_mask.cc

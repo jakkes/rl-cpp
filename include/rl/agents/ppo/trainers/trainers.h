@@ -2,5 +2,6 @@
 #define INCLUDE_RL_AGENTS_PPO_TRAINERS_TRAINERS_H_
 
 #include "basic.h"
+#include "seed.h"
 
 #endif /* INCLUDE_RL_AGENTS_PPO_TRAINERS_TRAINERS_H_ */

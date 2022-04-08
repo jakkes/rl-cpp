@@ -13,3 +13,10 @@ if (NOT TARGET thread-safe::collections)
     add_subdirectory(thread-safe-collections)
 endif()
 target_link_libraries(rl PUBLIC thread-safe::collections)
+
+if (NOT TARGET cppzmq)
+    add_subdirectory(cppzmq)
+endif()
+target_link_libraries(rl PUBLIC cppzmq)
+
+find_package(Protobuf REQUIRED)

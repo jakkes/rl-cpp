@@ -10,8 +10,13 @@
 
 namespace rl::policies
 {
-
-    class Base{
+    /**
+     * @brief Base policy class.
+     * 
+     * A policy is nothing other than a probability distribution,
+     * 
+     */
+    class Base {
         public:
             virtual torch::Tensor sample() const = 0;
             virtual torch::Tensor entropy() const = 0;

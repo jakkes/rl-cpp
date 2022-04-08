@@ -1,9 +1,6 @@
 target_sources(
     rl
     PRIVATE
-        agents/ppo/agent.cc
-            agents/ppo/trainers/basic.cc
-
         buffers/state_transition.cc
         buffers/tensor.cc
 
@@ -27,3 +24,5 @@ target_sources(
 
         torchutils.cc
 )
+
+add_subdirectory(agents)

@@ -10,3 +10,6 @@
 [submodule "libs/thread-safe-collections"]
 	path = libs/thread-safe-collections
 	url = https://github.com/jakkes/thread-safe-collections.git
+[submodule "libs/cppzmq"]
+	path = libs/cppzmq
+	url = https://github.com/zeromq/cppzmq.git

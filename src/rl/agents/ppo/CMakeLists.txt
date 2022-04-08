@@ -1,0 +1,10 @@
+target_sources(
+    rl
+    PRIVATE
+        agent.cc
+        trainers/basic.cc
+        trainers/seed.cc
+        trainers/seed_impl/inference.cc
+        trainers/seed_impl/inference_batch.cc
+        trainers/seed_impl/inference_result_future.cc
+)

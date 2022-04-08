@@ -35,5 +35,8 @@ namespace rl::agents::ppo::trainers::seed_impl
         return size - 1;
     }
 
-
+    torch::Tensor InferenceBatch::get_inference_result(int64_t label)
+    {
+        
+    }
 }

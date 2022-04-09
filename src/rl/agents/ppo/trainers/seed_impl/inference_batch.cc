@@ -15,6 +15,11 @@ namespace rl::agents::ppo::trainers::seed_impl
         constraints.reserve(options->batchsize);
     }
 
+    InferenceBatch::~InferenceBatch()
+    {
+        if (timer_thread.joinable()) timer_thread.join();
+    }
+
     int64_t InferenceBatch::add_inference_request(const env::State &state)
     {
         std::lock_guard lock{add_mtx};
@@ -31,12 +36,45 @@ namespace rl::agents::ppo::trainers::seed_impl
             start_timer();
         }
 
-        size++;
-        return size - 1;
+        return size++;
     }
 
-    torch::Tensor InferenceBatch::get_inference_result(int64_t label)
+    std::unique_ptr<InferenceResult> InferenceBatch::get_inference_result(int64_t label)
     {
-        
+        std::unique_lock lock{execute_mtx};
+        execute_cv.wait(lock, has_executed);
+
+        return std::make_unique<InferenceResult> (
+            result_actions.index({label}),
+            result_values.index({label})
+        );
+    }
+
+    void InferenceBatch::execute()
+    {
+        std::lock_guard lock{execute_mtx};
+        if (has_executed()) return;
+
+        auto states = torch::stack(this->states);
+        auto constraints = policies::constraints::stack(this->constraints);
+
+        auto model_output = model->forward(states);
+
+        result_actions = model_output->policy->sample();
+        result_values = model_output->value;
+
+        executed = true;
+        execute_cv.notify_all();
+    }
+
+    void InferenceBatch::start_timer()
+    {
+        timer_thread = std::thread(&InferenceBatch::timer, this);
+    }
+
+    void InferenceBatch::timer()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(options->max_delay_ms));
+        execute();
     }
 }

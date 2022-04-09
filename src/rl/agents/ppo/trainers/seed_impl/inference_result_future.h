@@ -4,11 +4,14 @@
 
 #include <memory>
 
+#include <torch/torch.h>
+
 #include "inference_batch.h"
 
 
 namespace rl::agents::ppo::trainers::seed_impl
 {
+
     class InferenceResultFuture
     {
         public:
@@ -16,6 +19,12 @@ namespace rl::agents::ppo::trainers::seed_impl
                 std::shared_ptr<InferenceBatch> batch,
                 int64_t label
             );
+
+            inline
+            bool is_ready() { return batch->has_executed(); }
+
+            inline
+            std::unique_ptr<InferenceResult> get() { return batch->get_inference_result(label); }
 
         private:
             const std::shared_ptr<InferenceBatch> batch;

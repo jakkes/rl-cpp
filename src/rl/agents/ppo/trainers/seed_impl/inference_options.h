@@ -8,7 +8,6 @@ namespace rl::agents::ppo::trainers::seed_impl
 {
     struct InferenceOptions
     {
-        RL_OPTION(bool, cuda) = false;
         RL_OPTION(int, batchsize) = 32;
         RL_OPTION(int, max_delay_ms) = 500;
     };

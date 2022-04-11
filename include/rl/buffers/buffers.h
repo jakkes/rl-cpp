@@ -5,6 +5,6 @@
 
 #include "state_transition.h"
 #include "tensor.h"
-#include "tensor_and_pointer.h"
+#include "tensor_and_object.h"
 
 #endif /* SRC_RL_BUFFERS_BUFFERS_H_ */

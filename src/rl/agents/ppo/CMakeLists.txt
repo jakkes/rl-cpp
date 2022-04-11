@@ -4,6 +4,7 @@ target_sources(
         agent.cc
         trainers/basic.cc
         trainers/seed.cc
+        trainers/loss_fns.cc
         trainers/seed_impl/actor.cc
         trainers/seed_impl/inference.cc
         trainers/seed_impl/inference_batch.cc

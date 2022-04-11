@@ -18,10 +18,11 @@ namespace rl::agents::ppo::trainers::seed_impl
 
     class InferenceBatchObsolete : public std::exception {};
 
-    class InferenceResult
+    struct InferenceResult
     {
         torch::Tensor action;
         torch::Tensor value;
+        torch::Tensor action_probability;
     };
 
     class InferenceBatch
@@ -29,7 +30,7 @@ namespace rl::agents::ppo::trainers::seed_impl
         public:
             InferenceBatch(
                 std::shared_ptr<rl::agents::ppo::Module> model,
-                InferenceOptions *options
+                const InferenceOptions *options
             );
 
             ~InferenceBatch();
@@ -51,6 +52,7 @@ namespace rl::agents::ppo::trainers::seed_impl
             std::vector<std::shared_ptr<rl::policies::constraints::Base>> constraints;
             torch::Tensor result_actions;
             torch::Tensor result_values;
+            torch::Tensor result_probabilities;
 
             std::thread timer_thread;
 

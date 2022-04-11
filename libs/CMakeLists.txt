@@ -14,6 +14,7 @@ if (NOT TARGET thread-safe::collections)
 endif()
 target_link_libraries(rl PUBLIC thread-safe::collections)
 
+set(CPPZMQ_BUILD_TESTS OFF)
 if (NOT TARGET cppzmq)
     add_subdirectory(cppzmq)
 endif()

@@ -16,7 +16,7 @@ namespace rl::env
      */
     struct Observation{
         // Next state of the environment.
-        std::unique_ptr<State> state;
+        std::shared_ptr<State> state;
         
         // Reward given in the transition.
         float reward;

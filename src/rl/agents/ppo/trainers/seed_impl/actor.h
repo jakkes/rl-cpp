@@ -26,6 +26,8 @@ namespace rl::agents::ppo::trainers::seed_impl
     class Actor
     {
         public:
+            Actor() = delete;
+            Actor(Actor &actor) = delete;
             Actor(
                 std::shared_ptr<Inference> inference,
                 std::shared_ptr<rl::env::Factory> env_factory,

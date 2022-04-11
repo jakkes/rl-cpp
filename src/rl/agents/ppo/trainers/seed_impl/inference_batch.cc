@@ -7,7 +7,7 @@ namespace rl::agents::ppo::trainers::seed_impl
 {
     InferenceBatch::InferenceBatch(
         std::shared_ptr<rl::agents::ppo::Module> model,
-        InferenceOptions *options
+        const InferenceOptions *options
     ) :
     model{model}, options{options}
     {
@@ -30,24 +30,27 @@ namespace rl::agents::ppo::trainers::seed_impl
         states.push_back(state.state);
         constraints.push_back(state.action_constraint);
 
+        size++;
+
         if (is_full()) {
             execute();
         } else if (is_empty()) {
             start_timer();
         }
 
-        return size++;
+        return size - 1;
     }
 
     std::unique_ptr<InferenceResult> InferenceBatch::get_inference_result(int64_t label)
     {
         std::unique_lock lock{execute_mtx};
-        execute_cv.wait(lock, has_executed);
+        execute_cv.wait(lock, [this] () { return has_executed(); });
 
-        return std::make_unique<InferenceResult> (
-            result_actions.index({label}),
-            result_values.index({label})
-        );
+        auto out = std::make_unique<InferenceResult>();
+        out->action = result_actions.index({label});
+        out->value = result_values.index({label});
+        out->action_probability = result_probabilities.index({label});
+        return out;
     }
 
     void InferenceBatch::execute()
@@ -55,13 +58,17 @@ namespace rl::agents::ppo::trainers::seed_impl
         std::lock_guard lock{execute_mtx};
         if (has_executed()) return;
 
+        torch::NoGradGuard no_grad{};
         auto states = torch::stack(this->states);
-        auto constraints = policies::constraints::stack(this->constraints);
 
         auto model_output = model->forward(states);
+        model_output->policy->include(
+            policies::constraints::stack(this->constraints)
+        );
 
         result_actions = model_output->policy->sample();
         result_values = model_output->value;
+        result_probabilities = model_output->policy->prob(result_actions);
 
         executed = true;
         execute_cv.notify_all();

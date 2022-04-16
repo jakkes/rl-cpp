@@ -26,7 +26,7 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
     parser
         .add_argument("--env-workers")
         .help("Environment rollouts are parallellized across threads.")
-        .default_value<int>(12)
+        .default_value<int>(1)
         .scan<'i', int>();
 
     parser

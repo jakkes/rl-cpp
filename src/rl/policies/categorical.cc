@@ -54,8 +54,7 @@ namespace rl::policies
         auto categorical_mask = std::dynamic_pointer_cast<constraints::CategoricalMask>(constraint);
 
         if (categorical_mask) {
-            auto mask = categorical_mask->mask().view({-1, dim});
-            probabilities.view({-1, dim}).index_put_({~mask}, 0.0);
+            probabilities.index_put_({~categorical_mask->mask()}, 0.0);
             check_probabilities();
             compute_internals();
             return;

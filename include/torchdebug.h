@@ -33,4 +33,12 @@ void tprintmean(torch::Tensor &&x) { tprintmean(x); }
 void tprintmean(torch::Tensor &x, int i) { tprint(x.mean(i)); }
 void tprintmean(torch::Tensor &&x, int i) { tprintmean(x, i); }
 
+void tprint(torch::IntArrayRef &ref) {
+    for (int i = 0; i < ref.size(); i++) {
+        std::cout << ref[i] << " ";
+    }
+    std::cout << "\n";
+}
+void tprint(torch::IntArrayRef &&ref) { tprint(ref); }
+
 #endif /* RL_TORCHDEBUG_H_ */

@@ -236,9 +236,10 @@ namespace rl::agents::ppo::trainers
                 {
                     std::lock_guard lock{training_buffer_mtx};
                     auto sample = training_sampler->sample(options.batchsize);
+                    auto stacked_constraints = policies::constraints::stack(sample->objs);
 
                     auto model_output = model->forward(sample->tensors[0].index({Slice(), Slice(None, -1)}));
-                    model_output->policy->include(policies::constraints::stack(sample->objs));
+                    model_output->policy->include(stacked_constraints->index({Slice(), Slice(None, -1)}));
                     auto action_probabilities = model_output->policy->prob(sample->tensors[1]);
 
                     auto last_state_output = model->forward(sample->tensors[0].index({Slice(), Slice(-1, None)}));

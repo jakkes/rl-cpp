@@ -11,17 +11,15 @@ namespace rl::policies::constraints
     {
         public:
             CategoricalMask(const torch::Tensor &mask);
-            torch::Tensor contains(const torch::Tensor &value) const;
+            torch::Tensor contains(const torch::Tensor &value) const override;
+            std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
             inline const torch::Tensor mask() const { return _mask; }
 
             friend std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:
-            torch::Tensor _mask{};
-            torch::Tensor batchvec{};
-            bool batch{};
-            int64_t dim{};
-            int64_t batchsize{0};
+            const torch::Tensor _mask{};
+            const int64_t dim{};
     };
 
     template<>

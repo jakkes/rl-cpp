@@ -22,9 +22,14 @@ namespace rl::policies
             virtual torch::Tensor entropy() const = 0;
             virtual torch::Tensor log_prob(const torch::Tensor &value) const = 0;
             virtual torch::Tensor prob(const torch::Tensor &value) const = 0;
+            
             virtual void include(std::shared_ptr<constraints::Base> constraint)
             {
                 throw UnsupportedConstraintException{};
+            }
+            virtual std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const
+            {
+                throw std::runtime_error{"Policy index not implemented."};
             }
     };
 }

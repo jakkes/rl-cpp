@@ -4,11 +4,13 @@
 #include <set>
 
 #include "rl/torchutils.h"
+#include "rl/cpputils/concat_vector.h"
 
 
 namespace rl::policies::constraints
 {
     CategoricalMask::CategoricalMask(const torch::Tensor &mask)
+    : _mask{mask}, dim{mask.size(-1)}
     {
         if (!rl::torchutils::is_bool_dtype(mask)) {
             throw std::invalid_argument{"Mask must be of type boolean."};
@@ -19,18 +21,6 @@ namespace rl::policies::constraints
         if (mask.isnan().any().item().toBool()) {
             throw std::runtime_error{"Mask must not contain NaN."};
         }
-
-        batch = mask.sizes().size() > 1;
-        dim = mask.size(-1);
-
-        if (batch) {
-            this->_mask = mask.view({-1, dim});
-            batchsize = mask.size(0);
-        } else {
-            this->_mask = mask;
-        }
-
-        batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(mask.device()));
     }
 
     torch::Tensor CategoricalMask::contains(const torch::Tensor &value) const
@@ -38,15 +28,28 @@ namespace rl::policies::constraints
         if (!rl::torchutils::is_int_dtype(value)) {
             throw std::runtime_error{"Categorical mask received value of unknown data type."};
         }
-        if (batch) {
-            assert(value.sizes().size() > 0);
-            auto shape = value.sizes();
-            return _mask.index({batchvec, value.view({-1})}).view(shape);
-        }
-        else
-        {
-            return _mask.index({value});
-        }
+
+        auto shape = value.sizes();
+        auto broadcasted_and_flattened_mask = _mask
+            .broadcast_to(
+                rl::cpputils::concat<int64_t>(
+                    value.sizes().vec(),
+                    {dim}
+                )
+            )
+            .reshape({-1, dim});
+        auto batchvec = torch::arange(
+                            broadcasted_and_flattened_mask.size(0), value.options());
+
+        return broadcasted_and_flattened_mask
+            .index({batchvec, value.view({-1})})
+            .view(shape);
+    }
+
+    std::unique_ptr<Base> CategoricalMask::index(
+                    const std::vector<torch::indexing::TensorIndex> &indexing) const
+    {
+        return std::make_unique<CategoricalMask>(_mask.index(indexing));
     }
 
     template<>

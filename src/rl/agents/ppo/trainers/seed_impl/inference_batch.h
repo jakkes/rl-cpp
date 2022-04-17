@@ -6,6 +6,7 @@
 #include <exception>
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 #include "rl/env/state.h"
 #include "rl/policies/policies.h"
@@ -45,6 +46,7 @@ namespace rl::agents::ppo::trainers::seed_impl
         private:
             const std::shared_ptr<rl::agents::ppo::Module> model;
             const InferenceOptions *options;
+            const std::chrono::high_resolution_clock::time_point created;
 
             bool executed{false};
             std::atomic<int64_t> size{0};

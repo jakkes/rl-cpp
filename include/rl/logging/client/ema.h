@@ -80,7 +80,7 @@ namespace rl::logging::client
             
             std::mutex occurances_reset_mtx{};
             std::unordered_map<std::string, std::atomic<size_t>> occurences;
-            rl::cpputils::Metronome *metronome;
+            rl::cpputils::Metronome<std::chrono::seconds> metronome{5};
 
             std::vector<double> smoothing_values;
             int output_period;

@@ -44,7 +44,9 @@ namespace rl::agents::ppo::trainers::seed_impl
     void Actor::worker()
     {
         std::vector<Env> envs{};
+        std::vector<bool> was_terminal{};
         envs.reserve(options.environments);
+        was_terminal.resize(options.environments, true);
 
         // Create envs
         for (int i = 0; i < options.environments; i++) {
@@ -84,6 +86,17 @@ namespace rl::agents::ppo::trainers::seed_impl
             auto state = env.env->state();
             auto inference_result = env.inference_result->get();
             auto transition = env.env->step(inference_result->action);
+
+            if (options.logger) {
+                if (was_terminal[next_env_step_i]) {
+                    options.logger->log_scalar("Inference/StartValue", inference_result->value.item().toFloat());
+                }
+                if (transition->terminal) {
+                    options.logger->log_scalar("Inference/EndValue", inference_result->value.item().toFloat());
+                }
+                was_terminal[next_env_step_i] = transition->terminal;
+            }
+            
 
             int step = env.sequence_length++;
 

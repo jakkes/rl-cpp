@@ -26,8 +26,8 @@ TORCH_TEST(policies, factorized, device)
     ASSERT_TRUE( x2 == 0 || x2 == 2 );
 
     ASSERT_TRUE(
-        f.prob(sample).allclose(torch::tensor(0.5 * 0.9, o))
-        || f.prob(sample).allclose(torch::tensor(0.5 * 0.1, o))
+        f.prob(sample).allclose(torch::tensor(0.5 * 0.9, o), 1e-3, 1e-3)
+        || f.prob(sample).allclose(torch::tensor(0.5 * 0.1, o), 1e-3, 1e-3)
     );
 
     f.entropy();

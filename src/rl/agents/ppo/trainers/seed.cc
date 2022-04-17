@@ -7,6 +7,7 @@
 #include "rl/buffers/tensor_and_object.h"
 #include "rl/buffers/samplers/uniform.h"
 #include "rl/cpputils/concat_vector.h"
+#include "rl/cpputils/metronome.h"
 
 #include "seed_impl/inference.h"
 #include "seed_impl/actor.h"
@@ -109,8 +110,9 @@ namespace rl::agents::ppo::trainers
                 inference = std::make_shared<seed_impl::Inference>(
                     model,
                     seed_impl::InferenceOptions{}
-                    .batchsize_(options.inference_batchsize)
-                    .max_delay_ms_(options.inference_max_delay_ms)
+                        .batchsize_(options.inference_batchsize)
+                        .max_delay_ms_(options.inference_max_delay_ms)
+                        .logger_(options.logger)
                 );
                 inference_buffer = std::make_shared<BufferType>(
                     options.inference_replay_size,
@@ -138,6 +140,7 @@ namespace rl::agents::ppo::trainers
                             seed_impl::ActorOptions{}
                                 .environments_(options.envs_per_worker)
                                 .sequence_length_(options.sequence_length)
+                                .logger_(options.logger)
                         )
                     );
                 }
@@ -232,8 +235,15 @@ namespace rl::agents::ppo::trainers
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                 }
 
+                size_t period{0};
+                if (options.max_update_frequency > 0) {
+                    period = static_cast<size_t>(1.0 / options.max_update_frequency * 1e9);
+                }
+                rl::cpputils::Metronome<std::chrono::nanoseconds> metronome{period};
+
                 while (running)
                 {
+                    metronome.spin();
                     std::lock_guard lock{training_buffer_mtx};
                     auto sample = training_sampler->sample(options.batchsize);
                     auto stacked_constraints = policies::constraints::stack(sample->objs);
@@ -255,6 +265,12 @@ namespace rl::agents::ppo::trainers
                     optimizer->zero_grad();
                     loss.backward();
                     optimizer->step();
+
+                    if (options.logger) {
+                        options.logger->log_scalar("Trainer/ValueLoss", value_loss.item().toFloat());
+                        options.logger->log_scalar("Trainer/PolicyLoss", policy_loss.item().toFloat());
+                        options.logger->log_frequency("Trainer/UpdateFrequency", 1);
+                    }
                 }
             }
     };

@@ -10,6 +10,7 @@
 #include "rl/env/env.h"
 #include "rl/policies/policies.h"
 #include "rl/agents/ppo/module.h"
+#include "rl/logging/logging.h"
 
 namespace rl::agents::ppo::trainers
 {
@@ -23,15 +24,17 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int, envs_per_worker) = 4;
         RL_OPTION(int, env_workers) = 4;
 
-        RL_OPTION(int, batchsize) = 32;
-
         RL_OPTION(int, inference_batchsize) = 32;
         RL_OPTION(int, inference_max_delay_ms) = 500;
 
+        RL_OPTION(int, batchsize) = 32;
         RL_OPTION(int64_t, replay_size) = 500;
         RL_OPTION(int64_t, inference_replay_size) = 100;
         RL_OPTION(torch::Device, replay_device) = torch::kCPU;
         RL_OPTION(int64_t, min_replay_size) = 500;
+        RL_OPTION(float, max_update_frequency) = 10;
+
+        RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };
 
     class SEED

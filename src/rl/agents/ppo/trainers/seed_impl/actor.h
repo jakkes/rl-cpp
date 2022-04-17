@@ -5,11 +5,13 @@
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <memory>
 
 #include <thread_safe/collections/queue.h>
 
 #include "rl/env/env.h"
 #include "rl/option.h"
+#include "rl/logging/client/base.h"
 
 #include "inference.h"
 #include "sequence.h"
@@ -21,6 +23,8 @@ namespace rl::agents::ppo::trainers::seed_impl
     {
         RL_OPTION(int, sequence_length) = 64;
         RL_OPTION(int, environments) = 1;
+
+        RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };
 
     class Actor

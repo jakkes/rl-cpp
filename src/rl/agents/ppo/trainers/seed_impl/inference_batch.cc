@@ -9,7 +9,7 @@ namespace rl::agents::ppo::trainers::seed_impl
         std::shared_ptr<rl::agents::ppo::Module> model,
         const InferenceOptions *options
     ) :
-    model{model}, options{options}
+    model{model}, options{options}, created{std::chrono::high_resolution_clock::now()}
     {
         states.reserve(options->batchsize);
         constraints.reserve(options->batchsize);
@@ -30,12 +30,12 @@ namespace rl::agents::ppo::trainers::seed_impl
         states.push_back(state.state);
         constraints.push_back(state.action_constraint);
 
+        if (is_empty()) {
+            start_timer();
+        }
         size++;
-
         if (is_full()) {
             execute();
-        } else if (is_empty()) {
-            start_timer();
         }
 
         return size - 1;
@@ -72,6 +72,12 @@ namespace rl::agents::ppo::trainers::seed_impl
 
         executed = true;
         execute_cv.notify_all();
+        if (options->logger) {
+            auto delay = std::chrono::high_resolution_clock::now() - created;
+            options->logger->log_scalar("Inference/Delay (ms)", delay.count() / 1000000);
+            options->logger->log_frequency("Inference/Frequency", size);
+            options->logger->log_scalar("Inference/BatchSize", size);
+        }
     }
 
     void InferenceBatch::start_timer()

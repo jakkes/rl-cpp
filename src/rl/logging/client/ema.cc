@@ -14,8 +14,7 @@ namespace rl::logging::client
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
         output_producing_thread = std::thread(&EMA::output_producer, this);
         
-        metronome = new rl::cpputils::Metronome{std::bind(&EMA::metronome_callback, this)};
-        metronome->start(std::chrono::seconds(output_period_s));
+        metronome.start(std::bind(&EMA::metronome_callback, this));
     }
 
     EMA::~EMA()
@@ -23,7 +22,6 @@ namespace rl::logging::client
         is_running = false;
         if (queue_consuming_thread.joinable()) queue_consuming_thread.join();
         if (output_producing_thread.joinable()) output_producing_thread.join();
-        delete metronome;
     }
 
     void EMA::log_scalar(const std::string &name, double value)
@@ -77,6 +75,7 @@ namespace rl::logging::client
             std::cout << "\n";
             std::for_each(scalar_estimates.cbegin(), scalar_estimates.cend(), print_estimates);
             std::cout << "\n";
+            std::cout << std::flush;
         }
     }
 

@@ -104,8 +104,6 @@ namespace rl::env
     void CartPoleContinuous::log_terminal() {
         if (!logger) return;
         logger->log_scalar("CartPole/Reward", total_reward);
-        logger->log_frequency("CartPole/StepFrequency", steps);
-        logger->log_frequency("CartPole/EpisodeFrequency", 1);
     }
 
 

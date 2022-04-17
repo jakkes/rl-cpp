@@ -105,10 +105,13 @@ int main(int argc, char **argv)
             .inference_batchsize_(args.get<int>("--env-workers") * args.get<int>("--envs-per-worker") / 2)
             .inference_max_delay_ms_(500)
             .inference_replay_size_(100)
+            .inference_batchsize_(32)
             .min_replay_size_(500)
             .replay_size_(500)
             .replay_device_(args.get<bool>("--cuda") ? torch::kCUDA : torch::kCPU)
             .sequence_length_(64)
+            .max_update_frequency_(50)
+            .logger_(logger)
     };
 
     trainer.run(std::chrono::seconds(args.get<int>("--duration")));

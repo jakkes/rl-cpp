@@ -32,6 +32,8 @@ namespace rl::policies::constraints
 
             const torch::Tensor upper_bound() const;
             const torch::Tensor lower_bound() const;
+            std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
+
             int n_action_dims() const;
 
             friend std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints);

@@ -34,6 +34,11 @@ namespace rl::policies::constraints
         return upper_fulfilled.logical_and_(lower_fulfilled);
     }
 
+    std::unique_ptr<Base> Box::index(const std::vector<torch::indexing::TensorIndex> &indexing) const
+    {
+        return std::make_unique<Box>(lower.index(indexing), upper.index(indexing), options);
+    }
+
     const torch::Tensor Box::lower_bound() const { return lower; }
     const torch::Tensor Box::upper_bound() const { return upper; }
     int Box::n_action_dims() const { return options.n_action_dims; }

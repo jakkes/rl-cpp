@@ -20,13 +20,13 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
     parser
         .add_argument("--envs-per-worker")
         .help("Number of environment sequences handled in parallell.")
-        .default_value<int>(4)
+        .default_value<int>(8)
         .scan<'i', int>();
 
     parser
         .add_argument("--env-workers")
         .help("Environment rollouts are parallellized across threads.")
-        .default_value<int>(1)
+        .default_value<int>(16)
         .scan<'i', int>();
 
     parser
@@ -101,18 +101,17 @@ int main(int argc, char **argv)
         optimizer,
         env_factory,
         agents::ppo::trainers::SEEDOptions{}
-            .batchsize_(32)
+            .batchsize_(64)
             .env_workers_(args.get<int>("--env-workers"))
             .envs_per_worker_(args.get<int>("--envs-per-worker"))
             .inference_batchsize_(args.get<int>("--env-workers") * args.get<int>("--envs-per-worker") / 2)
             .inference_max_delay_ms_(500)
             .inference_replay_size_(100)
-            .inference_batchsize_(32)
-            .min_replay_size_(500)
-            .replay_size_(500)
+            .min_replay_size_(1000)
+            .replay_size_(1000)
             .replay_device_(args.get<bool>("--cuda") ? torch::kCUDA : torch::kCPU)
             .sequence_length_(64)
-            .max_update_frequency_(10)
+            .max_update_frequency_(25)
             .logger_(logger)
     };
 

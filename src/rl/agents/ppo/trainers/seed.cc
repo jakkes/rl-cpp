@@ -262,6 +262,10 @@ namespace rl::agents::ppo::trainers
 
                     auto loss = value_loss + policy_loss;
 
+                    if (loss.isnan().any().item().toBool()) {
+                        std::cout << "NaN loss!\n";
+                    }
+
                     optimizer->zero_grad();
                     loss.backward();
                     optimizer->step();

@@ -35,6 +35,7 @@ namespace rl::policies::constraints
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
             int n_action_dims() const;
+            StackFn stack_fn() const { return stack<Box>; }
 
             friend std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints);
         private:

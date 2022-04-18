@@ -15,6 +15,7 @@ namespace rl::policies::constraints
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
             inline const torch::Tensor mask() const { return _mask; }
+            StackFn stack_fn() const { return stack<CategoricalMask>; }
 
             friend std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:

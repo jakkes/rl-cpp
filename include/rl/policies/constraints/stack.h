@@ -13,8 +13,6 @@
 namespace rl::policies::constraints
 {
 
-    class UnknownConstraint : public std::exception {};
-
     template<class T>
     std::unique_ptr<T> __stack_impl(const std::vector<std::shared_ptr<T>> &constraints)
     {

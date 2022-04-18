@@ -11,14 +11,7 @@ namespace rl::policies::constraints
     {
         if (constraints.size() == 0) throw std::invalid_argument{"Cannot stack zero elements."};
 
-        if (std::dynamic_pointer_cast<CategoricalMask>(constraints[0])) {
-            return stack<CategoricalMask>(constraints);
-        }
-
-        if (std::dynamic_pointer_cast<Box>(constraints[0])) {
-            return stack<Box>(constraints);
-        }
-
-        throw UnknownConstraint{};
+        auto stack_fn = constraints[0]->stack_fn();
+        return stack_fn(constraints);
     }
 }

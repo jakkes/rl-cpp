@@ -1,3 +1,5 @@
+cmake_policy(SET CMP0077 NEW)
+
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     set(MAIN_FILE ON)
 else()

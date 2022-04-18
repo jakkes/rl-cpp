@@ -15,10 +15,7 @@ namespace rl::policies::constraints
     {
         public:
             virtual torch::Tensor contains(const torch::Tensor &x) const = 0;
-            virtual std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const
-            {
-                throw std::runtime_error{"Constraint index not implemented."};
-            }
+            virtual std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const = 0;
     };
 }
 

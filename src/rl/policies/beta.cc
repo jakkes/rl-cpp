@@ -64,7 +64,8 @@ namespace rl::policies
     {
         auto X = x.sample();
         auto Y = y.sample();
-        return map(X / (X + Y), a, b);
+        auto sample = X / (X + Y);
+        return map(sample, a, b).clamp_(a+1e-6, b-1e-6);
     }
 
     torch::Tensor Beta::entropy() const

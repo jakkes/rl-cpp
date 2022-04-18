@@ -4,6 +4,8 @@ target_sources(
         buffers/state_transition.cc
         buffers/tensor.cc
 
+        cpputils/logger.cc
+
         env/cart_pole.cc
         env/base.cc
 

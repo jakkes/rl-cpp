@@ -21,3 +21,9 @@ endif()
 target_link_libraries(rl PUBLIC cppzmq)
 
 find_package(Protobuf REQUIRED)
+
+if (NOT TARGET spdlog::spdlog)
+    add_subdirectory(spdlog)
+    set_property(TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+target_link_libraries(rl PUBLIC spdlog::spdlog)

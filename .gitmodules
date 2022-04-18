@@ -13,3 +13,6 @@
 [submodule "libs/cppzmq"]
 	path = libs/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
+[submodule "libs/spdlog"]
+	path = libs/spdlog
+	url = https://github.com/gabime/spdlog.git

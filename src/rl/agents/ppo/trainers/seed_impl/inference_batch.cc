@@ -1,10 +1,14 @@
 #include "inference_batch.h"
 
+#include "rl/cpputils/logger.h"
+
 
 using namespace rl;
 
 namespace rl::agents::ppo::trainers::seed_impl
 {
+    static auto LOGGER = rl::cpputils::get_logger("InferenceBatch");
+
     InferenceBatch::InferenceBatch(
         std::shared_ptr<rl::agents::ppo::Module> model,
         const InferenceOptions *options
@@ -17,7 +21,9 @@ namespace rl::agents::ppo::trainers::seed_impl
 
     InferenceBatch::~InferenceBatch()
     {
+        LOGGER->trace("InferenceBatch destruction started...");
         if (timer_thread.joinable()) timer_thread.join();
+        LOGGER->trace("InferenceBatch destruction completed.");
     }
 
     int64_t InferenceBatch::add_inference_request(const env::State &state)

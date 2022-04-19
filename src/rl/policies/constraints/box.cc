@@ -43,8 +43,12 @@ namespace rl::policies::constraints
     const torch::Tensor Box::upper_bound() const { return upper; }
     int Box::n_action_dims() const { return options.n_action_dims; }
 
-    template<>
-    std::unique_ptr<Box> __stack_impl<Box>(const std::vector<std::shared_ptr<Box>> &constraints)
+    std::unique_ptr<Base> Box::stack(const std::vector<std::shared_ptr<Base>> &constraints) const
+    {
+        return stack( *recast<Box>(constraints) );
+    }
+
+    std::unique_ptr<Box> Box::stack(const std::vector<std::shared_ptr<Box>> &constraints) const
     {
         for (int i = 1; i < constraints.size(); i++) {
             if (!constraints[i]->options.equals(constraints[0]->options)) {

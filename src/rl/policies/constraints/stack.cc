@@ -11,7 +11,6 @@ namespace rl::policies::constraints
     {
         if (constraints.size() == 0) throw std::invalid_argument{"Cannot stack zero elements."};
 
-        auto stack_fn = constraints[0]->stack_fn();
-        return stack_fn(constraints);
+        return constraints[0]->stack(constraints);
     }
 }

@@ -31,7 +31,7 @@ TORCH_TEST(policies, categorical_mask, device)
     ASSERT_FALSE(r.index({2, 0}).item().toBool());
     ASSERT_FALSE(r.index({2, 1}).item().toBool());
 
-    auto stacked_c = stack<CategoricalMask>({c, c});
+    auto stacked_c = stack({c, c});
     auto stacked_r = stacked_c->contains(
         torch::tensor({0, 2}, torch::TensorOptions{}.dtype(torch::kLong).device(device))
     );

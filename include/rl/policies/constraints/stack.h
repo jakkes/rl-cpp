@@ -4,7 +4,6 @@
 #include <memory>
 #include <functional>
 #include <vector>
-#include <algorithm>
 #include <stdexcept>
 
 #include "base.h"
@@ -12,23 +11,19 @@
 
 namespace rl::policies::constraints
 {
-
     template<class T>
-    std::unique_ptr<T> __stack_impl(const std::vector<std::shared_ptr<T>> &constraints)
+    std::unique_ptr<std::vector<std::shared_ptr<T>>> recast(
+        const std::vector<std::shared_ptr<Base>> &constraints
+    )
     {
-        throw std::runtime_error{"Stack fn not implemented."};
-    }
-
-    template<class T>
-    std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints)
-    {
-        std::vector<std::shared_ptr<T>> recast{};
-        recast.reserve(constraints.size());
+        auto out = std::make_unique<std::vector<std::shared_ptr<T>>>();
+        out->reserve(constraints.size());
         for (auto ptr : constraints) {
-            auto casted_ptr = std::dynamic_pointer_cast<T>(ptr); assert(casted_ptr);
-            recast.push_back(casted_ptr);
+            auto casted_ptr = std::dynamic_pointer_cast<T>(ptr);
+            if (!casted_ptr) throw std::runtime_error{"Failed casting constraint."};
+            out->push_back(casted_ptr);
         }
-        return __stack_impl<T>(recast);
+        return out;
     }
 
     std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints);

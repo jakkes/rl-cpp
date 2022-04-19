@@ -13,18 +13,14 @@ namespace rl::policies::constraints
             CategoricalMask(const torch::Tensor &mask);
             torch::Tensor contains(const torch::Tensor &value) const override;
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
+            std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints) const override;
+            std::unique_ptr<CategoricalMask> stack(const std::vector<std::shared_ptr<CategoricalMask>> &constraints) const;
 
             inline const torch::Tensor mask() const { return _mask; }
-            StackFn stack_fn() const { return stack<CategoricalMask>; }
-
-            friend std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
         private:
             const torch::Tensor _mask{};
             const int64_t dim{};
     };
-
-    template<>
-    std::unique_ptr<CategoricalMask> __stack_impl<CategoricalMask>(const std::vector<std::shared_ptr<CategoricalMask>> &constraints);
 }
 
 #endif /* RL_ENV_CONSTRAINTS_CATEGORICAL_MASK_H_ */

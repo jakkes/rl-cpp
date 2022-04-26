@@ -47,7 +47,7 @@ namespace rl::env
              * 
              * @return std::unique_ptr<State> Current state.
              */
-            virtual std::unique_ptr<State> state() = 0;
+            virtual std::unique_ptr<State> state() const = 0;
             
             /**
              * @brief Whether or not the environment is in a terminal state. If so, it
@@ -56,7 +56,7 @@ namespace rl::env
              * @return true Environment is in a terminal state.
              * @return false Environment is not in a terminal state.
              */
-            virtual bool is_terminal() = 0;
+            virtual bool is_terminal() const = 0;
 
             /**
              * @brief Set the logger object used by the environment.
@@ -83,7 +83,7 @@ namespace rl::env
              * @return true CUDA tensors are used.
              * @return false CPU tensors are used.
              */
-            inline bool is_cuda() { return is_cuda_; }
+            inline bool is_cuda() const { return is_cuda_; }
         
         protected:
             std::shared_ptr<rl::logging::client::Base> logger;

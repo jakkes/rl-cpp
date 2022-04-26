@@ -87,8 +87,6 @@ namespace rl::env
         
         protected:
             std::shared_ptr<rl::logging::client::Base> logger;
-
-        private:
             bool is_cuda_{false};
     };
 

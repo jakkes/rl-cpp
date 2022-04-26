@@ -38,16 +38,16 @@ namespace rl::env
             std::unique_ptr<Observation> step(float action);
 
             /// <inheritdoc/>
-            std::unique_ptr<State> state() override;
+            std::unique_ptr<State> state() const override;
 
             /// <inheritdoc/>
             std::unique_ptr<State> reset() override;
 
             /// <inheritdoc/>
-            bool is_terminal() override;
+            bool is_terminal() const override;
 
         protected:
-            torch::Tensor state_vector();
+            torch::Tensor state_vector() const;
 
         private:
             float x, v, theta, omega;
@@ -101,7 +101,7 @@ namespace rl::env
             CartPoleDiscrete(int max_steps, int action_space_dim);
 
             /// <inheritdoc/>
-            std::unique_ptr<State> state() override;
+            std::unique_ptr<State> state() const override;
             
             /// <inheritdoc/>
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;

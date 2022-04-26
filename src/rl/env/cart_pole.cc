@@ -29,12 +29,12 @@ namespace rl::env
 
     CartPoleContinuous::CartPoleContinuous(int max_steps) : max_steps{max_steps} {}
 
-    torch::Tensor CartPoleContinuous::state_vector() {
+    torch::Tensor CartPoleContinuous::state_vector() const {
         float progress = (steps * 1.0 / max_steps - 0.5) * 2;
         return torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
     }
 
-    std::unique_ptr<State> CartPoleContinuous::state() {
+    std::unique_ptr<State> CartPoleContinuous::state() const {
         auto re = std::make_unique<State>();
         re->state = state_vector();
         auto constraint_options = torch::TensorOptions{}
@@ -99,7 +99,7 @@ namespace rl::env
         return observation;
     }
 
-    bool CartPoleContinuous::is_terminal() { return terminal; }
+    bool CartPoleContinuous::is_terminal() const { return terminal; }
 
     void CartPoleContinuous::log_terminal() {
         if (!logger) return;
@@ -130,7 +130,7 @@ namespace rl::env
         actions.push_back(1.0);
     }
 
-    std::unique_ptr<State> CartPoleDiscrete::state() {
+    std::unique_ptr<State> CartPoleDiscrete::state() const {
         auto re = std::make_unique<State>();
         re->state = state_vector();
         re->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(

@@ -14,14 +14,17 @@ namespace rl::env
     std::unique_ptr<Base> Factory::get() const
     {
         auto re = get_impl();
-        if (is_cuda) {
-            re->cuda();
-        }
-        else {
-            re->cpu();
-        }
+        
+        re->set_logger(logger);
+
+        if (is_cuda) re->cuda();
+        else re->cpu();
 
         return re;
+    }
+
+    void Factory::set_logger(std::shared_ptr<rl::logging::client::Base> logger) {
+        this->logger = logger;
     }
 
     void Factory::cuda() { is_cuda = true; }

@@ -104,7 +104,14 @@ namespace rl::env
              * @return std::unique_ptr<Base> Environment pointer.
              */
             std::unique_ptr<Base> get() const;
-            
+
+            /**
+             * @brief Set the logger object used by spawned environment.
+             * 
+             * @param logger 
+             */
+            void set_logger(std::shared_ptr<rl::logging::client::Base> logger);
+
             /**
              * @brief Future environment instances spawned will interface using CUDA
              * backed tensors.
@@ -121,6 +128,7 @@ namespace rl::env
 
         private:
             bool is_cuda{false};
+            std::shared_ptr<rl::logging::client::Base> logger;
             virtual std::unique_ptr<Base> get_impl() const = 0;
     };
 }

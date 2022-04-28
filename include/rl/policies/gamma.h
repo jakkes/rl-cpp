@@ -23,7 +23,8 @@ namespace rl::policies
             torch::Tensor log_prob(const torch::Tensor &x) const override;
             torch::Tensor prob(const torch::Tensor &value) const override;
 
-            void include(std::shared_ptr<constraints::Base> constraint);
+            void include(std::shared_ptr<constraints::Base> constraint) override;
+            std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
         private:
             const torch::Tensor _alpha, _is_alpha_boosted, _scale, _d, _c;

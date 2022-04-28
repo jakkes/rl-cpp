@@ -205,12 +205,12 @@ namespace rl::agents::ppo::trainers
                     auto sequence = *stream_result;
                     inference_buffer->add(
                         {
-                            torch::stack(sequence->states, 0).unsqueeze_(0),
-                            torch::stack(sequence->actions, 0).unsqueeze_(0),
-                            torch::tensor(sequence->rewards, torch::TensorOptions{}.dtype(sequence->states[0].dtype().toScalarType()).device(options.replay_device)).unsqueeze_(0),
-                            torch::tensor(sequence->not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(options.replay_device)).unsqueeze_(0),
-                            torch::stack(sequence->action_probabilities, 0).unsqueeze_(0),
-                            torch::stack(sequence->state_values, 0).unsqueeze_(0)
+                            torch::stack(sequence->states, 0).unsqueeze(0),
+                            torch::stack(sequence->actions, 0).unsqueeze(0),
+                            torch::tensor(sequence->rewards, torch::TensorOptions{}.dtype(sequence->states[0].dtype().toScalarType()).device(options.replay_device)).unsqueeze(0),
+                            torch::tensor(sequence->not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(options.replay_device)).unsqueeze(0),
+                            torch::stack(sequence->action_probabilities, 0).unsqueeze(0),
+                            torch::stack(sequence->state_values, 0).unsqueeze(0)
                         },
                         {policies::constraints::stack(sequence->constraints)}
                     );

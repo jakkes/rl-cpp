@@ -130,4 +130,8 @@ namespace rl::policies
     void Gamma::include(std::shared_ptr<constraints::Base> constraint) {
         throw std::runtime_error{"Not implemented."};
     }
+
+    std::unique_ptr<Base> Gamma::index(const std::vector<torch::indexing::TensorIndex> &indexing) const {
+        return std::make_unique<Gamma>(_alpha.index(indexing), _scale.index(indexing));
+    }
 }

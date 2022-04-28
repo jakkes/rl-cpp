@@ -16,11 +16,9 @@ namespace rl::env
         auto re = get_impl();
         if (is_cuda) {
             re->cuda();
-            assert(re->state()->state.device().type() == torch::kCUDA);
         }
         else {
             re->cpu();
-            assert(re->state()->state.device().type() == torch::kCPU);
         }
 
         return re;

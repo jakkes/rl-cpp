@@ -7,6 +7,7 @@
 #include "env/env.h"
 #include "buffers/buffers.h"
 #include "logging/logging.h"
+#include "cpputils/cpputils.h"
 
 #include "option.h"
 

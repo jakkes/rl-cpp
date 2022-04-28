@@ -81,7 +81,6 @@ namespace rl::policies
 
     void Beta::include(std::shared_ptr<constraints::Base> constraint)
     {
-
         auto box = std::dynamic_pointer_cast<constraints::Box>(constraint);
         if (box)
         {
@@ -95,5 +94,9 @@ namespace rl::policies
         }
 
         throw UnsupportedConstraintException{};
+    }
+
+    std::unique_ptr<Base> Beta::index(const std::vector<torch::indexing::TensorIndex> &indexing) const {
+        return std::make_unique<Beta>(alpha.index(indexing), beta.index(indexing), a.index(indexing), b.index(indexing));
     }
 }

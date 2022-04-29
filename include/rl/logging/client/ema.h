@@ -39,6 +39,9 @@ namespace rl::logging::client
             /// <inheritdoc/>
             void log_frequency(const std::string &name, int occurances) override;
 
+            /// <inheritdoc/>
+            void log_text(const std::string &name, const std::string &value) override;
+
             /**
              * @brief EMA estimator.
              * 
@@ -75,19 +78,22 @@ namespace rl::logging::client
             };
 
         private:
+            int output_period;
+            
             std::mutex scalar_estimate_update_mtx{};
             std::unordered_map<std::string, std::vector<Estimator>> scalar_estimates;
+            std::vector<double> smoothing_values;
+            thread_safe::Queue<std::pair<std::string, double>> scalar_queue{1000};
             
+            std::thread queue_consuming_thread;
+            std::thread output_producing_thread;
+
             std::mutex occurances_reset_mtx{};
             std::unordered_map<std::string, std::atomic<size_t>> occurences;
             rl::cpputils::Metronome<std::chrono::seconds> metronome{5};
 
-            std::vector<double> smoothing_values;
-            int output_period;
-            
-            thread_safe::Queue<std::pair<std::string, double>> scalar_queue{1000};
-            std::thread queue_consuming_thread;
-            std::thread output_producing_thread;
+            std::mutex text_mtx{};
+            std::unordered_map<std::string, std::string> text_logs;
 
             std::atomic<bool> is_running{true};
             void queue_consumer();

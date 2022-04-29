@@ -34,6 +34,16 @@ namespace rl::logging::client
             virtual void log_frequency(const std::string &name, int occurances) {
                 throw std::runtime_error{"log_frequency not implemented."};
             }
+
+            /**
+             * @brief Logs a text value.
+             * 
+             * @param name Log key
+             * @param value Log value.
+             */
+            virtual void log_text(const std::string &name, const std::string &value) {
+                throw std::runtime_error{"log_text not implemented."};
+            }
     };
 }
 

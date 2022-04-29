@@ -35,6 +35,11 @@ namespace rl::logging::client
         this->occurences[name] += occurences;
     }
 
+    void EMA::log_text(const std::string &name, const std::string &value) {
+        std::lock_guard lock{text_mtx};
+        text_logs[name] = value;
+    }
+
     void EMA::queue_consumer()
     {
         while (is_running)
@@ -70,10 +75,16 @@ namespace rl::logging::client
                 std::cout << "\n";
             };
 
+            auto print_text_logs = [] (const std::pair<std::string, std::string> &data) {
+                std::cout << data.first << " -- " << data.second << "\n";
+            };
+
             std::lock_guard lock{scalar_estimate_update_mtx};
 
             std::cout << "\n";
             std::for_each(scalar_estimates.cbegin(), scalar_estimates.cend(), print_estimates);
+            std::cout << "\n";
+            std::for_each(text_logs.cbegin(), text_logs.cend(), print_text_logs);
             std::cout << "\n";
             std::cout << std::flush;
         }

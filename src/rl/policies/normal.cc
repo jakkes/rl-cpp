@@ -66,7 +66,7 @@ namespace rl::policies
             return;
         }
 
-        throw UnsupportedConstraintException{};
+        Base::include(constraint);
     }
 
     void Normal::compute_cdf_at_bounds()

@@ -93,7 +93,7 @@ namespace rl::policies
             return;
         }
 
-        throw UnsupportedConstraintException{};
+        Base::include(constraint);
     }
 
     std::unique_ptr<Base> Beta::index(const std::vector<torch::indexing::TensorIndex> &indexing) const {

@@ -61,7 +61,7 @@ namespace rl::policies
             return;
         }
 
-        throw UnsupportedConstraintException{};
+        Base::include(constraint);
     }
 
     const torch::Tensor Categorical::get_probabilities() const

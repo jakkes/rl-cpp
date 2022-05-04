@@ -25,6 +25,9 @@ namespace rl::policies
             
             virtual void include(std::shared_ptr<constraints::Base> constraint)
             {
+                // If no constraint
+                if (!constraint) return;
+
                 throw UnsupportedConstraintException{};
             }
             virtual std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const

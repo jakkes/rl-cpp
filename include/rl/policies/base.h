@@ -6,6 +6,7 @@
 
 #include "unsupported_constraint_exception.h"
 #include "constraints/base.h"
+#include "constraints/empty.h"
 
 
 namespace rl::policies
@@ -26,7 +27,9 @@ namespace rl::policies
             virtual void include(std::shared_ptr<constraints::Base> constraint)
             {
                 // If no constraint
-                if (!constraint) return;
+                if (std::dynamic_pointer_cast<constraints::Empty>(constraint)) {
+                    return;
+                }
 
                 throw UnsupportedConstraintException{};
             }

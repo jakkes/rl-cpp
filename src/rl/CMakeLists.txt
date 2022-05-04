@@ -21,6 +21,7 @@ target_sources(
             policies/constraints/stack.cc
             policies/constraints/categorical_mask.cc
             policies/constraints/box.cc
+            policies/constraints/empty.cc
 
         torchutils.cc
 )

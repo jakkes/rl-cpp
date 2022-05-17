@@ -11,7 +11,6 @@ namespace rl::policies
     class Dirchlet : public Base
     {
         public:
-            Dirchlet(torch::Tensor coefficients, torch::Tensor a, torch::Tensor b);
             Dirchlet(torch::Tensor coefficients);
 
             torch::Tensor sample() const override;
@@ -24,7 +23,7 @@ namespace rl::policies
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
         private:
-            torch::Tensor coefficients, a, b;
+            torch::Tensor coefficients;
             int64_t dim;
             Gamma gamma;
     };

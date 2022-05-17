@@ -7,7 +7,6 @@
 #include "beta.h"
 #include "normal.h"
 #include "gamma.h"
-#include "factorized.h"
 
 #include "constraints/constraints.h"
 

@@ -12,9 +12,7 @@ TORCH_TEST(policies, dirchlet, device)
     auto o = torch::TensorOptions{}.device(device);
 
     Dirchlet d {
-        torch::ones({10, 10, 4}, o),
-        - 5 + torch::zeros({10, 10, 4}, o),
-        5 + torch::zeros({10, 10, 4}, o)
+        torch::ones({10, 10, 4}, o)
     };
 
     auto sample = d.sample();
@@ -25,14 +23,13 @@ TORCH_TEST(policies, dirchlet, device)
     for (int i = 0; i < 1000; i++) {
         sample = d.sample();
         ASSERT_TRUE(
-            sample.lt(5).all().item().toBool()
+            sample.lt(1).all().item().toBool()
         );
         ASSERT_TRUE(
-            sample.gt(-5).all().item().toBool()
+            sample.gt(0).all().item().toBool()
         );
-        std::cout << sample.abs_().sum(-1).max() << "\n";
         ASSERT_TRUE(
-            sample.abs_().sum(-1).lt(10).all().item().toBool()
+            sample.sum(-1).sub_(1.0).lt(1e-6).all().item().toBool()
         );
     } 
 }

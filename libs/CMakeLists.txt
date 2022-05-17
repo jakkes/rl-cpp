@@ -27,3 +27,8 @@ if (NOT TARGET spdlog::spdlog)
     set_property(TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 target_link_libraries(rl PUBLIC spdlog::spdlog)
+
+if (NOT TARGET tensorboard_logger)
+    add_subdirectory(tensorboard_logger)
+endif()
+target_link_libraries(rl PUBLIC tensorboard_logger)

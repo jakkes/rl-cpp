@@ -16,3 +16,6 @@
 [submodule "libs/spdlog"]
 	path = libs/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "libs/tensorboard_logger"]
+	path = libs/tensorboard_logger
+	url = https://github.com/RustingSword/tensorboard_logger.git

@@ -11,6 +11,7 @@ target_sources(
 
         logging/client/base.cc
         logging/client/ema.cc
+        logging/client/tensorboard.cc
         
         policies/categorical.cc
         policies/beta.cc

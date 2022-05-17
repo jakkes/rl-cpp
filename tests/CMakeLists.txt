@@ -20,7 +20,7 @@ rl_append_test(policies policies/test_categorical.cc)
 rl_append_test(policies policies/test_beta.cc)
 rl_append_test(policies policies/test_normal.cc)
 rl_append_test(policies policies/test_gamma.cc)
-rl_append_test(policies policies/test_factorized.cc)
+rl_append_test(policies policies/test_dirchlet.cc)
 
 rl_append_test(policies policies/constraints/test_categorical_mask.cc)
 rl_append_test(policies policies/constraints/test_box.cc)

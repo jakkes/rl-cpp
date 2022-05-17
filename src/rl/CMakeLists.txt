@@ -15,6 +15,7 @@ target_sources(
         
         policies/categorical.cc
         policies/beta.cc
+        policies/dirchlet.cc
         policies/normal.cc
         policies/gamma.cc
         policies/factorized.cc

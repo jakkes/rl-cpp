@@ -7,6 +7,7 @@
 #include "beta.h"
 #include "normal.h"
 #include "gamma.h"
+#include "dirchlet.h"
 
 #include "constraints/constraints.h"
 

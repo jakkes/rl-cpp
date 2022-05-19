@@ -28,11 +28,11 @@ namespace rl::policies
 
     Gamma::Gamma(const torch::Tensor &alpha, const torch::Tensor &scale)
     :
-    _alpha{boost_alpha(alpha.view({-1}))},
-    _is_alpha_boosted{is_alpha_boosted(alpha.view({-1}))},
-    _scale{scale.view({-1})},
-    _d{d(boost_alpha(alpha.view({-1})))},
-    _c{c(boost_alpha(alpha.view({-1})))},
+    _alpha{boost_alpha(alpha.reshape({-1}))},
+    _is_alpha_boosted{is_alpha_boosted(alpha.reshape({-1}))},
+    _scale{scale.reshape({-1})},
+    _d{d(boost_alpha(alpha.reshape({-1})))},
+    _c{c(boost_alpha(alpha.reshape({-1})))},
     shape{alpha.sizes().begin(), alpha.sizes().end()}
     {
         if (_alpha.size(0) != _scale.size(0)) {

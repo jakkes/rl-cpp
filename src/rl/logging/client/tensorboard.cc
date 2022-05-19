@@ -15,8 +15,9 @@ namespace rl::logging::client
         for (const auto &entry : std::filesystem::directory_iterator("runs")) {
             count++;
         }
+        std::filesystem::create_directory("runs/run_" + std::to_string(count));
 
-        return "runs/run_" + std::to_string(count) + ".tfevents";
+        return "runs/run_" + std::to_string(count) + "/logs.tfevents";
     }
 
     Tensorboard::Tensorboard(const TensorboardOptions &options)

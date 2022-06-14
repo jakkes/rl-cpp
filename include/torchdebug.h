@@ -30,8 +30,14 @@ void tprinti(torch::Tensor &&x, int i, int j, int k, int l, int m) { tprinti(x, 
 void tprintmean(torch::Tensor &x) { tprint(x.mean()); }
 void tprintmean(torch::Tensor &&x) { tprintmean(x); }
 
-void tprintmean(torch::Tensor &x, int i) { tprint(x.mean(i)); }
-void tprintmean(torch::Tensor &&x, int i) { tprintmean(x, i); }
+void tprintmeani(torch::Tensor &x, int i) { tprint(x.mean(i)); }
+void tprintmeani(torch::Tensor &&x, int i) { tprintmeani(x, i); }
+
+void tprintmax(torch::Tensor &x) { tprint(x.max()); }
+void tprintmax(torch::Tensor &&x) { tprintmax(x); }
+
+void tprintargmax(torch::Tensor &x) { tprint(x.argmax()); }
+void tprintargmax(torch::Tensor &&x) { tprintargmax(x); }
 
 void tprint(torch::IntArrayRef &ref) {
     for (int i = 0; i < ref.size(); i++) {

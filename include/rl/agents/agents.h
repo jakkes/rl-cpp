@@ -3,4 +3,9 @@
 
 #include "ppo/ppo.h"
 
+/**
+ * @brief Implementations of RL algorithms.
+ */
+namespace rl::agents {}
+
 #endif /* RL_AGENTS_AGENTS_H_ */

@@ -14,32 +14,76 @@
 
 namespace rl::agents::ppo::trainers
 {
+    /**
+     * @brief Options for the SEED trainer.
+     */
     struct SEEDOptions
     {
+        // Epsilon, controlling policy proximity between training steps.
         RL_OPTION(float, eps) = 0.1;
+        // Reward discount factor.
         RL_OPTION(float, discount) = 0.99;
+        // Discount factor for generalized advantage estimation.
         RL_OPTION(float, gae_discount) = 0.95;
         
+        // Sequence length of each data batch gathered from the environment.
         RL_OPTION(int, sequence_length) = 64;
+        // Number of parallel environments run per worker thread.
         RL_OPTION(int, envs_per_worker) = 4;
+        // Number of environment worker threads.
         RL_OPTION(int, env_workers) = 4;
 
+        // Maximum batch size allowed by the inference worker.
         RL_OPTION(int, inference_batchsize) = 32;
+        // Maximum delay allowed by the inference worker.
         RL_OPTION(int, inference_max_delay_ms) = 500;
 
+        // Batch size used in training.
         RL_OPTION(int, batchsize) = 32;
+        // Size of replay, in number of sequences stored.
         RL_OPTION(int64_t, replay_size) = 500;
+        // Number of sequences collected by the inference process before added to the replay.
         RL_OPTION(int64_t, inference_replay_size) = 100;
+        // Device on which data is stored.
         RL_OPTION(torch::Device, replay_device) = torch::kCPU;
+        // Minimum replay size before training starts.
         RL_OPTION(int64_t, min_replay_size) = 500;
+        // Upper bound on number of training steps executed per second.
         RL_OPTION(float, max_update_frequency) = 10;
 
+        // Logger used by the trainer.
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };
 
+    /**
+     * @brief Distributed and scalable trainer based on https://arxiv.org/abs/1910.06591.
+     * 
+     * The SEED trainer consists of three components, a training thread, an inference
+     * thread, and multiple actor threads.
+     * 
+     * The training thread operates on a small replay buffer. The replay buffer is small
+     * to make sure that only recent samples are used in the training. Data is fed into
+     * this buffer by the inference thread.
+     * 
+     * Actor threads hold (possibly) multiple environment instances, and send inference
+     * requests to the inference thread. Inference responses, i.e. actions, are then
+     * executed in the environment.
+     * 
+     * The inference thread responds to inference requests and stores data into an
+     * inference replay buffer. Whenever this buffer becomes full, its data is moved
+     * into the replay buffer used by the training process.
+     */
     class SEED
     {
         public:
+            /**
+             * @brief Construct a new SEED object
+             * 
+             * @param model PPO Model
+             * @param optimizer Model optimizer
+             * @param env_factory Environment factory
+             * @param options SEED options
+             */
             SEED(
                 std::shared_ptr<rl::agents::ppo::Module> model,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
@@ -47,6 +91,11 @@ namespace rl::agents::ppo::trainers
                 const SEEDOptions &options={}
             );
 
+            /**
+             * @brief Starts the training and blocks until completed.
+             * 
+             * @param duration training duration.
+             */
             template<class Rep, class Period>
             void run(std::chrono::duration<Rep, Period> duration);
 

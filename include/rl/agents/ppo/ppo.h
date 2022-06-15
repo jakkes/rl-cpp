@@ -5,14 +5,10 @@
 #include "trainers/trainers.h"
 
 #include "module.h"
-#include "agent.h"
 
 /**
  * @brief Proximal Policy Optimization
  */
-namespace rl::agents::ppo
-{
-
-}
+namespace rl::agents::ppo {}
 
 #endif /* INCLUDE_RL_AGENTS_PPO_PPO_H_ */

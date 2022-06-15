@@ -10,19 +10,47 @@
 namespace rl::buffers
 {
 
+    /**
+     * @brief A batch of samples collected from a `TensorAndObject` buffer.
+     * 
+     * One batch may hold multiple batched tensors and one batch of objects. The first
+     * dimension of each tensor is the batch dimension. Objects are batched using 
+     * `std::vector<T>`.
+     * 
+     * @tparam T Object type.
+     */
     template<typename T>
     struct TensorAndObjectBatch
     {
+        // Tensors, where the first dimension in each tensor is the batch dimension.
         std::vector<torch::Tensor> tensors;
+        // Objects.
         std::vector<T> objs;
 
-        int64_t size() { return objs.size(); }
+        // Size of batch.
+        inline int64_t size() { return objs.size(); }
     };
 
+    /**
+     * @brief FIFO buffer of tensors and objects.
+     * 
+     * This class wraps the `rl::buffers::Tensor` class and extends it, allowing for
+     * combining tensors and objects in one sample. For details on how tensors are
+     * handled, see the documentation on `rl::buffers::Tensor`.
+     * 
+     * @tparam T Type of object.
+     */
     template<typename T>
     class TensorAndObject
     {
         public:
+            /**
+             * @brief Construct a new TensorAndObject buffer.
+             * 
+             * @param capacity Buffer capacity
+             * @param tensor_shapes Shapes of tensors
+             * @param tensor_options Tensor options
+             */
             TensorAndObject(
                 int64_t capacity,
                 const std::vector<std::vector<int64_t>> &tensor_shapes,
@@ -32,12 +60,26 @@ namespace rl::buffers
                 obj_data.resize(capacity);
             }
 
-            int64_t size() { return tensor.size(); }
+            /**
+             * @return int64_t Number of samples contained in the buffer.
+             */
+            inline int64_t size() { return tensor.size(); }
 
-            void clear() { 
+            /**
+             * @brief Clears the contents of the buffer.
+             */
+            inline void clear() { 
                 tensor.clear();
             }
 
+            /**
+             * @brief Adds a batch of samples to the buffer.
+             * 
+             * @param tensor_data Tensors to be added, with their first dimension being
+             * across samples.
+             * @param obj_data Objects.
+             * @return torch::Tensor Buffer locations of added samples.
+             */
             torch::Tensor add(
                 const std::vector<torch::Tensor> &tensor_data,
                 const std::vector<T> &obj_data
@@ -55,6 +97,12 @@ namespace rl::buffers
                 return indices;
             }
 
+            /**
+             * @brief Returns a batch of samples from the buffer.
+             * 
+             * @param indices Data locations to be returned.
+             * @return std::unique_ptr<TensorAndObjectBatch<T>> Batch of samples.
+             */
             std::unique_ptr<TensorAndObjectBatch<T>> get(const torch::Tensor &indices) {
                 auto n = indices.size(0);
                 auto re = std::make_unique<TensorAndObjectBatch<T>>();
@@ -68,6 +116,12 @@ namespace rl::buffers
                 return re;
             }
 
+            /**
+             * @brief Returns a batch of samples from the buffer.
+             * 
+             * @param indices Data locations to be returned.
+             * @return std::unique_ptr<TensorAndObjectBatch<T>> Batch of samples.
+             */
             std::unique_ptr<TensorAndObjectBatch<T>> get(const std::vector<int64_t> &indices) {
                 return get(torch::tensor(indices, torch::TensorOptions{}.dtype(torch::kLong)));
             }

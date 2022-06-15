@@ -7,4 +7,9 @@
 #include "metronome.h"
 #include "slice_vector.h"
 
+/**
+ * @brief Utility functions used by various parts of the code.
+ */
+namespace rl::cpputils {}
+
 #endif /* RL_CPP_INCLUDE_RL_CPPUTILS_CPPUTILS_H_ */

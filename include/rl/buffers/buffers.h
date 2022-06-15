@@ -3,7 +3,6 @@
 
 #include "samplers/samplers.h"
 
-#include "state_transition.h"
 #include "tensor.h"
 #include "tensor_and_object.h"
 

@@ -10,10 +10,25 @@
 
 namespace rl::cpputils
 {
+    /**
+     * @brief Time period keeping class.
+     * 
+     * This class can be interacted with using either the `start` method, that will
+     * execute a given function repeatedly, or the `spin` method, that will block the
+     * calling thread such that repeated calls are separated by the correct period of
+     * time.
+     * 
+     * @tparam PeriodType Time unit.
+     */
     template<typename PeriodType = std::chrono::seconds>
     class Metronome
     {
         public:
+            /**
+             * @brief Construct a new Metronome object.
+             * 
+             * @param period Time period.
+             */
             Metronome(size_t period)
             : period{PeriodType(period)} {}
 
@@ -21,6 +36,9 @@ namespace rl::cpputils
                 stop();
             }
 
+            /**
+             * @brief Stops the metronome, if ever started.
+             */
             void stop() {
                 _is_running = false;
                 if (working_thread.joinable()) {
@@ -28,15 +46,29 @@ namespace rl::cpputils
                 }
             }
 
+            /**
+             * @brief Starts the metronome, calling the given function repeatedly with
+             * the given period.
+             * 
+             * @param callback Function to be executed.
+             */
             void start(std::function<void()> callback) {
                 if (_is_running) throw std::runtime_error{"Metronome already in a running state."};
                 _is_running = true;
                 working_thread = std::thread(&Metronome<PeriodType>::worker, this, callback);
             }
 
-            inline
-            bool is_running() { return _is_running; }
+            /**
+             * @return true if the metronome is running.
+             * @return false if the metronome is not running.
+             */
+            inline bool is_running() { return _is_running; }
 
+            /**
+             * @brief Blocks until the specified period has passed since the last call.
+             * The first call blocks for exactly period units of time.
+             * 
+             */
             void spin() {
                 if (_is_running) {
                     throw std::runtime_error{"Metronome is already operating in standalone mode."};

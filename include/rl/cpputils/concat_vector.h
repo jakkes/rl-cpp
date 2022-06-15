@@ -7,6 +7,14 @@
 
 namespace rl::cpputils
 {
+    /**
+     * @brief Concatenates two vectors.
+     * 
+     * @tparam T object type held by vectors.
+     * @param a First part of output vector.
+     * @param b Second part of output vector.
+     * @return std::vector<T> Vector of `a` followed by `b`.
+     */
     template<typename T>
     std::vector<T> concat(const std::vector<T> &a, const std::vector<T> &b)
     {

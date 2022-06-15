@@ -1,7 +1,6 @@
 target_sources(
     rl
     PRIVATE
-        buffers/state_transition.cc
         buffers/tensor.cc
 
         cpputils/logger.cc

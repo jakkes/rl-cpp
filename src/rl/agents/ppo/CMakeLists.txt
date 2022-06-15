@@ -1,7 +1,6 @@
 target_sources(
     rl
     PRIVATE
-        agent.cc
         trainers/basic.cc
         trainers/seed.cc
         trainers/loss_fns.cc

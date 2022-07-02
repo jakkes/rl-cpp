@@ -10,34 +10,43 @@
 void tprint(torch::Tensor &x) {
     std::cout << x << "\n";
 }
-void tprint(torch::Tensor &&x) { print(x); }
+void tprint(torch::Tensor &&x) { tprint(x); }
 
-void tprinti(torch::Tensor &x, int i) { tprint(x.index({i})); }
-void tprinti(torch::Tensor &&x, int i) { tprinti(x, i); }
+torch::Tensor ti(torch::Tensor &x, int i) { return x.index({i}); }
+torch::Tensor ti(torch::Tensor &&x, int i) { return ti(x, i); }
 
-void tprinti(torch::Tensor &x, int i, int j) { tprint(x.index({i, j})); }
-void tprinti(torch::Tensor &&x, int i, int j) { tprinti(x, i, j); }
+torch::Tensor ti(torch::Tensor &x, int i, int j) { return x.index({i, j}); }
+torch::Tensor ti(torch::Tensor &&x, int i, int j) { return ti(x, i, j); }
 
-void tprinti(torch::Tensor &x, int i, int j, int k) { tprint(x.index({i, j, k})); }
-void tprinti(torch::Tensor &&x, int i, int j, int k) { tprinti(x, i, j, k); }
+torch::Tensor ti(torch::Tensor &x, int i, int j, int k) { return x.index({i, j, k}); }
+torch::Tensor ti(torch::Tensor &&x, int i, int j, int k) { return ti(x, i, j, k); }
 
-void tprinti(torch::Tensor &x, int i, int j, int k, int l) { tprint(x.index({i, j, k, l})); }
-void tprinti(torch::Tensor &&x, int i, int j, int k, int l) { tprinti(x, i, j, k, l); }
+torch::Tensor ti(torch::Tensor &x, int i, int j, int k, int l) { return x.index({i, j, k, l}); }
+torch::Tensor ti(torch::Tensor &&x, int i, int j, int k, int l) { return ti(x, i, j, k, l); }
 
-void tprinti(torch::Tensor &x, int i, int j, int k, int l, int m) { tprint(x.index({i, j, k, l, m})); }
-void tprinti(torch::Tensor &&x, int i, int j, int k, int l, int m) { tprinti(x, i, j, k, l, m); }
+torch::Tensor ti(torch::Tensor &x, int i, int j, int k, int l, int m) { return x.index({i, j, k, l, m}); }
+torch::Tensor ti(torch::Tensor &&x, int i, int j, int k, int l, int m) { return ti(x, i, j, k, l, m); }
 
-void tprintmean(torch::Tensor &x) { tprint(x.mean()); }
-void tprintmean(torch::Tensor &&x) { tprintmean(x); }
+torch::Tensor tmean(torch::Tensor &x) { return x.mean(); }
+torch::Tensor tmean(torch::Tensor &&x) { return tmean(x); }
 
-void tprintmeani(torch::Tensor &x, int i) { tprint(x.mean(i)); }
-void tprintmeani(torch::Tensor &&x, int i) { tprintmeani(x, i); }
+torch::Tensor tmeani(torch::Tensor &x, int i) { return x.mean(i); }
+torch::Tensor tmeani(torch::Tensor &&x, int i) { return tmeani(x, i); }
 
-void tprintmax(torch::Tensor &x) { tprint(x.max()); }
-void tprintmax(torch::Tensor &&x) { tprintmax(x); }
+torch::Tensor tmax(torch::Tensor &x) { return x.max(); }
+torch::Tensor tmax(torch::Tensor &&x) { return tmax(x); }
 
-void tprintargmax(torch::Tensor &x) { tprint(x.argmax()); }
-void tprintargmax(torch::Tensor &&x) { tprintargmax(x); }
+torch::Tensor tsum(torch::Tensor &x) { return x.sum(); }
+torch::Tensor tsum(torch::Tensor &&x) { return tsum(x); }
+
+torch::Tensor targmax(torch::Tensor &x) { return x.argmax(); }
+torch::Tensor targmax(torch::Tensor &&x) { return targmax(x); }
+
+torch::Tensor treal(torch::Tensor &x) { return torch::real(x); }
+torch::Tensor treal(torch::Tensor &&x) { return treal(x); }
+
+torch::Tensor timag(torch::Tensor &x) { return torch::imag(x); }
+torch::Tensor timag(torch::Tensor &&x) { return timag(x); }
 
 void tprint(torch::IntArrayRef &ref) {
     for (int i = 0; i < ref.size(); i++) {
@@ -46,5 +55,6 @@ void tprint(torch::IntArrayRef &ref) {
     std::cout << "\n";
 }
 void tprint(torch::IntArrayRef &&ref) { tprint(ref); }
+
 
 #endif /* RL_TORCHDEBUG_H_ */

@@ -20,7 +20,14 @@ namespace rl::policies::constraints
 
     torch::Tensor Empty::contains(const torch::Tensor &x) const
     {
-        auto shape = rl::cpputils::slice(x.sizes().vec(), 0, -n_action_dims);
+        std::vector<int64_t> shape;
+        if (n_action_dims == 0) {
+            shape = x.sizes().vec();
+        }
+        else {
+            shape = rl::cpputils::slice(x.sizes().vec(), 0, -n_action_dims);
+        }
+
         return torch::ones(
             shape,
             torch::TensorOptions{}

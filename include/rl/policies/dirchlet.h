@@ -21,7 +21,7 @@ namespace rl::policies
             /**
              * @brief Construct a new Dirchlet policy.
              * 
-             * @param coefficients Tensor of shape (**, N+1), where N denotes the number
+             * @param coefficients Tensor of shape (**, N), where N denotes the number
              * of output values. All values must be greater than zero.
              */
             Dirchlet(torch::Tensor coefficients);

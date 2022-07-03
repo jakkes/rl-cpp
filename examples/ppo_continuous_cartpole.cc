@@ -84,7 +84,8 @@ int main(int argc, char **argv)
 
     auto model = std::make_shared<Model>();
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999}, 5);
-    auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200, logger);
+    auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200);
+    env_factory->set_logger(logger);
     
     if (torch::cuda::is_available()) {
         env_factory->cuda();

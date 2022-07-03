@@ -74,12 +74,11 @@ namespace rl::env
              * instances.
              * @param logger Logger instance that is used by spawned instances.
              */
-            CartPoleContinuousFactory(int max_steps, std::shared_ptr<rl::logging::client::Base> logger={});
+            CartPoleContinuousFactory(int max_steps);
 
         private:
             std::unique_ptr<Base> get_impl() const override;
             const int max_steps;
-            std::shared_ptr<rl::logging::client::Base> logger;
     };
 
     /**

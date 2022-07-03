@@ -1,5 +1,3 @@
-#include <initializer_list>
-
 #include <argparse/argparse.hpp>
 #include <rl/rl.h>
 
@@ -87,8 +85,9 @@ int main(int argc, char **argv)
     auto args = parse_args(argc, argv);
 
     auto model = std::make_shared<Model>();
-    auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99}, 5);
-    auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200, logger);
+    auto logger = std::make_shared<logging::client::Tensorboard>();
+    auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200);
+    env_factory->set_logger(logger);
     
     if (args.get<bool>("--cuda")) {
         env_factory->cuda();

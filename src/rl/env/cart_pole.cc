@@ -68,6 +68,10 @@ namespace rl::env
         if (terminal) throw std::runtime_error{"Cannot step when in a terminal state."};
         if (action < -1 || action > 1) throw std::invalid_argument{"Action must be in [-1, 1]"};
 
+        if (action > -0.2 && action < 0.2) {
+            action = action >= 0 ? 0.2 : -0.2;
+        }
+
         float force = action * FORCE_MAGNITUDE;
 
         auto costheta = std::cos(theta);
@@ -107,14 +111,12 @@ namespace rl::env
     }
 
 
-    CartPoleContinuousFactory::CartPoleContinuousFactory(int max_steps,
-                                std::shared_ptr<rl::logging::client::Base> logger)
-    : max_steps{max_steps}, logger{logger} {}
+    CartPoleContinuousFactory::CartPoleContinuousFactory(int max_steps)
+    : max_steps{max_steps} {}
 
     std::unique_ptr<Base> CartPoleContinuousFactory::get_impl() const 
     {
         auto env = std::make_unique<CartPoleContinuous>(max_steps);
-        env->set_logger(logger);
         return env;
     }
 

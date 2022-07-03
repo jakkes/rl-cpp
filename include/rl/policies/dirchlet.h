@@ -8,9 +8,22 @@
 
 namespace rl::policies
 {
+    /**
+     * @brief Dirchlet policy.
+     * 
+     * Given {k_1, ..., k_n}, where k_i > 0, the dirchlet policy samples actions
+     * {a_1, ..., a_n} such that, sum(a_i) == 1.0 and a_i > 0.
+     * 
+     */
     class Dirchlet : public Base
     {
         public:
+            /**
+             * @brief Construct a new Dirchlet policy.
+             * 
+             * @param coefficients Tensor of shape (**, N+1), where N denotes the number
+             * of output values. All values must be greater than zero.
+             */
             Dirchlet(torch::Tensor coefficients);
 
             torch::Tensor sample() const override;

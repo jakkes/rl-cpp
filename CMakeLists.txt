@@ -11,6 +11,7 @@ set(CMAKE_CUDA_ARCHITECTURES "75")
 
 project(rl LANGUAGES CXX)
 
+include(cmake/ccache.cmake)
 include(cmake/submodule.cmake)
 
 option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})

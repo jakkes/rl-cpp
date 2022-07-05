@@ -37,6 +37,8 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int, inference_batchsize) = 32;
         // Maximum delay allowed by the inference worker.
         RL_OPTION(int, inference_max_delay_ms) = 500;
+        // Device on which the network resides.
+        RL_OPTION(torch::Device, network_device) = torch::kCPU;
 
         // Batch size used in training.
         RL_OPTION(int, batchsize) = 32;

@@ -33,7 +33,7 @@ namespace rl::agents::ppo::trainers::seed_impl
         if (has_executed()) throw InferenceBatchObsolete{};
         assert(!is_full());
 
-        states.push_back(state.state);
+        states.push_back(state.state.to(options->device));
         constraints.push_back(state.action_constraint);
 
         if (is_empty()) {

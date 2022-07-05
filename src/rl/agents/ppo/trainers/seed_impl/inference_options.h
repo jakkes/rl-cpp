@@ -4,6 +4,8 @@
 
 #include <memory>
 
+#include <torch/torch.h>
+
 #include "rl/option.h"
 #include "rl/logging/client/base.h"
 
@@ -13,6 +15,7 @@ namespace rl::agents::ppo::trainers::seed_impl
     {
         RL_OPTION(int, batchsize) = 32;
         RL_OPTION(int, max_delay_ms) = 500;
+        RL_OPTION(torch::Device, device) = torch::kCPU;
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };

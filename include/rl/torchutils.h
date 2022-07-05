@@ -23,7 +23,8 @@ namespace rl::torchutils
     class TensorHolder
     {
         private:
-            std::unordered_map<std::string, torch::Tensor> tensors{};
+            std::unordered_map<std::string, torch::Tensor*> tensors{};
+            std::unordered_map<std::string, torch::Tensor> tensor_storage{};
         
         protected:
 
@@ -32,9 +33,9 @@ namespace rl::torchutils
              * 
              * @param name Name of tensor
              * @param tensor Tensor instance
-             * @return torch::Tensor& 
+             * @return torch::Tensor** 
              */
-            torch::Tensor &register_tensor(const std::string &name, const torch::Tensor &tensor);
+            torch::Tensor **register_tensor(const std::string &name, torch::Tensor tensor);
 
         public:
 

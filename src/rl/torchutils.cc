@@ -13,4 +13,21 @@ namespace rl::torchutils
     {
         return data.dtype() == torch::kBool;
     }
+
+    torch::Tensor &TensorHolder::register_tensor(const std::string &name, const torch::Tensor &tensor)
+    {
+        if (tensors.find(name) != tensors.end()) {
+            throw std::invalid_argument{"A tensor was already registered with the given name."};
+        }
+
+        tensors.insert({name, tensor});
+        return tensor;
+    }
+
+    void TensorHolder::to(torch::Device device)
+    {
+        for (auto tensor : tensors) {
+            tensor.second.to(device);
+        }
+    }
 }

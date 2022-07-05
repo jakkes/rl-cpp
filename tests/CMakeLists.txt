@@ -32,3 +32,5 @@ rl_append_test(cpputils cpputils/test_metronome.cc)
 rl_add_test_target(buffers test_buffers.cc)
 rl_append_test(buffers buffers/test_tensor.cc)
 rl_append_test(buffers buffers/test_tensor_and_object.cc)
+
+rl_add_test_target(torchutils test_torchutils.cc)

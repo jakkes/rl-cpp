@@ -113,6 +113,7 @@ namespace rl::agents::ppo::trainers
                         .batchsize_(options.inference_batchsize)
                         .max_delay_ms_(options.inference_max_delay_ms)
                         .logger_(options.logger)
+                        .device_(options.network_device)
                 );
                 inference_buffer = std::make_shared<BufferType>(
                     options.inference_replay_size,

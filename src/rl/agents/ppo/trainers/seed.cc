@@ -33,13 +33,16 @@ namespace rl::agents::ppo::trainers
     static TensorInfo get_tensor_shapes(
         std::shared_ptr<agents::ppo::Module> model,
         std::shared_ptr<env::Factory> env_factory,
-        int64_t sequence_length
+        int64_t sequence_length,
+        const SEEDOptions &options
     )
     {
         torch::NoGradGuard no_grad{};
 
         auto env = env_factory->get();
         auto state = env->reset();
+        state->state = state->state.to(options.network_device);
+        state->action_constraint->to(options.network_device);
 
         auto state_shape = state->state.sizes();
 
@@ -104,7 +107,7 @@ namespace rl::agents::ppo::trainers
             env_factory{env_factory},
             options{options}
             {
-                auto tensor_info = get_tensor_shapes(model, env_factory, options.sequence_length);
+                auto tensor_info = get_tensor_shapes(model, env_factory, options.sequence_length, options);
                 auto tensor_options = get_tensor_options(tensor_info.dtypes, options.replay_device);
 
                 inference = std::make_shared<seed_impl::Inference>(

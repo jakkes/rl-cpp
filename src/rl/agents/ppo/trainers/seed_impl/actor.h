@@ -23,6 +23,7 @@ namespace rl::agents::ppo::trainers::seed_impl
     {
         RL_OPTION(int, sequence_length) = 64;
         RL_OPTION(int, environments) = 1;
+        RL_OPTION(torch::Device, environment_device) = torch::kCPU;
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };

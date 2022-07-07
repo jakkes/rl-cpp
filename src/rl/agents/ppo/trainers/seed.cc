@@ -142,6 +142,7 @@ namespace rl::agents::ppo::trainers
                                 .environments_(options.envs_per_worker)
                                 .sequence_length_(options.sequence_length)
                                 .logger_(options.logger)
+                                .environment_device_(options.environment_device)
                         )
                     );
                 }

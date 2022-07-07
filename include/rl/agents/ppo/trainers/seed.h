@@ -32,6 +32,8 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int, envs_per_worker) = 4;
         // Number of environment worker threads.
         RL_OPTION(int, env_workers) = 4;
+        // Device on which environments expect action tensors.
+        RL_OPTION(torch::Device, environment_device) = torch::kCPU;
 
         // Maximum batch size allowed by the inference worker.
         RL_OPTION(int, inference_batchsize) = 32;

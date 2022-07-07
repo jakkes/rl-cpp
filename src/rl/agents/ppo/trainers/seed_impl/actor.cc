@@ -85,7 +85,7 @@ namespace rl::agents::ppo::trainers::seed_impl
             
             auto state = env.env->state();
             auto inference_result = env.inference_result->get();
-            auto transition = env.env->step(inference_result->action);
+            auto transition = env.env->step(inference_result->action.to(options.environment_device));
 
             if (options.logger) {
                 if (was_terminal[next_env_step_i]) {

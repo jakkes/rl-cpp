@@ -11,7 +11,7 @@
 
 namespace rl::policies::constraints
 {
-    class Base
+    class Base : public torch::nn::Module
     {
         public:
             virtual torch::Tensor contains(const torch::Tensor &x) const = 0;

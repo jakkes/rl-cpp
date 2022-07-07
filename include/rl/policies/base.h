@@ -17,9 +17,9 @@ namespace rl::policies
      * A policy is nothing other than a probability distribution over an action space.
      * 
      */
-    class Base {
-        public:
+    class Base : public torch::nn::Module {
 
+        public:
             /**
              * @brief Sample an action from the policy.
              * 

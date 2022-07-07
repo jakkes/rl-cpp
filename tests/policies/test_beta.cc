@@ -8,13 +8,14 @@ using namespace rl::policies;
 
 TORCH_TEST(policies, beta, device)
 {
-    auto o = torch::TensorOptions{}.device(device);
     Beta d{
-        torch::tensor({0.1, 1.0, 2.0}, o),
-        torch::tensor({0.5, 1.0, 2.0}, o),
-        -1 * torch::ones({3}, o),
-        torch::ones({3}, o)
+        torch::tensor({0.1, 1.0, 2.0}),
+        torch::tensor({0.5, 1.0, 2.0}),
+        -1 * torch::ones({3}),
+        torch::ones({3})
     };
+
+    d.to(device);
 
     for (int i = 0; i < 100; i++) {
         auto sample = d.sample();
@@ -23,20 +24,22 @@ TORCH_TEST(policies, beta, device)
     }
 
     auto sample = d.sample();
+    ASSERT_EQ(sample.device().type(), device.type());
 
     d.prob(sample);
     d.log_prob(sample);
     d.entropy();
+
+
 }
 
 
 TORCH_TEST(policies, beta_mean, device)
 {
-    auto o = torch::TensorOptions{}.device(device);
-    auto alpha = torch::tensor({0.1, 0.9, 2.0}, o);
-    auto beta = torch::tensor({0.5, 1.1, 0.9}, o);
-    auto a = torch::tensor({-5.0, 0.0, 2.0}, o);
-    auto b = torch::tensor({-3.0, 1.0, 2.1}, o);
+    auto alpha = torch::tensor({0.1, 0.9, 2.0});
+    auto beta = torch::tensor({0.5, 1.1, 0.9});
+    auto a = torch::tensor({-5.0, 0.0, 2.0});
+    auto b = torch::tensor({-3.0, 1.0, 2.1});
 
     Beta d{
         alpha.unsqueeze(1).repeat({1, 100000}),
@@ -44,9 +47,11 @@ TORCH_TEST(policies, beta_mean, device)
         a.unsqueeze(1).repeat({1, 100000}),
         b.unsqueeze(1).repeat({1, 100000})
     };
+    d.to(device);
 
     auto sample = d.sample();
-    auto mean = sample.mean(1);
+    ASSERT_EQ(sample.device().type(), device.type());
+    auto mean = sample.mean(1).cpu();
 
     auto expected_mean = 1.0 / (1.0 + beta / alpha) * (b - a) + a;
 

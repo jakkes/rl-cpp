@@ -2,6 +2,8 @@
 #define RL_POLICIES_BETA_H_
 
 
+#include <memory>
+
 #include <torch/torch.h>
 
 #include "base.h"
@@ -26,7 +28,7 @@ namespace rl::policies
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
         private:
-            const Gamma x, y;
+            const std::shared_ptr<Gamma> x, y;
             const torch::Tensor a, b, alpha, beta;
     };
 }

@@ -12,14 +12,14 @@ namespace rl::policies
 
     Dirchlet::Dirchlet(torch::Tensor coefficients)
     :
-    coefficients{coefficients},
+    coefficients{ register_buffer("coefficients", coefficients) },
     dim{coefficients.size(-1)},
-    gamma{coefficients, torch::ones_like(coefficients)}
+    gamma{ register_module("gamma", std::make_shared<Gamma>(coefficients, torch::ones_like(coefficients))) }
     {}
 
     torch::Tensor Dirchlet::sample() const
     {
-        auto x = gamma.sample();
+        auto x = gamma->sample();
         return (x / x.sum(-1, true));
     }
 

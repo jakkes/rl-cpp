@@ -9,10 +9,15 @@
 #include "rl/policies/unsupported_constraint_exception.h"
 
 
+using namespace torch::indexing;
+
 namespace rl::policies
 {
     Categorical::Categorical(const torch::Tensor &probabilities)
-    : probabilities{probabilities}, dim{probabilities.size(-1)}, batch{probabilities.sizes().size() > 1}
+    : 
+    probabilities{ register_buffer("probabilities", probabilities) },
+    dim{probabilities.size(-1)},
+    batch{probabilities.sizes().size() > 1}
     {
         check_probabilities();
         compute_internals();
@@ -20,8 +25,14 @@ namespace rl::policies
     
     void Categorical::compute_internals()
     {
-        probabilities = probabilities / probabilities.sum(-1, true);
-        cumsummed = probabilities.cumsum(-1);
+        probabilities /= probabilities.sum(-1, true);
+
+        if (named_buffers().contains("cumsummed")) {
+            cumsummed.index_put_({Slice(None, None)}, probabilities.cumsum(-1));
+        }
+        else {
+            cumsummed = register_buffer("cumsummed", probabilities.cumsum(-1));
+        }
 
         sample_shape.reserve(cumsummed.sizes().size());
         sample_shape.clear();
@@ -33,7 +44,9 @@ namespace rl::policies
         }
         sample_shape.push_back(1);
 
-        if (batch) batchvec = torch::arange(batchsize);
+        if (!named_buffers().contains("batchvec") && batch) {
+            batchvec = register_buffer("batchvec", torch::arange(batchsize));
+        }
     }
 
     void Categorical::check_probabilities()

@@ -15,7 +15,10 @@ namespace rl::policies::constraints
     }
 
     Box::Box(torch::Tensor lower_bound, torch::Tensor upper_bound, const BoxOptions &options)
-    : lower{lower_bound}, upper{upper_bound}, options{options}
+    :
+    lower{ register_buffer("lower", lower_bound) },
+    upper{ register_buffer("upper", upper_bound) },
+    options{options}
     {
         if (!torch::all(lower < upper).item().toBool()) {
             throw std::invalid_argument{"Lower bound must be smaller than upper bound."};

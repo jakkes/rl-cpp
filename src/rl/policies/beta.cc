@@ -31,12 +31,12 @@ namespace rl::policies
 
     Beta::Beta(torch::Tensor alpha, torch::Tensor beta, torch::Tensor a, torch::Tensor b)
     :
-    x{alpha, torch::ones_like(alpha)},
-    y{beta, torch::ones_like(beta)},
-    a{a},
-    b{b},
-    alpha{alpha},
-    beta{beta}
+    x{ register_module("x", std::make_shared<Gamma>(alpha, torch::ones_like(alpha))) },
+    y{ register_module("y", std::make_shared<Gamma>(beta, torch::ones_like(beta))) },
+    a{ register_buffer("a", a) },
+    b{ register_buffer("b", b) },
+    alpha{ register_buffer("alpha", alpha) },
+    beta{ register_buffer("beta", beta) }
     {
         check_sizes(alpha, beta, a, b);
     }
@@ -62,8 +62,8 @@ namespace rl::policies
 
     torch::Tensor Beta::sample() const
     {
-        auto X = x.sample();
-        auto Y = y.sample();
+        auto X = x->sample();
+        auto Y = y->sample();
         auto sample = X / (X + Y);
         return map(sample, a, b).clamp_(a+1e-6, b-1e-6);
     }

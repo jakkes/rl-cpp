@@ -10,7 +10,9 @@
 namespace rl::policies::constraints
 {
     CategoricalMask::CategoricalMask(const torch::Tensor &mask)
-    : _mask{mask}, dim{mask.size(-1)}
+    :
+    _mask{register_buffer("mask", mask)},
+    dim{mask.size(-1)}
     {
         if (!rl::torchutils::is_bool_dtype(mask)) {
             throw std::invalid_argument{"Mask must be of type boolean."};

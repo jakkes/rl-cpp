@@ -6,13 +6,15 @@
 #define M_LN_2PI 1.83787706641f     // ln (2pi)
 
 
+using namespace torch::indexing;
+
 namespace rl::policies
 {
     Normal::Normal(const torch::Tensor &mean, const torch::Tensor &std)
     :
-    mean{mean}, std{std},
-    lower_bound{torch::zeros_like(mean) - INFINITY},
-    upper_bound{torch::zeros_like(mean) + INFINITY}
+    mean{register_buffer("mean", mean)}, std{register_buffer("std", std)},
+    lower_bound{register_buffer("lower_bound", torch::zeros_like(mean) - INFINITY)},
+    upper_bound{register_buffer("upper_bound", torch::zeros_like(mean) + INFINITY)}
     {
         compute_cdf_at_bounds();
     }
@@ -60,8 +62,8 @@ namespace rl::policies
             if (box->n_action_dims() != 0) {
                 throw std::invalid_argument{"Normal only supports univariate constraints."};
             }
-            lower_bound = torch::max(lower_bound, box->lower_bound());
-            upper_bound = torch::min(upper_bound, box->upper_bound());
+            lower_bound.index_put_({Slice(None, None)}, torch::max(lower_bound, box->lower_bound()));
+            upper_bound.index_put_({Slice(None, None)}, torch::min(upper_bound, box->upper_bound()));
             compute_cdf_at_bounds();
             return;
         }
@@ -71,7 +73,15 @@ namespace rl::policies
 
     void Normal::compute_cdf_at_bounds()
     {
-        cdf_lower_bound = 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(lower_bound)));
-        cdf_upper_bound = 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(upper_bound)));
+        if (named_buffers().contains("cdf_lower_bound")) {
+            assert(named_buffers().contains("cdf_upper_bound"));
+            cdf_lower_bound.index_put_({Slice(None, None)}, 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(lower_bound))));
+            cdf_upper_bound.index_put_({Slice(None, None)}, 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(upper_bound))));
+        }
+        else {
+            assert(!named_buffers().contains("cdf_upper_bound"));
+            cdf_lower_bound = register_buffer("cdf_lower_bound", 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(lower_bound))));
+            cdf_upper_bound = register_buffer("cdf_upper_bound", 0.5 * (1 + torch::erf(M_SQRT1_2 * standardize(upper_bound))));
+        }
     }
 }

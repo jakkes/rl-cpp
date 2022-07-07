@@ -1,6 +1,9 @@
 #ifndef RL_POLICIES_DIRCHLET_H_
 #define RL_POLICIES_DIRCHLET_H_
 
+
+#include <memory>
+
 #include <torch/torch.h>
 
 #include "base.h"
@@ -38,7 +41,7 @@ namespace rl::policies
         private:
             torch::Tensor coefficients;
             int64_t dim;
-            Gamma gamma;
+            std::shared_ptr<Gamma> gamma;
     };
 }
 

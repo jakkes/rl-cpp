@@ -28,12 +28,12 @@ namespace rl::policies
 
     Gamma::Gamma(const torch::Tensor &alpha, const torch::Tensor &scale)
     :
-    _alpha{boost_alpha(alpha.reshape({-1}))},
-    _is_alpha_boosted{is_alpha_boosted(alpha.reshape({-1}))},
-    _scale{scale.reshape({-1})},
-    _d{d(boost_alpha(alpha.reshape({-1})))},
-    _c{c(boost_alpha(alpha.reshape({-1})))},
-    shape{alpha.sizes().begin(), alpha.sizes().end()}
+    _alpha{ register_buffer("_alpha", boost_alpha(alpha.reshape({-1}))) },
+    _is_alpha_boosted{ register_buffer("_is_alpha_boosted", is_alpha_boosted(alpha.reshape({-1}))) },
+    _scale{ register_buffer("_scale", scale.reshape({-1})) },
+    _d{ register_buffer("_d", d(boost_alpha(alpha.reshape({-1})))) },
+    _c{ register_buffer("_c", c(boost_alpha(alpha.reshape({-1})))) },
+    shape{ alpha.sizes().begin(), alpha.sizes().end() }
     {
         if (_alpha.size(0) != _scale.size(0)) {
             throw std::invalid_argument{"Alpha and scale must be of the same size."};

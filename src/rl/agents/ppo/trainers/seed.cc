@@ -204,16 +204,18 @@ namespace rl::agents::ppo::trainers
                     if (!stream_result) continue;
 
                     auto sequence = *stream_result;
+                    std::shared_ptr<rl::policies::constraints::Base> constraints = policies::constraints::stack(sequence->constraints);
+                    constraints->to(options.replay_device);
                     inference_buffer->add(
                         {
-                            torch::stack(sequence->states, 0).unsqueeze_(0),
-                            torch::stack(sequence->actions, 0).unsqueeze_(0),
-                            torch::tensor(sequence->rewards, torch::TensorOptions{}.dtype(sequence->states[0].dtype().toScalarType()).device(options.replay_device)).unsqueeze_(0),
-                            torch::tensor(sequence->not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(options.replay_device)).unsqueeze_(0),
-                            torch::stack(sequence->action_probabilities, 0).unsqueeze_(0),
-                            torch::stack(sequence->state_values, 0).unsqueeze_(0)
+                            torch::stack(sequence->states, 0).unsqueeze_(0).to(options.replay_device),
+                            torch::stack(sequence->actions, 0).unsqueeze_(0).to(options.replay_device),
+                            torch::tensor(sequence->rewards, torch::TensorOptions{}.dtype(sequence->states[0].dtype().toScalarType()).device(options.replay_device)).unsqueeze_(0).to(options.replay_device),
+                            torch::tensor(sequence->not_terminals, torch::TensorOptions{}.dtype(torch::kBool).device(options.replay_device)).unsqueeze_(0).to(options.replay_device),
+                            torch::stack(sequence->action_probabilities, 0).unsqueeze_(0).to(options.replay_device),
+                            torch::stack(sequence->state_values, 0).unsqueeze_(0).to(options.replay_device)
                         },
-                        {policies::constraints::stack(sequence->constraints)}
+                        {constraints}
                     );
 
                     if (inference_buffer->size() == options.inference_replay_size)
@@ -248,6 +250,10 @@ namespace rl::agents::ppo::trainers
                     std::lock_guard lock{training_buffer_mtx};
                     auto sample = training_sampler->sample(options.batchsize);
                     auto stacked_constraints = policies::constraints::stack(sample->objs);
+                    stacked_constraints->to(options.network_device);
+                    for (auto &x : sample->tensors) {
+                        x = x.to(options.network_device);
+                    }
 
                     auto model_output = model->forward(sample->tensors[0].index({Slice(), Slice(None, -1)}));
                     model_output->policy->include(stacked_constraints->index({Slice(), Slice(None, -1)}));

@@ -65,12 +65,12 @@ namespace rl::agents::ppo::trainers::seed_impl
         if (has_executed()) return;
 
         torch::NoGradGuard no_grad{};
-        auto states = torch::stack(this->states);
+        auto states = torch::stack(this->states).to(options->device);
 
         auto model_output = model->forward(states);
-        model_output->policy->include(
-            policies::constraints::stack(this->constraints)
-        );
+        std::shared_ptr<rl::policies::constraints::Base> constraints = policies::constraints::stack(this->constraints);
+        constraints->to(options->device);
+        model_output->policy->include( constraints );
 
         result_actions = model_output->policy->sample();
         result_values = model_output->value;

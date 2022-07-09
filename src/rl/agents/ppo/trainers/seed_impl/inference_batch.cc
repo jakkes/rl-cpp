@@ -28,9 +28,11 @@ namespace rl::agents::ppo::trainers::seed_impl
 
     int64_t InferenceBatch::add_inference_request(const env::State &state)
     {
-        std::lock_guard lock{add_mtx};
+        std::lock_guard lock{execute_mtx};
 
-        if (has_executed()) throw InferenceBatchObsolete{};
+        if (has_executed()) {
+            throw InferenceBatchObsolete{};
+        }
         assert(!is_full());
 
         states.push_back(state.state.to(options->device));
@@ -61,7 +63,6 @@ namespace rl::agents::ppo::trainers::seed_impl
 
     void InferenceBatch::execute()
     {
-        std::lock_guard lock{execute_mtx};
         if (has_executed()) return;
 
         torch::NoGradGuard no_grad{};
@@ -94,6 +95,7 @@ namespace rl::agents::ppo::trainers::seed_impl
     void InferenceBatch::timer()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(options->max_delay_ms));
+        std::lock_guard lock{execute_mtx};
         execute();
     }
 }

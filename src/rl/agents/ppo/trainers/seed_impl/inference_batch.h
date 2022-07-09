@@ -58,7 +58,6 @@ namespace rl::agents::ppo::trainers::seed_impl
 
             std::thread timer_thread;
 
-            std::mutex add_mtx{};
             std::mutex execute_mtx{};
             std::condition_variable execute_cv{};
 

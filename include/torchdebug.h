@@ -33,6 +33,15 @@ torch::Tensor tmean(torch::Tensor &&x) { return tmean(x); }
 torch::Tensor tmeani(torch::Tensor &x, int i) { return x.mean(i); }
 torch::Tensor tmeani(torch::Tensor &&x, int i) { return tmeani(x, i); }
 
+torch::Tensor tstd(torch::Tensor &x) { return x.std(); }
+torch::Tensor tstd(torch::Tensor &&x) { return tstd(x); }
+
+torch::Tensor tstdi(torch::Tensor &x, int i) { return x.std(i); }
+torch::Tensor tstdi(torch::Tensor &&x, int i) { return tstdi(x, i); }
+
+torch::Tensor tdetach(torch::Tensor &x) { return x.detach(); }
+torch::Tensor tdetach(torch::Tensor &&x) { return tdetach(x); }
+
 torch::Tensor tmax(torch::Tensor &x) { return x.max(); }
 torch::Tensor tmax(torch::Tensor &&x) { return tmax(x); }
 

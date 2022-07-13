@@ -282,8 +282,10 @@ namespace rl::agents::ppo::trainers
                     optimizer->zero_grad();
                     loss.backward();
 
-                    for (const auto &param : optimizer->parameters()) {
-                        grad_norm += torch::norm(param.detach().grad());
+                    for (const auto &param_group : optimizer->param_groups()) {
+                        for (const auto &param : param_group.params()) {
+                            grad_norm += torch::norm(param.grad());
+                        }
                     }
 
                     optimizer->step();

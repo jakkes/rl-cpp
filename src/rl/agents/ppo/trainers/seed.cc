@@ -277,11 +277,19 @@ namespace rl::agents::ppo::trainers
                         std::cout << "NaN loss!\n";
                     }
 
+                    auto grad_norm = torch::tensor(0.0f, torch::TensorOptions{}.device(options.network_device));
+
                     optimizer->zero_grad();
                     loss.backward();
+
+                    for (const auto &param : optimizer->parameters()) {
+                        grad_norm += torch::norm(param.detach().grad());
+                    }
+
                     optimizer->step();
 
                     if (options.logger) {
+                        options.logger->log_scalar("Trainer/GradientNorm", grad_norm.item().toFloat());
                         options.logger->log_scalar("Trainer/ValueLoss", value_loss.item().toFloat());
                         options.logger->log_scalar("Trainer/PolicyLoss", policy_loss.item().toFloat());
                         options.logger->log_frequency("Trainer/UpdateFrequency", 1);

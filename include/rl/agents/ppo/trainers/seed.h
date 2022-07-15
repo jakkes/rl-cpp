@@ -55,7 +55,7 @@ namespace rl::agents::ppo::trainers
         // Upper bound on number of training steps executed per second.
         RL_OPTION(float, max_update_frequency) = 10;
         // Value loss is multiplied by this coefficient.
-        RL_OPTION(float, value_loss_coefficient) = 1.0;
+        RL_OPTION(float, value_loss_coefficient) = 0.1;
         // Policy loss is multiplied by this coefficient.
         RL_OPTION(float, policy_loss_coefficient) = 1.0;
         // Entropy loss is multipled by this coefficient. Note, that positive values

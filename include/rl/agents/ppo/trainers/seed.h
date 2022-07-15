@@ -54,6 +54,13 @@ namespace rl::agents::ppo::trainers
         RL_OPTION(int64_t, min_replay_size) = 500;
         // Upper bound on number of training steps executed per second.
         RL_OPTION(float, max_update_frequency) = 10;
+        // Value loss is multiplied by this coefficient.
+        RL_OPTION(float, value_loss_coefficient) = 1.0;
+        // Policy loss is multiplied by this coefficient.
+        RL_OPTION(float, policy_loss_coefficient) = 1.0;
+        // Entropy loss is multipled by this coefficient. Note, that positive values
+        // imply that entropy is to be maximized.
+        RL_OPTION(float, entropy_loss_coefficient) = 0.0;
 
         // Logger used by the trainer.
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;

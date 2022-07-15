@@ -271,7 +271,14 @@ namespace rl::agents::ppo::trainers
                     auto value_loss = compute_value_loss(deltas);
                     auto policy_loss = compute_policy_loss(advantages, sample->tensors[4], action_probabilities, options.eps);
 
-                    auto loss = value_loss + policy_loss;
+                    auto loss = (
+                        options.value_loss_coefficient * value_loss
+                        + options.policy_loss_coefficient * policy_loss
+                    );
+
+                    if (options.entropy_loss_coefficient != 0) {
+                        loss += options.entropy_loss_coefficient * model_output->policy->entropy().mean();
+                    }
 
                     if (loss.isnan().any().item().toBool()) {
                         std::cout << "NaN loss!\n";

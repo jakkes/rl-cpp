@@ -270,6 +270,7 @@ namespace rl::agents::ppo::trainers
                     auto advantages = compute_advantages(deltas.detach(), sample->tensors[3], options.discount, options.gae_discount);
                     auto value_loss = compute_value_loss(deltas);
                     auto policy_loss = compute_policy_loss(advantages, sample->tensors[4], action_probabilities, options.eps);
+                    torch::Tensor entropy_loss;
 
                     auto loss = (
                         options.value_loss_coefficient * value_loss
@@ -277,7 +278,8 @@ namespace rl::agents::ppo::trainers
                     );
 
                     if (options.entropy_loss_coefficient != 0) {
-                        loss += options.entropy_loss_coefficient * model_output->policy->entropy().mean();
+                        entropy_loss = - model_output->policy->entropy().mean();
+                        loss += options.entropy_loss_coefficient * entropy_loss;
                     }
 
                     if (loss.isnan().any().item().toBool()) {
@@ -301,6 +303,7 @@ namespace rl::agents::ppo::trainers
                         options.logger->log_scalar("Trainer/GradientNorm", grad_norm.item().toFloat());
                         options.logger->log_scalar("Trainer/ValueLoss", value_loss.item().toFloat());
                         options.logger->log_scalar("Trainer/PolicyLoss", policy_loss.item().toFloat());
+                        if (entropy_loss.defined()) options.logger->log_scalar("Trainer/EntropyLoss", entropy_loss.item().toFloat());
                         options.logger->log_frequency("Trainer/UpdateFrequency", 1);
                     }
                 }

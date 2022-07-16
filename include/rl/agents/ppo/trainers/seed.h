@@ -45,17 +45,17 @@ namespace rl::agents::ppo::trainers
         // Batch size used in training.
         RL_OPTION(int, batchsize) = 32;
         // Size of replay, in number of sequences stored.
-        RL_OPTION(int64_t, replay_size) = 500;
+        RL_OPTION(int64_t, replay_size) = 2000;
         // Number of sequences collected by the inference process before added to the replay.
-        RL_OPTION(int64_t, inference_replay_size) = 100;
+        RL_OPTION(int64_t, inference_replay_size) = 500;
         // Device on which data is stored.
         RL_OPTION(torch::Device, replay_device) = torch::kCPU;
         // Minimum replay size before training starts.
-        RL_OPTION(int64_t, min_replay_size) = 500;
+        RL_OPTION(int64_t, min_replay_size) = 1000;
         // Upper bound on number of training steps executed per second.
         RL_OPTION(float, max_update_frequency) = 10;
         // Value loss is multiplied by this coefficient.
-        RL_OPTION(float, value_loss_coefficient) = 0.1;
+        RL_OPTION(float, value_loss_coefficient) = 1.0;
         // Policy loss is multiplied by this coefficient.
         RL_OPTION(float, policy_loss_coefficient) = 1.0;
         // Entropy loss is multipled by this coefficient. Note, that positive values

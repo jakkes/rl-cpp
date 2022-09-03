@@ -77,6 +77,10 @@ namespace rl::agents::ppo::trainers::seed_impl
         result_values = model_output->value;
         result_probabilities = model_output->policy->prob(result_actions);
 
+        assert(!result_actions.isnan().any().item().toBool());
+        assert(!result_values.isnan().any().item().toBool());
+        assert(!result_probabilities.isnan().any().item().toBool());
+
         executed = true;
         execute_cv.notify_all();
         if (options->logger) {

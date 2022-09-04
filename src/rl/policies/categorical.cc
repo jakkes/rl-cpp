@@ -25,7 +25,7 @@ namespace rl::policies
     
     void Categorical::compute_internals()
     {
-        probabilities /= probabilities.sum(-1, true);
+        probabilities = probabilities / probabilities.sum(-1, true);
 
         if (named_buffers().contains("cumsummed")) {
             cumsummed.index_put_({Slice(None, None)}, probabilities.cumsum(-1));

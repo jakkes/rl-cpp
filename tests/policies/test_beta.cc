@@ -29,8 +29,6 @@ TORCH_TEST(policies, beta, device)
     d.prob(sample);
     d.log_prob(sample);
     d.entropy();
-
-
 }
 
 
@@ -56,4 +54,18 @@ TORCH_TEST(policies, beta_mean, device)
     auto expected_mean = 1.0 / (1.0 + beta / alpha) * (b - a) + a;
 
     ASSERT_TRUE(mean.allclose(expected_mean, 1e-2, 1e-2));
+}
+
+TORCH_TEST(policies, sample_beta_lower_limit, device)
+{
+    Beta d{
+        torch::tensor({0.1f}).repeat({10000}),
+        torch::tensor({0.1f}).repeat({10000})
+    };
+    d.to(device);
+
+    for (int i = 0; i < 100; i++) {
+        auto sample = d.sample();
+        ASSERT_FALSE(sample.isnan().any().item().toBool());
+    }
 }

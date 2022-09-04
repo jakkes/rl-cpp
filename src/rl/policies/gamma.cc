@@ -103,7 +103,8 @@ namespace rl::policies
 
         if (_is_alpha_boosted.any().item().toBool()) {
             auto uniform = torch::rand({_is_alpha_boosted.sum().item().toLong()}, out.options());
-            uniform.pow_(1.0 / (_alpha.index({_is_alpha_boosted}) - 1.0));
+            auto exponent = 1.0 / (_alpha.index({_is_alpha_boosted}) - 1.0);
+            uniform.pow_(exponent);
             out.index_put_(
                 {_is_alpha_boosted},
                 out.index({_is_alpha_boosted}) * uniform

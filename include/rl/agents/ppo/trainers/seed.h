@@ -64,6 +64,14 @@ namespace rl::agents::ppo::trainers
 
         // Logger used by the trainer.
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
+
+        // Checkpoint callback. This function is called periodically. During its
+        // execution, the training is paused, allowing the user to save the current
+        // network state.
+        RL_OPTION(std::function<void()>, callback) = nullptr;
+
+        // Checkpoint callback period, seconds.
+        RL_OPTION(size_t, callback_period) = 1800;
     };
 
     /**

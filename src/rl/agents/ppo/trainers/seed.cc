@@ -165,6 +165,7 @@ namespace rl::agents::ppo::trainers
 
                 inference_data_gathering_thread = std::thread(&TrainerImpl::inference_data_gatherer, this);
                 training_thread = std::thread(&TrainerImpl::trainer, this);
+                checkpoint_thread = std::thread(&TrainerImpl::checkpoint_timer, this);
             }
 
             void stop()
@@ -178,6 +179,7 @@ namespace rl::agents::ppo::trainers
                 for (auto &actor : actors) actor->join();
                 if (inference_data_gathering_thread.joinable()) inference_data_gathering_thread.join();
                 if (training_thread.joinable()) training_thread.join();
+                if (checkpoint_thread.joinable()) checkpoint_thread.join();
             }
 
         private:
@@ -196,9 +198,30 @@ namespace rl::agents::ppo::trainers
             std::vector<std::shared_ptr<seed_impl::Actor>> actors;
 
             std::mutex training_buffer_mtx{};
+            std::mutex network_update_mtx{};
 
             std::thread inference_data_gathering_thread;
             std::thread training_thread;
+            std::thread checkpoint_thread;
+
+            void checkpoint_timer()
+            {
+                auto next_call = std::chrono::high_resolution_clock::now() + std::chrono::seconds(options.callback_period);
+                while (running)
+                {
+                    if (std::chrono::high_resolution_clock::now() < next_call) {
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
+                        continue;
+                    }
+
+                    next_call = next_call + std::chrono::seconds(options.callback_period);
+                    
+                    if (options.callback) {
+                        std::lock_guard lock{network_update_mtx};
+                        options.callback();
+                    }
+                }
+            }
 
             void inference_data_gatherer()
             {
@@ -251,8 +274,12 @@ namespace rl::agents::ppo::trainers
                 while (running)
                 {
                     metronome.spin();
-                    std::lock_guard lock{training_buffer_mtx};
-                    auto sample = training_sampler->sample(options.batchsize);
+                    std::unique_ptr<rl::buffers::TensorAndObjectBatch<std::shared_ptr<rl::policies::constraints::Base>>> sample;
+                    {
+                        std::lock_guard buffer_lock{training_buffer_mtx};
+                        sample = training_sampler->sample(options.batchsize);
+                    }
+
                     auto stacked_constraints = policies::constraints::stack(sample->objs);
                     stacked_constraints->to(options.network_device);
                     for (auto &x : sample->tensors) {
@@ -282,22 +309,22 @@ namespace rl::agents::ppo::trainers
                         loss += options.entropy_loss_coefficient * entropy_loss;
                     }
 
-                    if (loss.isnan().any().item().toBool()) {
-                        std::cout << "NaN loss!\n";
-                    }
+                    assert(!loss.isnan().any().item().toBool());
 
                     auto grad_norm = torch::tensor(0.0f, torch::TensorOptions{}.device(options.network_device));
 
-                    optimizer->zero_grad();
-                    loss.backward();
+                    {
+                        std::lock_guard network_lock{network_update_mtx};
+                        optimizer->zero_grad();
+                        loss.backward();
 
-                    for (const auto &param_group : optimizer->param_groups()) {
-                        for (const auto &param : param_group.params()) {
-                            grad_norm += torch::norm(param.grad());
+                        for (const auto &param_group : optimizer->param_groups()) {
+                            for (const auto &param : param_group.params()) {
+                                grad_norm += torch::norm(param.grad());
+                            }
                         }
+                        optimizer->step();
                     }
-
-                    optimizer->step();
 
                     if (options.logger) {
                         options.logger->log_scalar("Trainer/GradientNorm", grad_norm.item().toFloat());

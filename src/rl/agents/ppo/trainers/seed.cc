@@ -320,9 +320,23 @@ namespace rl::agents::ppo::trainers
 
                         for (const auto &param_group : optimizer->param_groups()) {
                             for (const auto &param : param_group.params()) {
-                                grad_norm += torch::norm(param.grad());
+                                grad_norm += param.grad().square().sum();
                             }
                         }
+                        grad_norm = grad_norm.sqrt();
+                        float grad_norm_f = grad_norm.item().toFloat();
+                        
+                        if (grad_norm_f > options.gradient_norm) {
+                            float factor = options.gradient_norm / grad_norm_f;
+
+                            for (const auto &param_group : optimizer->param_groups()) {
+                                for (const auto &param : param_group.params()) {
+                                    param.grad().mul_(factor);
+                                }
+                            }
+                            grad_norm.mul_(factor);
+                        }
+
                         optimizer->step();
                     }
 

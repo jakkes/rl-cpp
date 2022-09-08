@@ -61,6 +61,8 @@ namespace rl::agents::ppo::trainers
         // Entropy loss is multipled by this coefficient. Note, that positive values
         // imply that entropy is to be maximized.
         RL_OPTION(float, entropy_loss_coefficient) = 0.0;
+        // Gradient norm is capped at this value, and scaled if necessarily.
+        RL_OPTION(float, gradient_norm) = 40.0f;
 
         // Logger used by the trainer.
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;

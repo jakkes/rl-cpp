@@ -57,6 +57,12 @@ torch::Tensor treal(torch::Tensor &&x) { return treal(x); }
 torch::Tensor timag(torch::Tensor &x) { return torch::imag(x); }
 torch::Tensor timag(torch::Tensor &&x) { return timag(x); }
 
+torch::Tensor tsquare(torch::Tensor &x) { return torch::square(x); }
+torch::Tensor tsquare(torch::Tensor &&x) { return tsquare(x); }
+
+torch::Tensor tsqrt(torch::Tensor &x) { return torch::sqrt(x); }
+torch::Tensor tsqrt(torch::Tensor &&x) { return tsqrt(x); }
+
 void tprint(torch::IntArrayRef &ref) {
     for (int i = 0; i < ref.size(); i++) {
         std::cout << ref[i] << " ";

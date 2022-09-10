@@ -20,9 +20,9 @@ namespace rl::agents::dqn::modules
             }
 
             inline
-            void apply_mask(const rl::policies::constraints::CategoricalMask &masks) {
-                auto mask_tensor = ~masks.mask();
-                values = values.index_put({mask_tensor}, torch::zeros({mask_tensor.sum().item().toLong()}, values.options()) - INFINITY);
+            void apply_mask(const torch::Tensor &mask) {
+                auto inverted_mask = ~mask;
+                values = values.index_put({inverted_mask}, torch::zeros({inverted_mask.sum().item().toLong()}, values.options()) - INFINITY);
             }
 
             torch::Tensor loss(
@@ -30,6 +30,7 @@ namespace rl::agents::dqn::modules
                 const torch::Tensor &rewards,
                 const torch::Tensor &not_terminals,
                 const BaseOutput &next_output,
+                const torch::Tensor &next_actions,
                 float discount
             ) override;
         

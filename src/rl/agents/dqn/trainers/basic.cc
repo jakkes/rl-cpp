@@ -68,19 +68,26 @@ namespace rl::agents::dqn::trainers
             auto &sample = *sample_storage;
             
             auto output = module->forward(sample[0]);
-            rl::policies::constraints::CategoricalMask mask{sample[1]};
-            output->apply_mask(mask);
+            output->apply_mask(sample[1]);
 
             std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
+            torch::Tensor next_actions;
             
             {
                 torch::InferenceMode guard{};
-                rl::policies::constraints::CategoricalMask next_mask{sample[6]};
                 next_output = target_module->forward(sample[5]);
-                next_output->apply_mask(next_mask);
+                next_output->apply_mask(sample[6]);
+
+                if (options.double_dqn) {
+                    auto tmp_output = module->forward(sample[5]);
+                    tmp_output->apply_mask(sample[6]);
+                    next_actions = tmp_output->greedy_action();
+                } else {
+                    next_actions = next_output->greedy_action();
+                }
             }
 
-            auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, options.discount);
+            auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, next_actions, options.discount);
             loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
@@ -102,29 +109,29 @@ namespace rl::agents::dqn::trainers
                 should_log_start_value = true;
             }
             auto state = env->state();
-            auto output = module->forward(state->state);
-            const auto &mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint);
-            output->apply_mask(mask);
+            auto output = module->forward(state->state.unsqueeze(0));
+            auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
+            output->apply_mask(mask.unsqueeze(0));
 
             if (options.logger && should_log_start_value) {
                 options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
             }
             
             auto policy = this->policy->policy(*output);
-            auto action = policy->sample();
+            auto action = policy->sample().squeeze(0);
 
             auto observation = env->step(action);
             
-            const auto &next_mask = dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint);
+            auto next_mask = dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask();
 
             buffer->add({
                 state->state.unsqueeze(0).to(options.replay_device),
-                mask.mask().unsqueeze(0).to(options.replay_device),
+                mask.unsqueeze(0).to(options.replay_device),
                 action.unsqueeze(0).to(options.replay_device),
                 torch::tensor({observation->reward}, tensor_options[3]),
                 torch::tensor({!observation->terminal}, tensor_options[4]),
                 observation->state->state.unsqueeze(0).to(options.replay_device),
-                next_mask.mask().unsqueeze(0).to(options.replay_device)
+                next_mask.unsqueeze(0).to(options.replay_device)
             });
 
             env_steps++;

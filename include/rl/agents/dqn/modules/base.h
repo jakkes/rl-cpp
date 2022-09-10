@@ -27,32 +27,44 @@ namespace rl::agents::dqn::modules
             virtual const torch::Tensor value() const = 0;
 
             /**
+             * @brief Computes the greedy action of the output.
+             * 
+             * @return torch::Tensor greedy actions
+             */
+            inline torch::Tensor greedy_action() const {
+                return value().argmax(-1);
+            }
+
+            /**
              * @brief Applies the given mask to the value output.
              * 
              * @param masks Action masks, boolean tensor.
              * @return torch::Tensor 
              */
-            virtual void apply_mask(
-                        const rl::policies::constraints::CategoricalMask &masks) = 0;
+            virtual void apply_mask(const torch::Tensor &mask) = 0;
 
             /**
              * @brief Computes the loss of the output when applied to the given rewards,
-             * terminal flags and output of the next states.
+             * terminal flags, output of the next states, and specified next actions.
              * 
              * @param actions actions
              * @param rewards rewards
-             * @param not_terminals terminals
-             * @param next_output output of the following states
+             * @param not_terminals inverted terminal flags
+             * @param next_output output of next states
+             * @param next_actions next actions
              * @param discount discount factor
-             * @return torch::Tensor loss
+             * @return torch::Tensor 
              */
             virtual torch::Tensor loss(
                 const torch::Tensor &actions,
                 const torch::Tensor &rewards,
                 const torch::Tensor &not_terminals,
                 const BaseOutput &next_output,
+                const torch::Tensor &next_actions,
                 float discount
             ) = 0;
+
+
     };
 
     /**

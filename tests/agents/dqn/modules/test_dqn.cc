@@ -21,8 +21,7 @@ TORCH_TEST(dqn_module, dqn_output_loss, device)
         {true, true, true}
     }, torch::TensorOptions{}.device(device).dtype(torch::kBool));
     DQNOutput output{values};
-    CategoricalMask mask{masks};
-    output.apply_mask(mask);
+    output.apply_mask(masks);
 
     auto next_values = torch::tensor({
         {0.5, 1.0, 0.0},
@@ -37,10 +36,8 @@ TORCH_TEST(dqn_module, dqn_output_loss, device)
         {true, true, true}
     }, torch::TensorOptions{}.device(device).dtype(torch::kBool));
 
-    CategoricalMask next_mask{next_masks};
-
     DQNOutput next_output{next_values};
-    next_output.apply_mask(next_mask);
+    next_output.apply_mask(next_masks);
 
     auto rewards = torch::tensor({0.5, 0.2, 0.1, 0.9},
                             torch::TensorOptions{}.device(device));
@@ -53,7 +50,7 @@ TORCH_TEST(dqn_module, dqn_output_loss, device)
         
     float discount = 0.75;
 
-    auto loss = output.loss(actions, rewards, not_terminals, next_output, discount);
+    auto loss = output.loss(actions, rewards, not_terminals, next_output, next_output.greedy_action(), discount);
 
     ASSERT_TRUE(
         loss.index({0}).isinf().item().toBool()

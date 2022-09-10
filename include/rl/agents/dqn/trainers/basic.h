@@ -35,6 +35,8 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(int, target_network_update_steps) = 100;
         // Discount factor
         RL_OPTION(float, discount) = 0.99;
+        // Double DQN
+        RL_OPTION(bool, double_dqn) = true;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };

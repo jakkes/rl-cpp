@@ -23,6 +23,8 @@ target_sources(
             policies/constraints/box.cc
             policies/constraints/empty.cc
 
+        utils/n_step_collector.cc
+
         torchutils.cc
 )
 

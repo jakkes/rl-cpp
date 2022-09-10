@@ -185,6 +185,7 @@ namespace rl::agents::ppo::trainers
         envs.reserve(options.envs);
         for (int i = 0; i < options.envs; i++) {
             envs.push_back(env_factory->get());
+            envs[i]->reset();
         }
 
         while (std::chrono::steady_clock::now() < end) {

@@ -24,9 +24,7 @@ namespace rl::agents::dqn::trainers
         env_factory{env_factory},
         options{options}
     {
-        if (!options.double_dqn) {
-            throw std::runtime_error{"Disabling double DQN is not yet implemented."};
-        }
+
     }
 
     void Basic::run(size_t duration)
@@ -83,12 +81,14 @@ namespace rl::agents::dqn::trainers
             }
 
             auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, options.discount);
+            loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
             optimizer->step();
 
             if (options.logger) {
                 options.logger->log_scalar("DQN/Loss", loss.item().toFloat());
+                options.logger->log_frequency("DQN/Update frequency", 1);
             }
 
             train_steps++;
@@ -96,14 +96,22 @@ namespace rl::agents::dqn::trainers
 
         auto execute_env_step = [&] () {
             torch::InferenceMode guard{};
-            if (env->is_terminal()) env->reset();
+            bool should_log_start_value{false};
+            if (env->is_terminal()) {
+                auto state = env->reset();
+                should_log_start_value = true;
+            }
             auto state = env->state();
-            auto output = module->forward(state->state.unsqueeze(0));
+            auto output = module->forward(state->state);
             const auto &mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint);
             output->apply_mask(mask);
+
+            if (options.logger && should_log_start_value) {
+                options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
+            }
             
             auto policy = this->policy->policy(*output);
-            auto action = policy->sample().squeeze(0);
+            auto action = policy->sample();
 
             auto observation = env->step(action);
             
@@ -113,8 +121,8 @@ namespace rl::agents::dqn::trainers
                 state->state.unsqueeze(0).to(options.replay_device),
                 mask.mask().unsqueeze(0).to(options.replay_device),
                 action.unsqueeze(0).to(options.replay_device),
-                torch::tensor(observation->reward, tensor_options[3]),
-                torch::tensor(!observation->terminal, tensor_options[4]),
+                torch::tensor({observation->reward}, tensor_options[3]),
+                torch::tensor({!observation->terminal}, tensor_options[4]),
                 observation->state->state.unsqueeze(0).to(options.replay_device),
                 next_mask.mask().unsqueeze(0).to(options.replay_device)
             });
@@ -123,6 +131,7 @@ namespace rl::agents::dqn::trainers
         };
 
         auto sync_modules = [&] () {
+            torch::InferenceMode guard{};
             auto target_parameters = target_module->parameters();
             auto parameters = module->parameters();
 

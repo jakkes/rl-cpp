@@ -9,11 +9,6 @@
 
 namespace rl::agents::dqn::modules
 {
-    struct DQNOptions
-    {
-
-    };
-
     class DQNOutput : public BaseOutput
     {
         public:
@@ -49,8 +44,6 @@ namespace rl::agents::dqn::modules
     class DQN : public Base
     {
         public:
-            DQN(const DQNOptions &options={});
-
             /**
              * @brief Implementation of the forward pass.
              * 
@@ -64,9 +57,6 @@ namespace rl::agents::dqn::modules
             std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) override {
                 return forward_impl(states);
             }
-
-        private:
-            const DQNOptions options;
     };
 }
 

@@ -72,11 +72,11 @@ namespace rl::agents::dqn::modules
             virtual std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) = 0;
 
             /**
-             * @brief Clones the DQN module.
+             * @brief Clones the module.
              * 
              * @return std::unique_ptr<Base> Cloned module
              */
-            std::unique_ptr<Base> clone() const;
+            virtual std::unique_ptr<Base> clone() const = 0;
     };
 }
 

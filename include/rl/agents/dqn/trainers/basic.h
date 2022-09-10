@@ -23,8 +23,6 @@ namespace rl::agents::dqn::trainers
         // Training is paused until the replay buffer is filled with at least this
         // number of samples.
         RL_OPTION(int64_t, minimum_replay_buffer_size) = 10000;
-        // If true, DoubleDQN is used in the training process.
-        RL_OPTION(bool, double_dqn) = true;
         // Batch size used in training.
         RL_OPTION(int, batch_size) = 64;
         // Device where replay is located.

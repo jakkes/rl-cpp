@@ -9,3 +9,6 @@ target_link_libraries(seedppo-continuous-cartpole PRIVATE rl)
 
 add_executable(ppo-continuous-cartpole ppo_continuous_cartpole.cc)
 target_link_libraries(ppo-continuous-cartpole PRIVATE rl)
+
+add_executable(dqn-cartpole dqn_cartpole.cc)
+target_link_libraries(dqn-cartpole PRIVATE rl)

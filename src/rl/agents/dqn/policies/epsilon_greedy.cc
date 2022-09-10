@@ -9,8 +9,14 @@ namespace rl::agents::dqn::policies
         auto value = output.value().detach();
         auto probabilities = epsilon * torch::ones_like(value);
         auto greedy_actions = value.argmax(-1);
-        auto batchvec = torch::arange(greedy_actions.size(0), greedy_actions.options());
-        probabilities.index_put_({batchvec, greedy_actions}, epsilon + 1.0f);
+
+        if (greedy_actions.sizes().size() > 0) {
+            auto batchvec = torch::arange(greedy_actions.size(0), greedy_actions.options());
+            probabilities.index_put_({batchvec, greedy_actions}, epsilon + 1.0f);
+        }
+        else {
+            probabilities.index_put_({greedy_actions}, epsilon + 1.0f);
+        }
 
         // Normalization taken care by policy constructor.
         return std::make_unique<rl::policies::Categorical>(probabilities);

@@ -2,6 +2,7 @@
 #define RL_AGENTS_AGENTS_H_
 
 #include "ppo/ppo.h"
+#include "dqn/dqn.h"
 
 /**
  * @brief Implementations of RL algorithms.

@@ -77,13 +77,6 @@ namespace rl::agents::dqn::modules
              * @return std::unique_ptr<Base> Cloned module
              */
             std::unique_ptr<Base> clone() const;
-
-            /**
-             * @brief Syncs parameters of two modules.
-             * 
-             * @param module Module from which to copy parameter values.
-             */
-            void sync_parameters(const Base &module);
     };
 }
 

@@ -3,6 +3,7 @@
 
 
 #include "seed.h"
+#include "basic.h"
 
 /**
  * @brief Training modules for DQN

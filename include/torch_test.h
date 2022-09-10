@@ -1,3 +1,4 @@
+#include <torch/torch.h>
 #include <gtest/gtest.h>
 
 #ifndef TORCH_TEST_H_

@@ -4,6 +4,7 @@
 
 #include "base.h"
 #include "distributional.h"
+#include "dqn.h"
 
 namespace rl::agents::dqn::modules {}
 

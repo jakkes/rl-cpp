@@ -24,15 +24,7 @@ namespace rl::agents::dqn::modules
              * 
              * @return torch::Tensor Value of each action, along the final dimension.
              */
-            virtual torch::Tensor value() const = 0;
-
-            /**
-             * @brief Computes the value of a specific action(s).
-             * 
-             * @param actions Action(s)
-             * @return torch::Tensor Value of the given action in the current state.
-             */
-            virtual torch::Tensor value(const torch::Tensor &actions) const = 0;
+            virtual const torch::Tensor value() const = 0;
 
             /**
              * @brief Applies the given mask to the value output.
@@ -40,7 +32,27 @@ namespace rl::agents::dqn::modules
              * @param masks Action masks, boolean tensor.
              * @return torch::Tensor 
              */
-            virtual void apply_mask(const rl::policies::constraints::CategoricalMask &masks) = 0;
+            virtual void apply_mask(
+                        const rl::policies::constraints::CategoricalMask &masks) = 0;
+
+            /**
+             * @brief Computes the loss of the output when applied to the given rewards,
+             * terminal flags and output of the next states.
+             * 
+             * @param actions actions
+             * @param rewards rewards
+             * @param not_terminals terminals
+             * @param next_output output of the following states
+             * @param discount discount factor
+             * @return torch::Tensor loss
+             */
+            virtual torch::Tensor loss(
+                const torch::Tensor &actions,
+                const torch::Tensor &rewards,
+                const torch::Tensor &not_terminals,
+                const BaseOutput &next_output,
+                float discount
+            ) = 0;
     };
 
     /**
@@ -58,28 +70,20 @@ namespace rl::agents::dqn::modules
              * @return std::unique_ptr<BaseOutput> Value data
              */
             virtual std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) = 0;
-            
+
             /**
-             * @brief Computes the loss of the given data.
+             * @brief Clones the DQN module.
              * 
-             * @param states States
-             * @param masks Masks
-             * @param rewards Rewards
-             * @param not_terminals Not terminals
-             * @param next_states Next states
-             * @param next_masks Next masks
-             * @param discount Discount factor
-             * @return torch::Tensor Loss
+             * @return std::unique_ptr<Base> Cloned module
              */
-            virtual torch::Tensor loss(
-                const torch::Tensor &states,
-                const rl::policies::constraints::CategoricalMask &masks,
-                const torch::Tensor &rewards,
-                const torch::Tensor &not_terminals,
-                const torch::Tensor &next_states,
-                const rl::policies::constraints::CategoricalMask &next_masks,
-                float discount
-            ) = 0;
+            std::unique_ptr<Base> clone() const;
+
+            /**
+             * @brief Syncs parameters of two modules.
+             * 
+             * @param module Module from which to copy parameter values.
+             */
+            void sync_parameters(const Base &module);
     };
 }
 

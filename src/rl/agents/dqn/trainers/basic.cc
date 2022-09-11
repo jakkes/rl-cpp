@@ -136,7 +136,7 @@ namespace rl::agents::dqn::trainers
                 buffer->add({
                     transition.state->state.unsqueeze(0).to(options.replay_device),
                     mask.unsqueeze(0).to(options.replay_device),
-                    action.unsqueeze(0).to(options.replay_device),
+                    transition.action.unsqueeze(0).to(options.replay_device),
                     torch::tensor({transition.reward}, tensor_options[3]),
                     torch::tensor({!transition.terminal}, tensor_options[4]),
                     transition.next_state->state.unsqueeze(0).to(options.replay_device),

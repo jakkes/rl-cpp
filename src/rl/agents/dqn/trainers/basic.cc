@@ -69,27 +69,36 @@ namespace rl::agents::dqn::trainers
             auto sample_storage = sampler.sample(options.batch_size);
             auto &sample = *sample_storage;
             
-            auto output = module->forward(sample[0]);
-            output->apply_mask(sample[1]);
+            auto output = module->forward(sample[0].to(options.network_device));
+            output->apply_mask(sample[1].to(options.network_device));
 
             std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
             torch::Tensor next_actions;
             
             {
                 torch::InferenceMode guard{};
-                next_output = target_module->forward(sample[5]);
-                next_output->apply_mask(sample[6]);
+                auto next_state = sample[5].to(options.network_device);
+                auto next_mask = sample[6].to(options.network_device);
+                next_output = target_module->forward(next_state);
+                next_output->apply_mask(next_mask);
 
                 if (options.double_dqn) {
-                    auto tmp_output = module->forward(sample[5]);
-                    tmp_output->apply_mask(sample[6]);
+                    auto tmp_output = module->forward(next_state);
+                    tmp_output->apply_mask(next_mask);
                     next_actions = tmp_output->greedy_action();
                 } else {
                     next_actions = next_output->greedy_action();
                 }
             }
 
-            auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, next_actions, std::pow(options.discount, options.n_step));
+            auto loss = output->loss(
+                sample[2].to(options.network_device),
+                sample[3].to(options.network_device),
+                sample[4].to(options.network_device),
+                *next_output,
+                next_actions,
+                std::pow(options.discount, options.n_step)
+            );
             loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
@@ -111,16 +120,16 @@ namespace rl::agents::dqn::trainers
                 should_log_start_value = true;
             }
             std::shared_ptr<rl::env::State> state = env->state();
-            auto output = module->forward(state->state.unsqueeze(0));
+            auto output = module->forward(state->state.unsqueeze(0).to(options.network_device));
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
-            output->apply_mask(mask.unsqueeze(0));
+            output->apply_mask(mask.unsqueeze(0).to(options.network_device));
 
             if (options.logger && should_log_start_value) {
                 options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
             }
             
             auto policy = this->policy->policy(*output);
-            auto action = policy->sample().squeeze(0);
+            auto action = policy->sample().squeeze(0).to(options.environment_device);
 
             auto observation = env->step(action);
             auto transitions = collector.step(

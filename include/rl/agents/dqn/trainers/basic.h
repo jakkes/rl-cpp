@@ -37,6 +37,8 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(float, discount) = 0.99;
         // Double DQN
         RL_OPTION(bool, double_dqn) = true;
+        // Reward n-step
+        RL_OPTION(int, n_step) = 3;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };

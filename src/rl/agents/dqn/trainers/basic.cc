@@ -3,6 +3,7 @@
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
 #include <rl/policies/constraints/categorical_mask.h>
+#include <rl/utils/n_step_collector.h>
 
 
 using rl::policies::constraints::CategoricalMask;
@@ -59,6 +60,7 @@ namespace rl::agents::dqn::trainers
         );
 
         rl::buffers::samplers::Uniform sampler{buffer};
+        rl::utils::NStepCollector collector{options.n_step, options.discount};
 
         size_t env_steps{0};
         size_t train_steps{0};
@@ -87,7 +89,7 @@ namespace rl::agents::dqn::trainers
                 }
             }
 
-            auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, next_actions, options.discount);
+            auto loss = output->loss(sample[2], sample[3], sample[4], *next_output, next_actions, std::pow(options.discount, options.n_step));
             loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
@@ -108,7 +110,7 @@ namespace rl::agents::dqn::trainers
                 auto state = env->reset();
                 should_log_start_value = true;
             }
-            auto state = env->state();
+            std::shared_ptr<rl::env::State> state = env->state();
             auto output = module->forward(state->state.unsqueeze(0));
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
             output->apply_mask(mask.unsqueeze(0));
@@ -121,18 +123,26 @@ namespace rl::agents::dqn::trainers
             auto action = policy->sample().squeeze(0);
 
             auto observation = env->step(action);
-            
-            auto next_mask = dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask();
+            auto transitions = collector.step(
+                state,
+                action,
+                observation->reward,
+                observation->terminal
+            );
 
-            buffer->add({
-                state->state.unsqueeze(0).to(options.replay_device),
-                mask.unsqueeze(0).to(options.replay_device),
-                action.unsqueeze(0).to(options.replay_device),
-                torch::tensor({observation->reward}, tensor_options[3]),
-                torch::tensor({!observation->terminal}, tensor_options[4]),
-                observation->state->state.unsqueeze(0).to(options.replay_device),
-                next_mask.unsqueeze(0).to(options.replay_device)
-            });
+            for (const auto &transition : transitions) {
+                auto mask = dynamic_cast<const CategoricalMask&>(*transition.state->action_constraint).mask();
+                auto next_mask = dynamic_cast<const CategoricalMask&>(*transition.next_state->action_constraint).mask();
+                buffer->add({
+                    transition.state->state.unsqueeze(0).to(options.replay_device),
+                    mask.unsqueeze(0).to(options.replay_device),
+                    action.unsqueeze(0).to(options.replay_device),
+                    torch::tensor({transition.reward}, tensor_options[3]),
+                    torch::tensor({!transition.terminal}, tensor_options[4]),
+                    transition.next_state->state.unsqueeze(0).to(options.replay_device),
+                    next_mask.unsqueeze(0).to(options.replay_device)
+                });
+            }
 
             env_steps++;
         };

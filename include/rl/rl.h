@@ -8,6 +8,7 @@
 #include "buffers/buffers.h"
 #include "logging/logging.h"
 #include "cpputils/cpputils.h"
+#include "utils/utils.h"
 
 #include "option.h"
 

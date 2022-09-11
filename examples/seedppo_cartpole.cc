@@ -63,7 +63,7 @@ class Model : public rl::agents::ppo::Module
         torch::nn::Linear policy;
 
         Model(int actions) :
-            base{register_module("base", torch::nn::Linear{5, 64})},
+            base{register_module("base", torch::nn::Linear{4, 64})},
             value{register_module("value", torch::nn::Linear{64, 1})},
             policy{register_module("policy", torch::nn::Linear{64, actions})}
         {}

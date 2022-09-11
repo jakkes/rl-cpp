@@ -30,7 +30,8 @@ namespace rl::env
     CartPoleContinuous::CartPoleContinuous(int max_steps) : max_steps{max_steps} {}
 
     torch::Tensor CartPoleContinuous::state_vector() const {
-        return torch::tensor({x, v, theta, omega}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
+        float progress = (steps * 1.0 / max_steps - 0.5) * 2;
+        return torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
     }
 
     std::unique_ptr<State> CartPoleContinuous::state() const {

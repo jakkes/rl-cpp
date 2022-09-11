@@ -41,7 +41,7 @@ int main()
             .network_device_(torch::kCPU)
             .replay_buffer_size_(10000)
             .network_device_(torch::kCPU)
-            .target_network_update_steps_(10)
+            .target_network_update_steps_(20)
             .n_step_(3)
     };
 
@@ -53,7 +53,7 @@ Module::Module()
     net = register_module(
         "net",
         torch::nn::Sequential{
-            torch::nn::Linear{4, 64},
+            torch::nn::Linear{5, 64},
             torch::nn::ReLU{true},
             torch::nn::Linear{64, 64},
             torch::nn::ReLU{true},

@@ -21,7 +21,7 @@ namespace rl::utils
     {
         std::vector<NStepCollectorTransition> out{};
 
-        if (looped && !terminal)
+        if (looped)
         {
             out.resize(1);
             out[0].action = actions[i];
@@ -34,18 +34,32 @@ namespace rl::utils
             // Prepare for next rewards
             for (int j = 0; j < n; j++) rewards[i][j] = 0.0f;
         }
-        else if (terminal)
+
+        states[i] = state;
+        actions[i] = action;
+        for (int j = 0; j < n; j++) {
+            int k = (i - j + n) % n;
+            rewards[j][k] = reward * std::pow(discount, k);
+        }
+        i++;
+        if (i >= n) {
+            looped = true;
+            i = 0;
+        }
+
+        if (terminal)
         {
             int N = looped ? n : i;
-            out.resize(N);
+            int offset = out.size();
+            out.resize(offset + N);
             for (int j = 0; j < N; j++)
             {
-                out[j].action = actions[j];
-                out[j].reward = 0.0f;
-                for (int k = 0; k < n; k++) out[j].reward += rewards[j][k];
-                out[j].next_state = state;
-                out[j].terminal = true;
-                out[j].state = states[j];
+                out[offset + j].action = actions[j];
+                out[offset + j].reward = 0.0f;
+                for (int k = 0; k < n; k++) out[offset + j].reward += rewards[j][k];
+                out[offset + j].next_state = state;
+                out[offset + j].terminal = true;
+                out[offset + j].state = states[j];
 
                 for (int k = 0; k < n; k++) rewards[j][k] = 0.0f;
             }
@@ -54,16 +68,6 @@ namespace rl::utils
             looped = false;
         }
 
-        states[i] = state;
-        actions[i] = action;
-        for (int j = 0; j < n; j++) {
-            rewards[j][(i - j) % n] = reward * std::pow(discount, (i - j) % n);
-        }
-        i++;
-        if (i >= n) {
-            looped = true;
-            i = 0;
-        }
         return out;
     }
 

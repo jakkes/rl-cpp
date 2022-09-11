@@ -71,6 +71,45 @@ TEST(n_step_collector, terminal_single_step)
     }
 }
 
+TEST(n_step_collector, single_step)
+{
+    rl::utils::NStepCollector collector{1, 0.75};
+
+    auto o = std::vector{
+        step(&collector, 0, false),
+        step(&collector, 1, true),
+        step(&collector, 2, false),
+        step(&collector, 3, true),
+        step(&collector, 4, false),
+        step(&collector, 5, true),
+    };
+
+    for (int i = 0; i < 6; i++)
+    {
+        ASSERT_EQ(o[i].size(), i % 2 == 0 ? 0 : 2);
+
+        if (o[i].size() > 0)
+        {
+            check_transition(
+                o.at(i).at(0),
+                i-1,
+                10 + i - 1,
+                10.0f * (i-1),
+                false,
+                i
+            );
+            check_transition(
+                o.at(i).at(1),
+                i,
+                10 + i,
+                10.0f * i,
+                true,
+                i
+            );
+        }
+    }
+}
+
 
 TEST(n_step_collector, loop)
 {

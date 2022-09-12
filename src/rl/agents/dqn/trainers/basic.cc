@@ -180,6 +180,10 @@ namespace rl::agents::dqn::trainers
                 if (train_steps % options.target_network_update_steps == 0) {
                     sync_modules();
                 }
+
+                if (train_steps % options.checkpoint_callback_period == 0) {
+                    if (options.checkpoint_callback) options.checkpoint_callback(train_steps);
+                }
             }
 
             execute_env_step();

@@ -6,49 +6,49 @@
 
 namespace rl::agents::dqn::modules
 {
-    class DistributionalOutput : BaseOutput
-    {
-        public:
-            DistributionalOutput(const torch::Tensor &weights, const torch::Tensor &atoms);
+    // class DistributionalOutput : BaseOutput
+    // {
+    //     public:
+    //         DistributionalOutput(const torch::Tensor &weights, const torch::Tensor &atoms);
 
-            const torch::Tensor value() const override;
+    //         const torch::Tensor value() const override;
 
-            void apply_mask(const torch::Tensor &mask) override;
+    //         void apply_mask(const torch::Tensor &mask) override;
 
-            torch::Tensor loss(
-                const torch::Tensor &actions,
-                const torch::Tensor &rewards,
-                const torch::Tensor &not_terminals,
-                const BaseOutput &next_output,
-                const torch::Tensor &next_actions,
-                float discount
-            ) override;
+    //         torch::Tensor loss(
+    //             const torch::Tensor &actions,
+    //             const torch::Tensor &rewards,
+    //             const torch::Tensor &not_terminals,
+    //             const BaseOutput &next_output,
+    //             const torch::Tensor &next_actions,
+    //             float discount
+    //         ) override;
         
-        private:
-            const torch::Tensor data, atoms;
-    };
+    //     private:
+    //         const torch::Tensor data, atoms;
+    // };
 
-    /**
-     * @brief Distributional DQN module
-     * 
-     */
-    class Distributional : public Base
-    {
-        public:
-            /**
-             * @brief Implementation of the forward pass.
-             * 
-             * @param states states
-             * @return std::unique_ptr<DistributionalOutput> output
-             */
-            virtual 
-            std::unique_ptr<DistributionalOutput> forward_impl(const torch::Tensor &states) = 0;
+    // /**
+    //  * @brief Distributional DQN module
+    //  * 
+    //  */
+    // class Distributional : public Base
+    // {
+    //     public:
+    //         /**
+    //          * @brief Implementation of the forward pass.
+    //          * 
+    //          * @param states states
+    //          * @return std::unique_ptr<DistributionalOutput> output
+    //          */
+    //         virtual 
+    //         std::unique_ptr<DistributionalOutput> forward_impl(const torch::Tensor &states) = 0;
 
-            inline
-            std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) override {
-                return forward_impl(states);
-            }
-    };
+    //         inline
+    //         std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) override {
+    //             return forward_impl(states);
+    //         }
+    // };
 }
 
 #endif /* RL_AGENTS_DQN_MODULES_DISTRIBUTIONAL_H_ */

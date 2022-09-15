@@ -85,7 +85,8 @@ namespace rl::agents::dqn::trainers
         auto add_hindsight_replay = [&] () {
             if (!options.hindsight_replay_callback) return;
 
-            options.hindsight_replay_callback(episode.get());
+            auto should_add = options.hindsight_replay_callback(episode.get());
+            if (!should_add) return;
 
             for (int i = 0; i < episode->actions.size(); i++) {
                 auto state = std::make_shared<rl::env::State>();

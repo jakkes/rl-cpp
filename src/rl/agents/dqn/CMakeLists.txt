@@ -8,4 +8,6 @@ target_sources(
         policies/epsilon_greedy.cc
 
         trainers/basic.cc
+
+        utils/hindsight_replay.cc
 )

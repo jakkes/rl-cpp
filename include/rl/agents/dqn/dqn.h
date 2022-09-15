@@ -5,6 +5,7 @@
 #include "modules/modules.h"
 #include "trainers/trainers.h"
 #include "policies/policies.h"
+#include "utils/utils.h"
 
 /**
  * @brief Deep Q-Networks

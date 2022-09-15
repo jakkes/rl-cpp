@@ -12,9 +12,12 @@
 #include <rl/logging/client/base.h>
 #include <rl/agents/dqn/modules/base.h>
 #include <rl/agents/dqn/policies/base.h>
+#include <rl/agents/dqn/utils/hindsight_replay.h>
+
 
 namespace rl::agents::dqn::trainers
 {
+
     struct BasicOptions
     {
         // Number of environment steps to execute per network update step.
@@ -46,6 +49,11 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
         // Checkpoint callback period, in number of training steps.
         RL_OPTION(size_t, checkpoint_callback_period) = 100000ul;
+        // If set, this method is called whenever an episode terminates. The argument
+        // is a pointer to (a copy of) the episode. If the callback returns true, then
+        // the (possibly modified sequence) is added to the replay buffer. If false is
+        // returned, then the sequence is not added to the buffer.
+        RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
     };
 
     /**

@@ -61,9 +61,40 @@ namespace rl::agents::dqn::trainers
 
         rl::buffers::samplers::Uniform sampler{buffer};
         rl::utils::NStepCollector collector{options.n_step, options.discount};
+        std::unique_ptr<rl::agents::dqn::utils::HindsightReplayEpisode> episode;
 
         size_t env_steps{0};
         size_t train_steps{0};
+
+        auto add_transitions = [&] (const std::vector<rl::utils::NStepCollectorTransition> &transitions) {
+            for (const auto &transition : transitions) {
+                auto mask = dynamic_cast<const CategoricalMask&>(*transition.state->action_constraint).mask();
+                auto next_mask = dynamic_cast<const CategoricalMask&>(*transition.next_state->action_constraint).mask();
+                buffer->add({
+                    transition.state->state.unsqueeze(0).to(options.replay_device),
+                    mask.unsqueeze(0).to(options.replay_device),
+                    transition.action.unsqueeze(0).to(options.replay_device),
+                    torch::tensor({transition.reward}, tensor_options[3]),
+                    torch::tensor({!transition.terminal}, tensor_options[4]),
+                    transition.next_state->state.unsqueeze(0).to(options.replay_device),
+                    next_mask.unsqueeze(0).to(options.replay_device)
+                });
+            }
+        };
+
+        auto add_hindsight_replay = [&] () {
+            if (!options.hindsight_replay_callback) return;
+
+            options.hindsight_replay_callback(episode.get());
+
+            for (int i = 0; i < episode->actions.size(); i++) {
+                auto state = std::make_shared<rl::env::State>();
+                state->state = episode->states[i];
+                state->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(episode->masks[i]);
+                auto transitions = collector.step(state, episode->actions[i], episode->rewards[i], i == episode->actions.size() - 1);
+                add_transitions(transitions);
+            }
+        };
 
         auto execute_train_step = [&] () {
             auto sample_storage = sampler.sample(options.batch_size);
@@ -118,11 +149,15 @@ namespace rl::agents::dqn::trainers
             if (env->is_terminal()) {
                 auto state = env->reset();
                 should_log_start_value = true;
+                episode = std::make_unique<rl::agents::dqn::utils::HindsightReplayEpisode>();
             }
             std::shared_ptr<rl::env::State> state = env->state();
             auto output = module->forward(state->state.unsqueeze(0).to(options.network_device));
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
             output->apply_mask(mask.unsqueeze(0).to(options.network_device));
+
+            episode->states.push_back(state->state);
+            episode->masks.push_back(mask);
 
             if (options.logger && should_log_start_value) {
                 options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
@@ -130,8 +165,11 @@ namespace rl::agents::dqn::trainers
             
             auto policy = this->policy->policy(*output);
             auto action = policy->sample().squeeze(0).to(options.environment_device);
+            episode->actions.push_back(action);
 
             auto observation = env->step(action);
+            episode->rewards.push_back(observation->reward);
+
             auto transitions = collector.step(
                 state,
                 action,
@@ -139,18 +177,14 @@ namespace rl::agents::dqn::trainers
                 observation->terminal
             );
 
-            for (const auto &transition : transitions) {
-                auto mask = dynamic_cast<const CategoricalMask&>(*transition.state->action_constraint).mask();
-                auto next_mask = dynamic_cast<const CategoricalMask&>(*transition.next_state->action_constraint).mask();
-                buffer->add({
-                    transition.state->state.unsqueeze(0).to(options.replay_device),
-                    mask.unsqueeze(0).to(options.replay_device),
-                    transition.action.unsqueeze(0).to(options.replay_device),
-                    torch::tensor({transition.reward}, tensor_options[3]),
-                    torch::tensor({!transition.terminal}, tensor_options[4]),
-                    transition.next_state->state.unsqueeze(0).to(options.replay_device),
-                    next_mask.unsqueeze(0).to(options.replay_device)
-                });
+            add_transitions(transitions);
+
+            if (observation->terminal) {
+                add_hindsight_replay();
+                
+                if (options.logger) {
+                    options.logger->log_scalar("DQN/EndValue", output->value().max().item().toFloat());
+                }
             }
 
             env_steps++;

@@ -147,7 +147,7 @@ namespace rl::agents::dqn::trainers
         auto execute_env_step = [&] () {
             torch::InferenceMode guard{};
             bool should_log_start_value{false};
-            if (env->is_terminal()) {
+            if (env->is_terminal() || env_steps == 0) {
                 auto state = env->reset();
                 should_log_start_value = true;
                 episode = std::make_unique<rl::agents::dqn::utils::HindsightReplayEpisode>();

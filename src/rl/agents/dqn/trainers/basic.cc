@@ -157,18 +157,18 @@ namespace rl::agents::dqn::trainers
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
             output->apply_mask(mask.unsqueeze(0).to(options.network_device));
 
-            episode->states.push_back(state->state);
-            episode->masks.push_back(mask);
+            episode->states.push_back(state->state.clone());
+            episode->masks.push_back(mask.clone());
 
             if (options.logger && should_log_start_value) {
                 options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
             }
             
             auto policy = this->policy->policy(*output);
-            auto action = policy->sample().squeeze(0).to(options.environment_device);
-            episode->actions.push_back(action);
+            auto action = policy->sample().squeeze(0);
+            episode->actions.push_back(action.clone());
 
-            auto observation = env->step(action);
+            auto observation = env->step(action.to(options.environment_device));
             episode->rewards.push_back(observation->reward);
 
             auto transitions = collector.step(
@@ -181,8 +181,8 @@ namespace rl::agents::dqn::trainers
             add_transitions(transitions);
 
             if (observation->terminal) {
-                episode->states.push_back(observation->state->state);
-                episode->masks.push_back(dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask());
+                episode->states.push_back(observation->state->state.clone());
+                episode->masks.push_back(dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask().clone());
                 add_hindsight_replay();
                 
                 if (options.logger) {

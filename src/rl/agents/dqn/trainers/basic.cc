@@ -181,6 +181,8 @@ namespace rl::agents::dqn::trainers
             add_transitions(transitions);
 
             if (observation->terminal) {
+                episode->states.push_back(observation->state->state);
+                episode->masks.push_back(dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask());
                 add_hindsight_replay();
                 
                 if (options.logger) {

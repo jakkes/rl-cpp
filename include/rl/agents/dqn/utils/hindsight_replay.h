@@ -9,6 +9,13 @@
 
 namespace rl::agents::dqn::utils
 {
+    /**
+     * @brief One episode of states, action masks, actions and rewards.
+     * 
+     * In an episode of N steps, this struct contains N+1 states, N+1 masks, N actions,
+     * and N rewards. Terminal flags are implicitly defined as non terminal for steps
+     * n = 1, 2, ..., N-1, and terminal for step N.
+     */
     struct HindsightReplayEpisode
     {
         std::vector<torch::Tensor> states;

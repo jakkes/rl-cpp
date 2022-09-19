@@ -63,6 +63,12 @@ torch::Tensor tsquare(torch::Tensor &&x) { return tsquare(x); }
 torch::Tensor tsqrt(torch::Tensor &x) { return torch::sqrt(x); }
 torch::Tensor tsqrt(torch::Tensor &&x) { return tsqrt(x); }
 
+torch::Tensor tany(torch::Tensor &x) { return torch::any(x); }
+torch::Tensor tany(torch::Tensor &&x) { return tany(x); }
+
+torch::Tensor tall(torch::Tensor &x) { return torch::all(x); }
+torch::Tensor tall(torch::Tensor &&x) { return tall(x); }
+
 void tprint(torch::IntArrayRef &ref) {
     for (int i = 0; i < ref.size(); i++) {
         std::cout << ref[i] << " ";

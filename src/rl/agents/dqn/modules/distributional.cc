@@ -1,7 +1,99 @@
 #include "rl/agents/dqn/modules/distributional.h"
 
+#include <exception>
 
 namespace rl::agents::dqn::modules
 {
-    
+    DistributionalOutput::DistributionalOutput(
+        const torch::Tensor &distributions,
+        const torch::Tensor &atoms,
+        float v_min,
+        float v_max
+    )
+    : distributions{distributions}, atoms{atoms}, v_min{v_min}, v_max{v_max}
+    {
+        if (distributions.lt(0.0f).any().item().toBool()) {
+            throw std::invalid_argument{"Distribution coefficients must all be greater or equal to zero."};
+        }
+
+        if (distributions.sum(-1).sub_(1.0f).abs_().gt(1e-6).any().item().toBool()) {
+            throw std::invalid_argument{"Distribution coefficients must sum to one."};
+        }
+
+        n_atoms = atoms.size(0);
+        dz = (v_max - v_min) / (n_atoms - 1);
+    }
+
+    const torch::Tensor DistributionalOutput::value() const {
+        auto out = (atoms * distributions).sum(-1);
+        if (mask_set) {
+            out = out.index_put({inverted_mask}, torch::zeros({inverted_mask.sum().item().toLong()}, out.options()) - INFINITY);
+        }
+        return out;
+    }
+
+    void DistributionalOutput::apply_mask(const torch::Tensor &mask) {
+        inverted_mask = ~mask;
+        mask_set = true;
+    }
+
+    torch::Tensor DistributionalOutput::loss(
+        const torch::Tensor &actions,
+        const torch::Tensor &rewards,
+        const torch::Tensor &not_terminals,
+        const BaseOutput &next_output,
+        const torch::Tensor &next_actions,
+        float discount
+    )
+    {
+        const auto &next_output_ = dynamic_cast<const DistributionalOutput&>(next_output);
+        int64_t batch_size = actions.size(0);
+        torch::Tensor batchvec = torch::arange(batch_size, torch::TensorOptions{}.device(actions.device()));
+
+        // Check validity of next actions -- either mask is not set or all next actions are of value "false" in the inverted mask
+        assert (!next_output_.mask_set || !next_output_.inverted_mask.index({batchvec, next_actions}).any().item().toBool());
+
+        auto next_distributions = next_output_.distributions.index({batchvec, next_actions});
+
+        auto m = torch::zeros({batch_size, n_atoms}, rewards.options());
+
+        auto projection = rewards.view({-1, 1}) + not_terminals.view({-1, 1}) * discount * atoms.view({1, -1});
+        projection.clamp_(v_min, v_max);
+
+        auto b = (projection - v_min) / dz;
+
+        auto lower = b.floor().to(torch::kLong).clamp_(0, n_atoms - 1);
+        auto upper = b.ceil().to(torch::kLong).clamp_(0, n_atoms - 1);
+
+        auto lower_eq_upper = lower == upper;
+        if (lower_eq_upper.any().item().toBool()) {
+            auto lower_mask = (upper > 0).logical_and_(lower_eq_upper);
+            lower.index_put_({lower_mask}, lower.index({lower_mask}) - 1);
+        }
+
+        lower_eq_upper = lower == upper;
+        if (lower_eq_upper.any().item().toBool()) {
+            auto upper_mask = (lower < n_atoms - 1).logical_and_(lower_eq_upper);
+            upper.index_put_({upper_mask}, upper.index({upper_mask}) + 1);
+        }
+
+        for (int batch = 0; batch < batch_size; batch++)
+        {
+            m.index({batch}).index_put_(
+                { lower.index({batch}) },
+                next_distributions.index({batch}) * (upper.index({batch}) - b.index({batch})),
+                true
+            );
+
+            m.index({batch}).index_put_(
+                { upper.index({batch}) },
+                next_distributions.index({batch}) * (b.index({batch}) - lower.index({batch})),
+                true
+            );
+        }
+
+        auto current_distributions = distributions.index({batchvec, actions});
+
+        return - (m * current_distributions.add_(1e-8).log_()).sum(-1);
+    }
 }

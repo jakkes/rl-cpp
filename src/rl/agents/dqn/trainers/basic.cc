@@ -66,6 +66,18 @@ namespace rl::agents::dqn::trainers
         size_t env_steps{0};
         size_t train_steps{0};
 
+        auto compute_gradient_norm = [&] () {
+            auto grad_norm = torch::tensor(0.0f, torch::TensorOptions{}.device(options.network_device));
+
+            for (const auto &param_group : optimizer->param_groups()) {
+                for (const auto &param : param_group.params()) {
+                    grad_norm += param.grad().square().sum();
+                }
+            }
+
+            return grad_norm.sqrt_();
+        };
+
         auto add_transitions = [&] (const std::vector<rl::utils::NStepCollectorTransition> &transitions) {
             for (const auto &transition : transitions) {
                 auto mask = dynamic_cast<const CategoricalMask&>(*transition.state->action_constraint).mask();
@@ -134,10 +146,12 @@ namespace rl::agents::dqn::trainers
             loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
+            auto grad_norm = compute_gradient_norm();
             optimizer->step();
 
             if (options.logger) {
                 options.logger->log_scalar("DQN/Loss", loss.item().toFloat());
+                options.logger->log_scalar("DQN/Gradient norm", grad_norm.item().toFloat());
                 options.logger->log_frequency("DQN/Update frequency", 1);
             }
 
@@ -147,6 +161,8 @@ namespace rl::agents::dqn::trainers
         auto execute_env_step = [&] () {
             torch::InferenceMode guard{};
             bool should_log_start_value{false};
+
+            // If environment is in terminal state, or this is the first step.
             if (env->is_terminal() || env_steps == 0) {
                 auto state = env->reset();
                 should_log_start_value = true;

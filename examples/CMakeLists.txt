@@ -12,3 +12,6 @@ target_link_libraries(ppo-continuous-cartpole PRIVATE rl)
 
 add_executable(dqn-cartpole dqn_cartpole.cc)
 target_link_libraries(dqn-cartpole PRIVATE rl)
+
+add_executable(distributional-dqn-cartpole distributional_dqn_cartpole.cc)
+target_link_libraries(distributional-dqn-cartpole PRIVATE rl)

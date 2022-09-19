@@ -4,7 +4,6 @@
 #include <rl/policies/constraints/categorical_mask.h>
 
 using namespace rl::agents::dqn::modules;
-using namespace rl::policies::constraints;
 
 TORCH_TEST(dqn_module, dqn_output_loss, device)
 {

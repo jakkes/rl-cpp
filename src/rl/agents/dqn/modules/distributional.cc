@@ -77,20 +77,26 @@ namespace rl::agents::dqn::modules
             upper.index_put_({upper_mask}, upper.index({upper_mask}) + 1);
         }
 
-        for (int batch = 0; batch < batch_size; batch++)
-        {
-            m.index({batch}).index_put_(
-                { lower.index({batch}) },
-                next_distributions.index({batch}) * (upper.index({batch}) - b.index({batch})),
-                true
-            );
+        auto index_vec_0 = batchvec.view({-1, 1}).repeat({1, n_atoms}).view({-1});
+        auto index_vec_1a = lower.view({-1});
 
-            m.index({batch}).index_put_(
-                { upper.index({batch}) },
-                next_distributions.index({batch}) * (b.index({batch}) - lower.index({batch})),
-                true
-            );
-        }
+        m.index_put_(
+            {
+                index_vec_0,
+                lower.view({-1})
+            },
+            (next_distributions * (upper - b)).view({-1}),
+            true
+        );
+
+        m.index_put_(
+            {
+                index_vec_0,
+                upper.view({-1})
+            },
+            (next_distributions * (b - lower)).view({-1}),
+            true
+        );
 
         auto current_distributions = distributions.index({batchvec, actions});
 

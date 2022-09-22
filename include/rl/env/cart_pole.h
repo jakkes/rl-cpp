@@ -26,6 +26,8 @@ namespace rl::env
              */
             CartPoleContinuous(int max_steps);
 
+            ~CartPoleContinuous() = default;
+
             /// <inheritdoc/>
             std::unique_ptr<Observation> step(const torch::Tensor &action) override;
             
@@ -75,6 +77,8 @@ namespace rl::env
              * @param logger Logger instance that is used by spawned instances.
              */
             CartPoleContinuousFactory(int max_steps);
+
+            ~CartPoleContinuousFactory() = default;
 
         private:
             std::unique_ptr<Base> get_impl() const override;

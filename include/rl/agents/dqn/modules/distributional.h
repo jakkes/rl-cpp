@@ -16,6 +16,8 @@ namespace rl::agents::dqn::modules
                 float v_max
             );
 
+            ~DistributionalOutput() = default;
+
             const torch::Tensor value() const override;
 
             void apply_mask(const torch::Tensor &mask) override;

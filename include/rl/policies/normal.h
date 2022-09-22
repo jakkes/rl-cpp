@@ -14,6 +14,7 @@ namespace rl::policies
     {
         public:
             Normal(const torch::Tensor &mean, const torch::Tensor &std);
+            ~Normal() = default;
 
             torch::Tensor sample() const override;
             torch::Tensor entropy() const override;

@@ -20,6 +20,9 @@ namespace rl::policies
     class Base : public torch::nn::Module {
 
         public:
+
+            virtual ~Base() = default;
+
             /**
              * @brief Sample an action from the policy.
              * 

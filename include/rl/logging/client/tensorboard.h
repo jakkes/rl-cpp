@@ -24,6 +24,7 @@ namespace rl::logging::client
     {
         public:
             Tensorboard(const TensorboardOptions &options={});
+            ~Tensorboard() = default;
 
             void log_scalar(const std::string &name, double value) override;
             void log_frequency(const std::string &name, int occurances) override;

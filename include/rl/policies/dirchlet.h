@@ -28,6 +28,7 @@ namespace rl::policies
              * of output values. All values must be greater than zero.
              */
             Dirchlet(torch::Tensor coefficients);
+            ~Dirchlet() = default;
 
             torch::Tensor sample() const override;
             torch::Tensor entropy() const override;

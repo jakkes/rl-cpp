@@ -14,6 +14,8 @@ namespace rl::agents::dqn::modules
         public:
             DQNOutput(const torch::Tensor &values) : values{values} {}
 
+            ~DQNOutput() = default;
+
             inline
             const torch::Tensor value() const override {
                 return values;

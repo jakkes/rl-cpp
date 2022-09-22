@@ -3,7 +3,6 @@ target_sources(
     PRIVATE
         modules/distributional.cc
         modules/dqn.cc
-        modules/base.cc
 
         policies/epsilon_greedy.cc
 

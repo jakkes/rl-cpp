@@ -16,6 +16,7 @@ namespace rl::policies
     {
         public:
             Gamma(const torch::Tensor &alpha, const torch::Tensor &scale);
+            ~Gamma() = default;
 
             torch::Tensor sample() const override;
             torch::Tensor entropy() const override;

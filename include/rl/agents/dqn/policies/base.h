@@ -17,6 +17,8 @@ namespace rl::agents::dqn::policies
     {
         public:
 
+            virtual ~Base() = default;
+
             /**
              * @brief Constructs a discrete action policy from the output of a DQN
              * module.

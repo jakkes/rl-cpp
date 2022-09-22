@@ -26,6 +26,8 @@ namespace rl::env
     class Base{
         public:
 
+            virtual ~Base() = default;
+
             /**
              * @brief Applies an action to the environment.
              * 
@@ -97,6 +99,8 @@ namespace rl::env
      */
     class Factory {
         public:
+
+            virtual ~Factory() = default;
 
             /**
              * @brief Spawns a new environment instance.

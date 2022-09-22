@@ -9,7 +9,10 @@ namespace rl::agents::dqn::policies
     class EpsilonGreedy : public Base
     {
         public:
+
             EpsilonGreedy(float epsilon) : epsilon{epsilon} {}
+
+            ~EpsilonGreedy() = default;
 
             std::unique_ptr<rl::policies::Categorical> policy(
                     const rl::agents::dqn::modules::BaseOutput &output) const override;

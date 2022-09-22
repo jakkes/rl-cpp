@@ -19,6 +19,8 @@ namespace rl::agents::dqn::modules
     {
         public:
 
+            virtual ~BaseOutput() = default;
+
             /**
              * @brief Computes the value for every action in the given state.
              * 

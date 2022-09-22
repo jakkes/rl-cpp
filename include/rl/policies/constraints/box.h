@@ -28,6 +28,8 @@ namespace rl::policies::constraints
             Box(torch::Tensor lower_bound, torch::Tensor upper_bound,
                                                     const BoxOptions &options={});
 
+            ~Box() = default;
+
             torch::Tensor contains(const torch::Tensor &x) const override;
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 

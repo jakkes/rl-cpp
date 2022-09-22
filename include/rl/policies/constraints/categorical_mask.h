@@ -11,6 +11,7 @@ namespace rl::policies::constraints
     {
         public:
             CategoricalMask(const torch::Tensor &mask);
+            ~CategoricalMask() = default;
             torch::Tensor contains(const torch::Tensor &value) const override;
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
             std::unique_ptr<Base> stack(const std::vector<std::shared_ptr<Base>> &constraints) const override;

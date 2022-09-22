@@ -15,6 +15,8 @@ namespace rl::logging::client
     class Base
     {
         public:
+            virtual ~Base() = default;
+
             /**
              * @brief Logs a scalar value.
              * 

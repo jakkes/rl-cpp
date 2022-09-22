@@ -14,6 +14,7 @@ namespace rl::policies
         public:
             Categorical(const torch::Tensor &probabilities);
             Categorical(const torch::Tensor &probabilities, const torch::Tensor &values);
+            ~Categorical() = default;
             
             torch::Tensor sample() const;
             torch::Tensor entropy() const;

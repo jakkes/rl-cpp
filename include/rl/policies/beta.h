@@ -17,6 +17,7 @@ namespace rl::policies
         public:
             Beta(torch::Tensor alpha, torch::Tensor beta, torch::Tensor a, torch::Tensor b);
             Beta(torch::Tensor alpha, torch::Tensor beta);
+            ~Beta() = default;
 
             torch::Tensor sample() const override;
             torch::Tensor entropy() const override;

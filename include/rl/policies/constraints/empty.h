@@ -13,6 +13,7 @@ namespace rl::policies::constraints
     class Empty : public Base {
         public:
             Empty(int n_action_dims);
+            ~Empty() = default;
 
             torch::Tensor contains(const torch::Tensor &x) const;
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const;

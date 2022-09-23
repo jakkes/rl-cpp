@@ -5,27 +5,23 @@
 namespace rl::agents::dqn::modules
 {
     DistributionalOutput::DistributionalOutput(
-        const torch::Tensor &distributions,
+        const torch::Tensor &logits,
         const torch::Tensor &atoms,
         float v_min,
         float v_max
     )
-    : distributions{distributions}, atoms{atoms}, v_min{v_min}, v_max{v_max}
+    : 
+    logits{logits},
+    atoms{atoms},
+    v_min{v_min},
+    v_max{v_max}
     {
-        if (distributions.lt(0.0f).any().item().toBool()) {
-            throw std::invalid_argument{"Distribution coefficients must all be greater or equal to zero."};
-        }
-
-        if (distributions.sum(-1).sub_(1.0f).abs_().gt(1e-6).any().item().toBool()) {
-            throw std::invalid_argument{"Distribution coefficients must sum to one."};
-        }
-
         n_atoms = atoms.size(0);
         dz = (v_max - v_min) / (n_atoms - 1);
     }
 
     const torch::Tensor DistributionalOutput::value() const {
-        auto out = (atoms * distributions).sum(-1);
+        auto out = (atoms * torch::softmax(logits, -1)).sum(-1);
         if (mask_set) {
             out = out.index_put({inverted_mask}, torch::zeros({inverted_mask.sum().item().toLong()}, out.options()) - INFINITY);
         }
@@ -53,7 +49,7 @@ namespace rl::agents::dqn::modules
         // Check validity of next actions -- either mask is not set or all next actions are of value "false" in the inverted mask
         assert (!next_output_.mask_set || !next_output_.inverted_mask.index({batchvec, next_actions}).any().item().toBool());
 
-        auto next_distributions = next_output_.distributions.index({batchvec, next_actions});
+        auto next_distributions = torch::softmax(next_output_.logits.index({batchvec, next_actions}), -1);
 
         auto m = torch::zeros({batch_size, n_atoms}, rewards.options());
 
@@ -98,8 +94,6 @@ namespace rl::agents::dqn::modules
             true
         );
 
-        auto current_distributions = distributions.index({batchvec, actions});
-
-        return - (m * current_distributions.add_(1e-8).log_()).sum(-1);
+        return - (m * torch::log_softmax(logits, -1)).sum(-1);
     }
 }

@@ -10,7 +10,7 @@ namespace rl::agents::dqn::modules
     {
         public:
             DistributionalOutput(
-                const torch::Tensor &distributions,
+                const torch::Tensor &logits,
                 const torch::Tensor &atoms,
                 float v_min,
                 float v_max
@@ -32,7 +32,7 @@ namespace rl::agents::dqn::modules
             ) override;
         
         private:
-            const torch::Tensor distributions, atoms;
+            const torch::Tensor logits, atoms;
             const float v_min, v_max;
             torch::Tensor inverted_mask;
             int64_t n_atoms;

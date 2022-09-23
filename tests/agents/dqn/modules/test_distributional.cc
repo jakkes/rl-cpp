@@ -24,12 +24,14 @@ TORCH_TEST(distributional_module, distributional_output_value, device)
         }
     }).to(device);
 
+    auto logits = torch::log(distributions * distributions.exp().sum(-1, true));
+
     auto masks = torch::tensor({
         {true, true, false},
         {true, false, true}
     });
 
-    DistributionalOutput output{distributions, atoms, 0.0f, 1.0f};
+    DistributionalOutput output{logits, atoms, 0.0f, 1.0f};
     output.apply_mask(masks);
 
     auto values = output.value();

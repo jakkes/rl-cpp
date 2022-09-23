@@ -181,6 +181,8 @@ namespace rl::agents::dqn::trainers
             }
             
             auto policy = this->policy->policy(*output);
+            policy->include(state->action_constraint);
+
             auto action = policy->sample().squeeze(0);
             episode->actions.push_back(action.clone());
 

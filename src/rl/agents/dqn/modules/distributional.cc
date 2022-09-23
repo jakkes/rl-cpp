@@ -94,6 +94,7 @@ namespace rl::agents::dqn::modules
             true
         );
         auto current_logits = logits.index({batchvec, actions});
-        return - (m * torch::log_softmax(current_logits, -1)).sum(-1);
+        auto log_distribution = torch::log_softmax(current_logits, -1);
+        return - (m * log_distribution).sum(-1);
     }
 }

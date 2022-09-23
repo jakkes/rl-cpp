@@ -28,7 +28,7 @@ namespace rl::agents::dqn::policies
              */
             virtual
             std::unique_ptr<rl::policies::Categorical> policy(
-                        const rl::agents::dqn::modules::BaseOutput &output) const = 0;
+                        const rl::agents::dqn::modules::BaseOutput &output) = 0;
     };
 }
 

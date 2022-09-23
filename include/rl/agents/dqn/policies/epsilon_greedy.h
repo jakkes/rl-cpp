@@ -15,10 +15,13 @@ namespace rl::agents::dqn::policies
             ~EpsilonGreedy() = default;
 
             std::unique_ptr<rl::policies::Categorical> policy(
-                    const rl::agents::dqn::modules::BaseOutput &output) const override;
+                    const rl::agents::dqn::modules::BaseOutput &output) override;
+
+            inline
+            void update_epsilon(float epsilon) { this->epsilon = epsilon; }
 
         private:
-            const float epsilon;
+            float epsilon;
     };
 }
 

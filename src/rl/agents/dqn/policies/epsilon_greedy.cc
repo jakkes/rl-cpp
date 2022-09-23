@@ -7,11 +7,12 @@ namespace rl::agents::dqn::policies
                             const rl::agents::dqn::modules::BaseOutput &output)
     {
         auto value = output.value().detach();
-        auto probabilities = epsilon * torch::ones_like(value);
+        float base_prob = epsilon / value.size(-1);
+        auto probabilities = base_prob * torch::ones_like(value);
         auto greedy_actions = value.argmax(-1);
 
         auto batchvec = torch::arange(greedy_actions.size(0), greedy_actions.options());
-        probabilities.index_put_({batchvec, greedy_actions}, epsilon + 1.0f);
+        probabilities.index_put_({batchvec, greedy_actions}, 1.0f + base_prob - epsilon);
 
         // Normalization taken care by policy constructor.
         return std::make_unique<rl::policies::Categorical>(probabilities);

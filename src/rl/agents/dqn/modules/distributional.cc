@@ -93,7 +93,7 @@ namespace rl::agents::dqn::modules
             (next_distributions * (b - lower)).view({-1}),
             true
         );
-
-        return - (m * torch::log_softmax(logits, -1)).sum(-1);
+        auto current_logits = logits.index({batchvec, actions});
+        return - (m * torch::log_softmax(current_logits, -1)).sum(-1);
     }
 }

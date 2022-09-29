@@ -33,7 +33,7 @@ namespace rl::agents::dqn::policies
             const float start_epsilon, end_epsilon;
             const int64_t half_steps;
             int64_t steps{0};
-            float decay_factor;
+            double decay_factor;
             EpsilonGreedy policy_;
     };
 }

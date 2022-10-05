@@ -3,6 +3,7 @@
 
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
+#include <rl/policies/constraints/box.h>
 
 namespace rl::agents::sac::trainers
 {
@@ -64,7 +65,7 @@ namespace rl::agents::sac::trainers
                 }
             }
 
-            return grad_norm.sqrt_();
+            return grad_norm.sqrt();
         };
 
         auto u_to_a = [&] (const torch::Tensor &u) {
@@ -77,8 +78,8 @@ namespace rl::agents::sac::trainers
         };
 
         auto log_pi_u = [&] (const torch::Tensor &u, const ActorOutput &actor) {
-            auto log_mu = torch::sum(-0.5 * (u - actor.mean()).square_() / actor.variance() - 0.5 * actor.variance().log() - 0.39908993417f, -1);
-            return log_mu - (1.0f - u.tanh().square_()).log_().sum(-1);
+            auto log_mu = torch::sum(-0.5 * (u - actor.mean()).square() / actor.variance() - 0.5 * actor.variance().log() - 0.39908993417f, -1);
+            return log_mu - (1.0f - u.tanh().square()).log().sum(-1);
         };
 
         auto execute_env_step = [&] () {
@@ -90,8 +91,18 @@ namespace rl::agents::sac::trainers
                 should_log_start_value = true;
             }
             std::shared_ptr<rl::env::State> state = env->state();
-            if (!state->action_constraint->is_type<rl::policies::constraints::Empty>()) {
-                throw std::runtime_error{"SAC only supports empty policy constraints. WIP..."};
+            if (state->action_constraint->is_type<rl::policies::constraints::Empty>()) {}
+            else if (state->action_constraint->is_type<rl::policies::constraints::Box>()) {
+                auto &box = state->action_constraint->as_type<rl::policies::constraints::Box>();
+                if (
+                    !box.upper_bound().le(options.action_range_max).all().item().toBool()
+                    || !box.lower_bound().ge(options.action_range_min).all().item().toBool()
+                ) {
+                    throw std::runtime_error{"Action constraint not fulfilled."};
+                }
+            }
+            else {
+                throw std::runtime_error{"Unsupported action constraint, WIP..."};
             }
 
             auto output = actor->forward( state->state.unsqueeze(0).to(options.network_device) );
@@ -110,11 +121,11 @@ namespace rl::agents::sac::trainers
 
             buffer->add(
                 {
-                    state->state.to(options.replay_device),
-                    a.to(options.replay_device),
+                    state->state.unsqueeze(0).to(options.replay_device),
+                    a.unsqueeze(0).to(options.replay_device),
                     torch::tensor({observation->reward}, tensor_options[2]),
                     torch::tensor({!observation->terminal}, tensor_options[3]),
-                    observation->state->state.to(options.replay_device)
+                    observation->state->state.unsqueeze(0).to(options.replay_device)
                 }
             );
 
@@ -147,7 +158,7 @@ namespace rl::agents::sac::trainers
                         critic_outputs = critic_outputs.min(critics[i]->forward(sample[0], a)->value());
                     }
                 }
-                value_loss = (current_policy->value() - (critic_outputs + options.temperature * entropy_estimator)).square_();
+                value_loss = (current_policy->value() - (critic_outputs + options.temperature * entropy_estimator)).square();
             }
 
             // Compute critic losses
@@ -161,7 +172,7 @@ namespace rl::agents::sac::trainers
                 for (int i = 0; i < critics.size(); i++) {
                     auto target = sample[2] + options.discount * sample[3] * next_policy->value();
                     auto value = critics[i]->forward(sample[0], sample[1])->value();
-                    critic_losses.push_back( (target - value).square_().mean() );
+                    critic_losses.push_back( (target - value).square().mean() );
                 }
             }
 
@@ -178,7 +189,8 @@ namespace rl::agents::sac::trainers
 
             auto mean_policy_loss = policy_loss.mean();
             auto mean_value_loss = value_loss.mean();
-            std::vector<torch::Tensor> mean_critic_losses{critics.size()};
+            std::vector<torch::Tensor> mean_critic_losses{};
+            mean_critic_losses.reserve(critics.size());
             for (int i = 0; i < critics.size(); i++) {
                 mean_critic_losses.push_back(critic_losses[i].mean());
             }
@@ -198,7 +210,7 @@ namespace rl::agents::sac::trainers
 
             if (options.logger) {
                 options.logger->log_scalar("SAC/PolicyLoss", mean_policy_loss.item().toFloat());
-                options.logger->log_scalar("SAC/ValueLoss", value_loss.item().toFloat());
+                options.logger->log_scalar("SAC/ValueLoss", mean_value_loss.item().toFloat());
                 for (int i = 0; i < critics.size(); i++) {
                     options.logger->log_scalar("SAC/CriticLoss" + std::to_string(i), mean_critic_losses[i].item().toFloat());
                 }

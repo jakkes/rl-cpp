@@ -66,6 +66,7 @@ class Actor : public rl::agents::sac::Actor
             auto out = std::make_unique<Actor>();
             out->policy = out->replace_module("policy", std::dynamic_pointer_cast<torch::nn::SequentialImpl>(policy->clone()));
             out->value = out->replace_module("value", std::dynamic_pointer_cast<torch::nn::SequentialImpl>(value->clone()));
+            return out;
         }
 };
 
@@ -93,7 +94,7 @@ class Critic : public rl::agents::sac::Critic
         )
         {
             return std::make_unique<rl::agents::sac::CriticOutput>(
-                Q->forward(torch::concat({states, actions}, -1)).squeeze(-1)
+                Q->forward(torch::concat({states, actions.unsqueeze(-1)}, -1)).squeeze(-1)
             );
         }
 
@@ -110,13 +111,19 @@ int main(int argc, char **argv)
 {
     auto args = parse_args(argc, argv);
     auto actor = std::make_shared<Actor>();
-    std::vector<std::shared_ptr<agents::sac::Critic>> critics{ std::make_shared<Critic>(), std::make_shared<Critic>() };
-    auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999}, 5);
+    std::vector<std::shared_ptr<agents::sac::Critic>> critics{ 
+        std::make_shared<Critic>(),
+        std::make_shared<Critic>()
+    };
+    auto logger = std::make_shared<logging::client::EMA>(
+        std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999},
+        5
+    );
     auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200);
     env_factory->set_logger(logger);
     
     auto actor_optimizer = std::make_shared<torch::optim::Adam>(actor->parameters());
-    std::vector critic_optimizers = {
+    std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers {
         std::make_shared<torch::optim::Adam>(critics[0]->parameters()),
         std::make_shared<torch::optim::Adam>(critics[1]->parameters())
     };

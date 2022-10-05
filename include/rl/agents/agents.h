@@ -3,6 +3,7 @@
 
 #include "ppo/ppo.h"
 #include "dqn/dqn.h"
+#include "sac/sac.h"
 
 /**
  * @brief Implementations of RL algorithms.

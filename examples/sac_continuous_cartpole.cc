@@ -50,15 +50,15 @@ class Actor : public rl::agents::sac::Actor
             );
         }
 
-        std::unique_ptr<rl::agents::sac::ActorOutput> forward(
-                                    const torch::Tensor &states)
+        rl::agents::sac::ActorOutput forward(
+                                    const torch::Tensor &states) override
         {
             auto policy_output = policy->forward(states);
             auto mean = policy_output.index({"...", 0});
-            auto variance = torch::square(1.0f + torch::elu(policy_output.index({"...", 1})));
+            auto std = 1.0f + torch::elu(policy_output.index({"...", 1}));
             auto value_output = value->forward(states).squeeze(-1);
 
-            return std::make_unique<rl::agents::sac::ActorOutput>(mean, variance, value_output);
+            return rl::agents::sac::ActorOutput{mean, std, value_output};
         }
 
         std::unique_ptr<rl::agents::sac::Actor> clone() const
@@ -88,14 +88,14 @@ class Critic : public rl::agents::sac::Critic
             );
         };
 
-        std::unique_ptr<rl::agents::sac::CriticOutput> forward(
+        rl::agents::sac::CriticOutput forward(
             const torch::Tensor &states,
             const torch::Tensor &actions
         )
         {
-            return std::make_unique<rl::agents::sac::CriticOutput>(
+            return rl::agents::sac::CriticOutput{
                 Q->forward(torch::concat({states, actions.unsqueeze(-1)}, -1)).squeeze(-1)
-            );
+            };
         }
 
         std::unique_ptr<rl::agents::sac::Critic> clone() const
@@ -111,10 +111,14 @@ int main(int argc, char **argv)
 {
     auto args = parse_args(argc, argv);
     auto actor = std::make_shared<Actor>();
+    actor->to(torch::kCUDA);
     std::vector<std::shared_ptr<agents::sac::Critic>> critics{ 
-        std::make_shared<Critic>(),
+        std::make_shared<Critic>(), 
         std::make_shared<Critic>()
     };
+    critics[0]->to(torch::kCUDA);
+    critics[1]->to(torch::kCUDA);
+
     auto logger = std::make_shared<logging::client::EMA>(
         std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999},
         5
@@ -122,10 +126,19 @@ int main(int argc, char **argv)
     auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200);
     env_factory->set_logger(logger);
     
-    auto actor_optimizer = std::make_shared<torch::optim::Adam>(actor->parameters());
+    auto actor_optimizer = std::make_shared<torch::optim::Adam>(
+        actor->parameters(),
+        torch::optim::AdamOptions{}.weight_decay(1e-6)
+    );
     std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers {
-        std::make_shared<torch::optim::Adam>(critics[0]->parameters()),
-        std::make_shared<torch::optim::Adam>(critics[1]->parameters())
+        std::make_shared<torch::optim::Adam>(
+            critics[0]->parameters(),
+            torch::optim::AdamOptions{}.weight_decay(1e-6)
+        ),
+        std::make_shared<torch::optim::Adam>(
+            critics[1]->parameters(),
+            torch::optim::AdamOptions{}.weight_decay(1e-6)
+        )
     };
 
     agents::sac::trainers::Basic trainer {
@@ -144,7 +157,10 @@ int main(int argc, char **argv)
             .minimum_replay_buffer_size_(1000)
             .replay_buffer_size_(100000)
             .target_network_lr_(5e-3)
-            .temperature_(0.1f)
+            .temperature_(0.000001f)
+            .replay_device_(torch::kCPU)
+            .network_device_(torch::kCUDA)
+            .environment_device_(torch::kCPU)
     };
 
     trainer.run(3600);

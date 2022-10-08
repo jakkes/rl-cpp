@@ -73,9 +73,21 @@ namespace rl::buffers
              * in the constructor, and N denoting the length of `indices`.
              */
             std::unique_ptr<std::vector<torch::Tensor>> get(const std::vector<int64_t> &indices);
+            
+            inline
+            const std::vector<std::vector<int64_t>> &tensor_shapes() const {
+                return tensor_shapes_;
+            }
+
+            inline
+            const std::vector<torch::TensorOptions> &tensor_options() const {
+                return tensor_options_;
+            }
 
         private:
             const int64_t capacity;
+            const std::vector<std::vector<int64_t>> tensor_shapes_;
+            const std::vector<torch::TensorOptions> tensor_options_;
             std::mutex lock{};
             
             std::vector<torch::Tensor> data;

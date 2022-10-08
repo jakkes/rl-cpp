@@ -10,7 +10,7 @@ namespace rl::buffers
         int64_t capacity,
         const std::vector<std::vector<int64_t>> &tensor_shapes,
         const std::vector<torch::TensorOptions> &tensor_options
-    ) : capacity{capacity}
+    ) : capacity{capacity}, tensor_shapes_{tensor_shapes}, tensor_options_{tensor_options}
     {
         if (tensor_shapes.size() != tensor_options.size()) {
             throw std::invalid_argument{"Tensor shapes and options must be of same length."};

@@ -15,7 +15,7 @@ namespace rl::agents::sac
             {}
 
             inline
-            const torch::Tensor &value() const { return value_; }
+            const torch::Tensor value() const { return value_; }
         
         private:
             torch::Tensor value_;
@@ -27,7 +27,7 @@ namespace rl::agents::sac
             virtual ~Critic() = default;
 
             virtual
-            std::unique_ptr<CriticOutput> forward(
+            CriticOutput forward(
                 const torch::Tensor &states,
                 const torch::Tensor &actions
             ) = 0;

@@ -9,26 +9,26 @@ namespace rl::agents::sac
     class ActorOutput
     {
         public:
-            ActorOutput(const torch::Tensor &mean, const torch::Tensor &variance, const torch::Tensor &value)
-            : mean_{mean}, variance_{variance}, value_{value}
+            ActorOutput(const torch::Tensor &mean, const torch::Tensor &std, const torch::Tensor &value)
+            : mean_{mean}, std_{std}, value_{value}
             {}
 
             inline
-            const torch::Tensor &mean() const { return mean_; }
+            const torch::Tensor mean() const { return mean_; }
 
             inline
-            const torch::Tensor &variance() const { return variance_; }
+            const torch::Tensor std() const { return std_; }
 
             inline
-            const torch::Tensor &value() const { return value_; }
+            const torch::Tensor value() const { return value_; }
 
             inline
             torch::Tensor sample() const {
-                return mean_ + torch::randn_like(variance_) * variance_;
+                return mean_ + torch::randn_like(std_.detach()) * std_;
             }
         
         private:
-            torch::Tensor value_, mean_, variance_;
+            torch::Tensor value_, mean_, std_;
     };
 
     class Actor : public torch::nn::Module
@@ -37,7 +37,7 @@ namespace rl::agents::sac
             virtual ~Actor() = default;
 
             virtual
-            std::unique_ptr<ActorOutput> forward(
+            ActorOutput forward(
                 const torch::Tensor &states
             ) = 0;
 

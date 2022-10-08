@@ -10,6 +10,9 @@
 #include <rl/agents/sac/actor.h>
 #include <rl/agents/sac/critic.h>
 #include <rl/env/base.h>
+#include <rl/buffers/tensor.h>
+#include <rl/buffers/samplers/uniform.h>
+#include <rl/policies/constraints/box.h>
 
 namespace rl::agents::sac::trainers
 {
@@ -66,12 +69,27 @@ namespace rl::agents::sac::trainers
         
         private:
             const BasicOptions options;
-            std::shared_ptr<rl::agents::sac::Actor> actor;
-            std::shared_ptr<rl::agents::sac::Actor> actor_target;
-            std::vector<std::shared_ptr<rl::agents::sac::Critic>> critics;
-            std::shared_ptr<torch::optim::Optimizer> actor_optimizer;
-            std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers;
-            std::shared_ptr<rl::env::Factory> env_factory;
+            const std::shared_ptr<rl::agents::sac::Actor> actor;
+            const std::shared_ptr<rl::agents::sac::Actor> actor_target;
+            const std::vector<std::shared_ptr<rl::agents::sac::Critic>> critics;
+            const std::shared_ptr<torch::optim::Optimizer> actor_optimizer;
+            const std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers;
+            const std::shared_ptr<rl::env::Factory> env_factory;
+
+            std::shared_ptr<rl::buffers::Tensor> buffer;
+            std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
+            std::shared_ptr<rl::env::Base> env;
+            size_t env_steps{0};
+            size_t train_steps{0};
+
+        private:
+            void init_env();
+            void initialize_buffer();
+            torch::Tensor u_to_a(const torch::Tensor &u);
+            torch::Tensor a_to_u(const torch::Tensor &a);
+            torch::Tensor log_pi_a(const torch::Tensor &u, const ActorOutput &actor_output);
+            void execute_env_step();
+            void execute_train_step();
     };
 }
 

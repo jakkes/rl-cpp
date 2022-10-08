@@ -14,23 +14,23 @@ namespace rl::torchutils
         return data.dtype() == torch::kBool;
     }
 
-    torch::Tensor **TensorHolder::register_tensor(const std::string &name, torch::Tensor tensor)
+    torch::Tensor compute_gradient_norm(std::shared_ptr<torch::optim::Optimizer> optimizer)
     {
-        if (tensors.find(name) != tensors.end()) {
-            throw std::invalid_argument{"A tensor was already registered with the given name."};
+        torch::Tensor grad_norm;
+        bool first{true};
+
+        for (const auto &param_group : optimizer->param_groups()) {
+            for (const auto &param : param_group.params()) {
+                if (first) {
+                    grad_norm = param.grad().square().sum();
+                    first = false;
+                }
+                else {
+                    grad_norm += param.grad().square().sum();
+                }
+            }
         }
 
-        tensor_storage.insert({name, tensor});
-        tensors.insert({name, &tensor_storage[name]});
-        return &tensors[name];
-    }
-
-    void TensorHolder::to(torch::Device device)
-    {
-        for (auto &tensor : tensors) {
-            auto &name = tensor.first;
-            tensor_storage[name] = tensor_storage[name].to(device);
-            tensors[name] = &tensor_storage[name];
-        }
+        return grad_norm.sqrt();
     }
 }

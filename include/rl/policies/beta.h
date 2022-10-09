@@ -29,7 +29,7 @@ namespace rl::policies
             std::unique_ptr<Base> index(const std::vector<torch::indexing::TensorIndex> &indexing) const override;
 
         private:
-            const std::shared_ptr<Gamma> x, y;
+            Gamma x, y;
             const torch::Tensor a, b, alpha, beta;
     };
 }

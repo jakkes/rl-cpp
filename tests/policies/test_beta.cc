@@ -46,7 +46,7 @@ TORCH_TEST(policies, beta_mean, device)
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());
-    auto mean = sample.mean(1).cpu();
+    auto mean = sample.mean(1);
 
     auto expected_mean = 1.0 / (1.0 + beta / alpha) * (b - a) + a;
 

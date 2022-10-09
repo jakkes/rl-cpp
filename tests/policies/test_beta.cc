@@ -9,13 +9,11 @@ using namespace rl::policies;
 TORCH_TEST(policies, beta, device)
 {
     Beta d{
-        torch::tensor({0.1, 1.0, 2.0}),
-        torch::tensor({0.5, 1.0, 2.0}),
-        -1 * torch::ones({3}),
-        torch::ones({3})
+        torch::tensor({0.1, 1.0, 2.0}).to(device),
+        torch::tensor({0.5, 1.0, 2.0}).to(device),
+        -1 * torch::ones({3}).to(device),
+        torch::ones({3}).to(device)
     };
-
-    d.to(device);
 
     for (int i = 0; i < 100; i++) {
         auto sample = d.sample();
@@ -34,10 +32,10 @@ TORCH_TEST(policies, beta, device)
 
 TORCH_TEST(policies, beta_mean, device)
 {
-    auto alpha = torch::tensor({0.1, 0.9, 2.0});
-    auto beta = torch::tensor({0.5, 1.1, 0.9});
-    auto a = torch::tensor({-5.0, 0.0, 2.0});
-    auto b = torch::tensor({-3.0, 1.0, 2.1});
+    auto alpha = torch::tensor({0.1, 0.9, 2.0}).to(device);
+    auto beta = torch::tensor({0.5, 1.1, 0.9}).to(device);
+    auto a = torch::tensor({-5.0, 0.0, 2.0}).to(device);
+    auto b = torch::tensor({-3.0, 1.0, 2.1}).to(device);
 
     Beta d{
         alpha.unsqueeze(1).repeat({1, 100000}),
@@ -45,7 +43,6 @@ TORCH_TEST(policies, beta_mean, device)
         a.unsqueeze(1).repeat({1, 100000}),
         b.unsqueeze(1).repeat({1, 100000})
     };
-    d.to(device);
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());
@@ -59,10 +56,9 @@ TORCH_TEST(policies, beta_mean, device)
 TORCH_TEST(policies, sample_beta_lower_limit, device)
 {
     Beta d{
-        torch::tensor({0.1f}).repeat({10000}),
-        torch::tensor({0.1f}).repeat({10000})
+        torch::tensor({0.1f}).to(device).repeat({10000}),
+        torch::tensor({0.1f}).to(device).repeat({10000})
     };
-    d.to(device);
 
     for (int i = 0; i < 100; i++) {
         auto sample = d.sample();

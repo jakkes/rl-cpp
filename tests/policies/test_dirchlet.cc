@@ -10,9 +10,8 @@ using namespace rl::policies;
 TORCH_TEST(policies, dirchlet, device)
 {
     Dirchlet d {
-        torch::ones({10, 10, 4})
+        torch::ones({10, 10, 4}).to(device)
     };
-    d.to(device);
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());

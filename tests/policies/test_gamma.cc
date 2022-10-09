@@ -9,10 +9,9 @@ using namespace rl::policies;
 TORCH_TEST(policies, sample_gamma, device)
 {
     Gamma g{
-        torch::tensor({{2.5}, {0.5}}).expand({2, 100000}).clone(),
-        5.0 * torch::ones({2, 100000})
+        torch::tensor({{2.5}, {0.5}}).expand({2, 100000}).clone().to(device),
+        5.0 * torch::ones({2, 100000}).to(device)
     };
-    g.to(device);
 
     auto sample = g.sample();
     ASSERT_EQ(sample.device().type(), device.type());

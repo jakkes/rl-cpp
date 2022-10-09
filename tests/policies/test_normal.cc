@@ -9,9 +9,8 @@ using namespace rl::policies;
 
 TORCH_TEST(test_policies, test_normal, device)
 {
-    auto mean = torch::tensor({5.0});
-    Normal d{mean, torch::tensor(1.0)};
-    d.to(device);
+    auto mean = torch::tensor({5.0}).to(device);
+    Normal d{mean, torch::tensor(1.0).to(device)};
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());
@@ -19,8 +18,7 @@ TORCH_TEST(test_policies, test_normal, device)
     ASSERT_FLOAT_EQ(d.prob(mean.to(device)).item().toFloat(), M_SQRT1_2 * M_2_SQRTPI / 2);
     ASSERT_FLOAT_EQ(d.log_prob(mean.to(device)).exp().item().toFloat(), M_SQRT1_2 * M_2_SQRTPI / 2);
 
-    auto box = std::make_shared<constraints::Box>(mean.cpu(), torch::ones({1}) + INFINITY);
-    box->to(device);
+    auto box = std::make_shared<constraints::Box>(mean, torch::ones({1}).to(device) + INFINITY);
     d.include(box);
 
     ASSERT_FLOAT_EQ(d.prob(mean.to(device)).item().toFloat(), M_SQRT1_2 * M_2_SQRTPI);

@@ -12,9 +12,8 @@ using namespace rl::policies;
 TORCH_TEST(policies, categorical_mask, device)
 {
     auto c = std::make_shared<CategoricalMask>(
-        torch::tensor({true, true, false})
+        torch::tensor({true, true, false}).to(device)
     );
-    c->to(device);
 
     ASSERT_TRUE(c->contains(torch::tensor(0, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
     ASSERT_TRUE(c->contains(torch::tensor(1, torch::TensorOptions{}.dtype(torch::kLong).device(device))).item().toBool());
@@ -49,10 +48,9 @@ TORCH_TEST(policies, categorical_mask_batch, device)
                 {true, true, false},
                 {false, false, true}
             },
-            torch::TensorOptions{}.dtype(torch::kBool)
+            torch::TensorOptions{}.dtype(torch::kBool).device(device)
         )
     );
-    c->to(device);
 
     auto r1 = c->contains(torch::tensor({0, 0}, torch::TensorOptions{}.dtype(torch::kLong).device(device)));
     auto r2 = c->contains(torch::tensor({1, 1}, torch::TensorOptions{}.dtype(torch::kLong).device(device)));
@@ -77,19 +75,17 @@ TORCH_TEST(policies, categorical_mask_applied, device)
                 {0.1, 0.5, 10.0, 0.4},
                 {1.0, 1.0, 1.0, 1.0}
             }
-        )
+        ).to(device)
     };
-    d.to(device);
     auto c = std::make_shared<CategoricalMask>(
         torch::tensor(
             {
                 {true, true, false, true},
                 {false, false, false, true}
             },
-            torch::TensorOptions{}.dtype(torch::kBool)
+            torch::TensorOptions{}.dtype(torch::kBool).device(device)
         )
     );
-    c->to(device);
     d.include(c);
 
     auto sample = d.sample();

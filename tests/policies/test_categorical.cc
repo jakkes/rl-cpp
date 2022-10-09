@@ -16,9 +16,8 @@ TORCH_TEST(policies, categorical, device)
                 {0.1, 0.5, 0.0, 0.4},
                 {0.0, 0.0, 0.0, 1.0}
             }
-        )
+        ).to(device)
     };
-    d.to(device);
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());

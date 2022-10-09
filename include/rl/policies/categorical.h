@@ -10,9 +10,24 @@
 
 namespace rl::policies
 {
-    class Categorical : public Base{
+    /**
+     * @brief Discrete policy.
+     */
+    class Categorical : public Base {
         public:
+            /**
+             * @brief Construct a new Categorical object
+             * 
+             * @param probabilities Probabilities of each action.
+             */
             Categorical(const torch::Tensor &probabilities);
+
+            /**
+             * @brief Construct a new Categorical object
+             * 
+             * @param probabilities Probabilities of each action.
+             * @param values Value assigned to each action.
+             */
             Categorical(const torch::Tensor &probabilities, const torch::Tensor &values);
             ~Categorical() = default;
             
@@ -28,10 +43,8 @@ namespace rl::policies
 
         private:
             torch::Tensor probabilities, cumsummed, batchvec, values;
-            std::vector<int64_t> sample_shape{};
-            int64_t dim;
-            bool batch;
-            bool values_specified{false};
+            const std::vector<int64_t> sample_shape;
+            const int64_t dim;
 
             void check_probabilities();
             void compute_internals();

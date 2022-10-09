@@ -7,53 +7,44 @@
 #include "rl/torchutils.h"
 #include "rl/policies/constraints/categorical_mask.h"
 #include "rl/policies/unsupported_constraint_exception.h"
+#include "rl/cpputils/slice_vector.h"
+#include "rl/cpputils/concat_vector.h"
 
 
 using namespace torch::indexing;
 
 namespace rl::policies
 {
-    Categorical::Categorical(const torch::Tensor &probabilities)
-    : 
-    probabilities{ register_buffer("probabilities", probabilities) },
-    dim{probabilities.size(-1)},
-    batch{probabilities.sizes().size() > 1}
+    Categorical::Categorical(const torch::Tensor &probabilities, const torch::Tensor &values)
+    :
+        probabilities{probabilities},
+        values{values},
+        dim{probabilities.size(-1)},
+        sample_shape{rl::cpputils::slice(probabilities.sizes().vec(), 0, -1)}
     {
         check_probabilities();
         compute_internals();
     }
-    
+
+    Categorical::Categorical(const torch::Tensor &probabilities)
+    : Categorical{
+        probabilities,
+        torch::arange(probabilities.size(-1), probabilities.options()).expand_as(probabilities)
+    }
+    {}
+
     void Categorical::compute_internals()
     {
         probabilities = probabilities / probabilities.sum(-1, true);
+        probabilities = probabilities.view({-1, dim});
+        values = values.view_as(probabilities);
 
-        if (named_buffers().contains("cumsummed")) {
-            cumsummed.index_put_({Slice(None, None)}, probabilities.cumsum(-1));
-        }
-        else {
-            cumsummed = register_buffer("cumsummed", probabilities.cumsum(-1));
-        }
-
-        sample_shape.reserve(cumsummed.sizes().size());
-        sample_shape.clear();
-        int i = 0;
-        int64_t batchsize = 1;
-        for (; i < cumsummed.sizes().size() - 1; i++) {
-            batchsize *= cumsummed.size(i);
-            sample_shape.push_back(cumsummed.size(i));
-        }
-        sample_shape.push_back(1);
-
-        if (!named_buffers().contains("batchvec") && batch) {
-            batchvec = register_buffer("batchvec", torch::arange(batchsize));
-        }
+        cumsummed = probabilities.cumsum(1);
+        batchvec = torch::arange(probabilities.size(0), torch::TensorOptions{}.device(probabilities.device()));
     }
 
     void Categorical::check_probabilities()
     {
-        if (probabilities.sizes().size() < 1) {
-            throw std::invalid_argument{"Probabilities must have at least one dimension."};
-        }
         if (probabilities.isnan().any().item().toBool()) {
             throw std::runtime_error{"Categorical policy did not expect NaN values."};
         }
@@ -67,7 +58,7 @@ namespace rl::policies
         auto categorical_mask = std::dynamic_pointer_cast<constraints::CategoricalMask>(constraint);
 
         if (categorical_mask) {
-            auto mask = categorical_mask->mask().broadcast_to(probabilities.sizes());
+            auto mask = categorical_mask->mask().view_as(probabilities);
             probabilities.index_put_({~mask}, 0.0);
             check_probabilities();
             compute_internals();
@@ -79,19 +70,22 @@ namespace rl::policies
 
     const torch::Tensor Categorical::get_probabilities() const
     {
-        return probabilities;
+        return probabilities.view(rl::cpputils::concat(sample_shape, {dim}));
     }
 
     torch::Tensor Categorical::sample() const
     {
-        return (torch::rand(sample_shape, cumsummed.options()) > cumsummed).sum(-1).clamp_max_(dim-1);
+        auto actions = (torch::rand(sample_shape, cumsummed.options()).unsqueeze_(1) > cumsummed).sum(1);
+        assert (actions.lt(dim).all().item().toBool());
+        auto out = values.index({batchvec, actions});
+        return out.view(sample_shape);
     }
 
     torch::Tensor Categorical::entropy() const
     {
         auto logged = probabilities.log();
         logged.index_put_({logged.isinf()}, 0.0);
-        return - (probabilities * logged).sum(-1);
+        return - (probabilities * logged).sum(-1).view(sample_shape);
     }
 
     torch::Tensor Categorical::log_prob(const torch::Tensor &value) const
@@ -99,16 +93,12 @@ namespace rl::policies
         return prob(value).log();
     }
 
-    torch::Tensor Categorical::prob(const torch::Tensor &value) const
+    torch::Tensor Categorical::prob(const torch::Tensor &value_) const
     {
-        assert (rl::torchutils::is_int_dtype(value));
+        auto value = value_.view({-1, 1});
+        auto i = torch::where(value == values);
+        assert (i.size() == 2);
 
-        if (batch) {
-            return probabilities.view({-1, dim}).index({batchvec, value.view({-1})}).view(value.sizes());
-        }
-        else {
-            assert(value.sizes().size() == 0);
-            return probabilities.index({value});
-        }
+        return probabilities.index({i[0], i[1]}).view_as(value_);
     }
 }

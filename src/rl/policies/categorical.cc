@@ -29,7 +29,7 @@ namespace rl::policies
     Categorical::Categorical(const torch::Tensor &probabilities)
     : Categorical{
         probabilities,
-        torch::arange(probabilities.size(-1), probabilities.options()).expand_as(probabilities)
+        torch::arange(probabilities.size(-1), torch::TensorOptions{}.device(probabilities.device())).expand_as(probabilities)
     }
     {}
 

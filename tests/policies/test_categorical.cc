@@ -23,6 +23,7 @@ TORCH_TEST(policies, categorical, device)
 
     auto sample = d.sample();
     ASSERT_EQ(sample.device().type(), device.type());
+    ASSERT_EQ(sample.dtype(), torch::kLong);
 
     ASSERT_EQ(sample.size(0), 2);
     ASSERT_NE(sample.index({0}).item().toLong(), 2);

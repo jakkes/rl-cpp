@@ -201,6 +201,7 @@ namespace rl::agents::sac::trainers
 
         auto mean_policy_loss = policy_loss.mean();
         auto mean_value_loss = value_loss.mean();
+        auto actor_loss = mean_policy_loss + mean_value_loss;
         std::vector<torch::Tensor> mean_critic_losses{};
         mean_critic_losses.reserve(critics.size());
         for (int i = 0; i < critics.size(); i++) {
@@ -209,8 +210,7 @@ namespace rl::agents::sac::trainers
 
         // Apply backward passes
         actor_optimizer->zero_grad();
-        mean_policy_loss.backward();
-        mean_value_loss.backward();
+        actor_loss.backward();
         actor_optimizer->step();
 
         for (int i = 0; i < critics.size(); i++)

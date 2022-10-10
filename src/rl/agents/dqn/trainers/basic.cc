@@ -7,6 +7,7 @@
 
 
 using rl::policies::constraints::CategoricalMask;
+using namespace torch::indexing;
 
 namespace rl::agents::dqn::trainers
 {
@@ -157,12 +158,15 @@ namespace rl::agents::dqn::trainers
 
             {
                 torch::NoGradGuard guard{};
-                auto target_parameters = module->parameters();
-                auto parameters = target_module->parameters();
+                auto target_parameters = target_module->parameters();
+                auto parameters = module->parameters();
+                static int j = 0;
 
                 for (int i = 0; i < parameters.size(); i++) {
-                    target_parameters[i].add_(options.target_network_lr * (parameters[i] - target_parameters[i]));
+                    target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
                 }
+                
+                j++;
             }
 
             train_steps++;

@@ -9,6 +9,7 @@
 #include "logging/logging.h"
 #include "cpputils/cpputils.h"
 #include "utils/utils.h"
+#include "simulators/simulators.h"
 
 #include "option.h"
 

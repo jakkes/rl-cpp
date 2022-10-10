@@ -13,6 +13,8 @@ namespace rl::torchutils
     bool is_bool_dtype(const torch::Tensor &data);
 
     torch::Tensor compute_gradient_norm(std::shared_ptr<torch::optim::Optimizer> optimizer);
+
+    void scale_gradients(std::shared_ptr<torch::optim::Optimizer> optimizer, const torch::Scalar &factor);
 }
 
 #endif /* UTILS_TORCH_H_ */

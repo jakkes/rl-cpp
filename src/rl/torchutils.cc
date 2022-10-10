@@ -16,6 +16,7 @@ namespace rl::torchutils
 
     torch::Tensor compute_gradient_norm(std::shared_ptr<torch::optim::Optimizer> optimizer)
     {
+        torch::InferenceMode guard{};
         torch::Tensor grad_norm;
         bool first{true};
 
@@ -32,5 +33,15 @@ namespace rl::torchutils
         }
 
         return grad_norm.sqrt();
+    }
+
+    void scale_gradients(std::shared_ptr<torch::optim::Optimizer> optimizer, const torch::Scalar &factor)
+    {
+        torch::InferenceMode guard{};
+        for (auto &param_group : optimizer->param_groups()) {
+            for (auto &param : param_group.params()) {
+                param.mul_(factor);
+            }
+        }
     }
 }

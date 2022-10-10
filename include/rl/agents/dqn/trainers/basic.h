@@ -21,7 +21,7 @@ namespace rl::agents::dqn::trainers
     struct BasicOptions
     {
         // Number of environment steps to execute per network update step.
-        RL_OPTION(int, environment_steps_per_training_step) = 4;
+        RL_OPTION(float, environment_steps_per_training_step) = 1.0f;
         // Replay buffer size
         RL_OPTION(int64_t, replay_buffer_size) = 100000;
         // Training is paused until the replay buffer is filled with at least this
@@ -36,7 +36,7 @@ namespace rl::agents::dqn::trainers
         // Device on which environment observations are located.
         RL_OPTION(torch::Device, environment_device) = torch::kCPU;
         // Number of training steps between each target network update.
-        RL_OPTION(int, target_network_update_steps) = 100;
+        RL_OPTION(float, target_network_lr) = 1e-3;
         // Discount factor
         RL_OPTION(float, discount) = 0.99;
         // Double DQN

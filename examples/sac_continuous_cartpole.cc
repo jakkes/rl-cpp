@@ -161,6 +161,7 @@ int main(int argc, char **argv)
             .replay_device_(torch::kCPU)
             .network_device_(torch::kCUDA)
             .environment_device_(torch::kCPU)
+            .huber_loss_delta_(1000.0f)
     };
 
     trainer.run(3600);

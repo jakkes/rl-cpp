@@ -26,6 +26,8 @@ namespace rl::agents::sac::trainers
         // Actions are scaled to a bounded range using tanh.
         RL_OPTION(float, action_range_max) = 1.0f;
         
+        // Delta used in the Huber loss function for value functions.
+        RL_OPTION(float, huber_loss_delta) = 2.0f;
         // If the gradient norm is larger than this value, then it is normed to this 
         // value. Note, the loggers log the unnormed value.
         RL_OPTION(float, max_gradient_norm) = 40.0f;

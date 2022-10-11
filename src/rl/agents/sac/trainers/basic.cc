@@ -3,6 +3,7 @@
 #include <rl/torchutils.h>
 
 
+namespace F = torch::nn::functional;
 namespace rl::agents::sac::trainers
 {
 
@@ -166,7 +167,11 @@ namespace rl::agents::sac::trainers
                     critic_outputs = critic_outputs.min(critics[i]->forward(sample[0].to(options.network_device), a).value());
                 }
             }
-            value_loss = (current_policy.value() - (critic_outputs + options.temperature * entropy_estimator)).square();
+            value_loss = F::huber_loss(
+                current_policy.value(),
+                critic_outputs + options.temperature * entropy_estimator,
+                F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
+            );
             assert (!value_loss.isnan().any().item().toBool());
         }
 
@@ -181,7 +186,13 @@ namespace rl::agents::sac::trainers
 
             for (int i = 0; i < critics.size(); i++) {
                 auto value = critics[i]->forward(sample[0].to(options.network_device), sample[1].to(options.network_device)).value();
-                critic_losses.push_back( (target - value).square() );
+                critic_losses.push_back(
+                    F::huber_loss(
+                        value,
+                        target,
+                        F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
+                    )
+                );
 
                 assert(!critic_losses[i].isnan().any().item().toBool());
             }

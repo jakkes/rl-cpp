@@ -16,8 +16,8 @@ namespace rl::agents::utils
         auto batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(current_logits.device()));
         auto n_atoms = atoms.size(0);
         auto dz = atoms.index({1}) - atoms.index({0});
-        float v_max = atoms.index({0}).item().toFloat();
-        float v_min = atoms.index({-1}).item().toFloat();
+        float v_min = atoms.index({0}).item().toFloat();
+        float v_max = atoms.index({-1}).item().toFloat();
 
         auto m = torch::zeros({batchsize, n_atoms}, rewards.options());
 

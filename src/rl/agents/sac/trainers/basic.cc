@@ -163,6 +163,11 @@ namespace rl::agents::sac::trainers
                 entropy_estimator = - log_pi_a(u, current_policy);
                 critic_output = critic->forward(sample[0].to(options.network_device), a);
             }
+
+            if (!critic_output.atoms().allclose(current_policy.value().atoms())) {
+                throw std::runtime_error{"Critic and Actor must have equal value support atoms."};
+            }
+
             value_loss = rl::agents::utils::distributional_value_loss(
                 current_policy.value().logits(),
                 options.temperature * entropy_estimator,

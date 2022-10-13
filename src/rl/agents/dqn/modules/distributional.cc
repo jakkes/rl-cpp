@@ -2,6 +2,9 @@
 
 #include <exception>
 
+#include <rl/agents/utils/distributional_loss.h>
+
+
 namespace rl::agents::dqn::modules
 {
     DistributionalOutput::DistributionalOutput(
@@ -49,52 +52,15 @@ namespace rl::agents::dqn::modules
         // Check validity of next actions -- either mask is not set or all next actions are of value "false" in the inverted mask
         assert (!next_output_.mask_set || !next_output_.inverted_mask.index({batchvec, next_actions}).any().item().toBool());
 
-        auto next_distributions = torch::softmax(next_output_.logits.index({batchvec, next_actions}), -1);
-
-        auto m = torch::zeros({batch_size, n_atoms}, rewards.options());
-
-        auto projection = rewards.view({-1, 1}) + not_terminals.view({-1, 1}) * discount * atoms.view({1, -1});
-        projection.clamp_(v_min, v_max);
-
-        auto b = (projection - v_min) / dz;
-
-        auto lower = b.floor().to(torch::kLong).clamp_(0, n_atoms - 1);
-        auto upper = b.ceil().to(torch::kLong).clamp_(0, n_atoms - 1);
-
-        auto lower_eq_upper = lower == upper;
-        if (lower_eq_upper.any().item().toBool()) {
-            auto lower_mask = (upper > 0).logical_and_(lower_eq_upper);
-            lower.index_put_({lower_mask}, lower.index({lower_mask}) - 1);
-        }
-
-        lower_eq_upper = lower == upper;
-        if (lower_eq_upper.any().item().toBool()) {
-            auto upper_mask = (lower < n_atoms - 1).logical_and_(lower_eq_upper);
-            upper.index_put_({upper_mask}, upper.index({upper_mask}) + 1);
-        }
-
-        auto index_vec_0 = batchvec.view({-1, 1}).repeat({1, n_atoms}).view({-1});
-        auto index_vec_1a = lower.view({-1});
-
-        m.index_put_(
-            {
-                index_vec_0,
-                lower.view({-1})
-            },
-            (next_distributions * (upper - b)).view({-1}),
-            true
+        return rl::agents::utils::distributional_loss(
+            this->logits.index({batchvec, actions}),
+            rewards,
+            not_terminals,
+            next_output_.logits.index({batchvec, next_actions}),
+            atoms,
+            discount,
+            v_min,
+            v_max
         );
-
-        m.index_put_(
-            {
-                index_vec_0,
-                upper.view({-1})
-            },
-            (next_distributions * (b - lower)).view({-1}),
-            true
-        );
-        auto current_logits = logits.index({batchvec, actions});
-        auto log_distribution = torch::log_softmax(current_logits, -1);
-        return - (m * log_distribution).sum(-1);
     }
 }

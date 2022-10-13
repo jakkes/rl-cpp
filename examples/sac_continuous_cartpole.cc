@@ -51,7 +51,7 @@ class Actor : public rl::agents::sac::Actor
             );
             atoms = register_buffer(
                 "atoms",
-                torch::linspace(0.0f, 200.0f, 51)
+                torch::linspace(0.0f, 150.0f, 51)
             );
         }
 
@@ -101,7 +101,7 @@ class Critic : public rl::agents::sac::Critic
             );
             atoms = register_buffer(
                 "atoms",
-                torch::linspace(0.0f, 200.0f, 51)
+                torch::linspace(0.0f, 150.0f, 51)
             );
         };
 
@@ -112,7 +112,7 @@ class Critic : public rl::agents::sac::Critic
         {
             return rl::agents::utils::DistributionalValue {
                 atoms,
-                Q->forward(torch::concat({states, actions.unsqueeze(-1)}, -1)).squeeze(-1)
+                Q->forward(torch::concat({states, actions.unsqueeze(-1)}, -1))
             };
         }
 

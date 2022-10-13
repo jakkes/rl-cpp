@@ -9,18 +9,18 @@ namespace rl::agents::sac::trainers
 
     Basic::Basic(
         std::shared_ptr<rl::agents::sac::Actor> actor,
-        std::vector<std::shared_ptr<rl::agents::sac::Critic>> critics,
+        std::shared_ptr<rl::agents::sac::Critic> critic,
         std::shared_ptr<torch::optim::Optimizer> actor_optimizer,
-        std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers,
+        std::shared_ptr<torch::optim::Optimizer> critic_optimizer,
         std::shared_ptr<rl::env::Factory> env_factory,
         const BasicOptions &options
     ) : 
         options{options},
         actor{actor},
         actor_target{actor->clone()},
-        critics{critics},
+        critic{critic},
         actor_optimizer{actor_optimizer},
-        critic_optimizers{critic_optimizers},
+        critic_optimizer{critic_optimizer},
         env_factory{env_factory}
     {}
 
@@ -116,7 +116,7 @@ namespace rl::agents::sac::trainers
         auto output = actor->forward( state->state.unsqueeze(0).to(options.network_device) );
         
         if (options.logger && should_log_start_value) {
-            options.logger->log_scalar("SAC/StartValue", output.value().item().toFloat());
+            options.logger->log_scalar("SAC/StartValue", output.value().mean().item().toFloat());
         }
 
         auto u = output.sample().squeeze(0);
@@ -138,7 +138,7 @@ namespace rl::agents::sac::trainers
         );
 
         if (observation->terminal && options.logger) {
-            options.logger->log_scalar("SAC/EndValue", output.value().item().toFloat());
+            options.logger->log_scalar("SAC/EndValue", output.value().mean().item().toFloat());
         }
 
         env_steps++;
@@ -149,75 +149,66 @@ namespace rl::agents::sac::trainers
         auto sample_storage = sampler->sample(options.batch_size);
         auto &sample = *sample_storage;
 
-        torch::Tensor value_loss, policy_loss;
-        std::vector<torch::Tensor> critic_losses{}; critic_losses.reserve(critics.size());
+        torch::Tensor value_loss, policy_loss, critic_loss;
         auto current_policy = actor->forward(sample[0].to(options.network_device));
 
         // Compute value loss
         {
-            torch::Tensor critic_outputs, entropy_estimator;
+            torch::Tensor entropy_estimator;
+            rl::agents::utils::DistributionalValue critic_output;
             {
                 torch::NoGradGuard guard{};
                 auto u = current_policy.sample().detach();
                 auto a = u_to_a(u);
                 entropy_estimator = - log_pi_a(u, current_policy);
-
-                critic_outputs = critics[0]->forward(sample[0].to(options.network_device), a).value();
-                for (int i = 0; i < critics.size(); i++) {
-                    critic_outputs = critic_outputs.min(critics[i]->forward(sample[0].to(options.network_device), a).value());
-                }
+                critic_output = critic->forward(sample[0].to(options.network_device), a);
             }
-            value_loss = F::huber_loss(
-                current_policy.value(),
-                critic_outputs + options.temperature * entropy_estimator,
-                F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
+            value_loss = rl::agents::utils::distributional_value_loss(
+                current_policy.value().logits(),
+                options.temperature * entropy_estimator,
+                torch::ones_like(entropy_estimator),
+                critic_output.logits(),
+                critic_output.atoms(),
+                1.0f
             );
             assert (!value_loss.isnan().any().item().toBool());
         }
 
         // Compute critic losses
         {
-            torch::Tensor target;
+            torch::Tensor target_logits;
             {
                 torch::NoGradGuard guard{};
                 auto next_policy = actor_target->forward(sample[4].to(options.network_device));
-                target = sample[2].to(options.network_device) + options.discount * sample[3].to(options.network_device) * next_policy.value();
+                target_logits = next_policy.value().logits();
             }
 
-            for (int i = 0; i < critics.size(); i++) {
-                auto value = critics[i]->forward(sample[0].to(options.network_device), sample[1].to(options.network_device)).value();
-                critic_losses.push_back(
-                    F::huber_loss(
-                        value,
-                        target,
-                        F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
-                    )
-                );
+            auto critic_output = critic->forward(sample[0].to(options.network_device), sample[1].to(options.network_device));
+            critic_loss = rl::agents::utils::distributional_value_loss(
+                critic_output.logits(),
+                sample[2].to(options.network_device),
+                sample[3].to(options.network_device),
+                target_logits,
+                critic_output.atoms(),
+                options.discount
+            );
 
-                assert(!critic_losses[i].isnan().any().item().toBool());
-            }
+            assert(!critic_loss.isnan().any().item().toBool());
         }
 
         // Compute policy loss
         {
             auto u = current_policy.sample();
             auto a = u_to_a(u);
-            torch::Tensor critic_outputs = critics[0]->forward(sample[0].to(options.network_device), a).value();
-            for (int i = 0; i < critics.size(); i++) {
-                critic_outputs = critic_outputs.min(critics[i]->forward(sample[0].to(options.network_device), a).value());
-            }
-            policy_loss = log_pi_a(u, current_policy) - critic_outputs;
+            auto critic_output = critic->forward(sample[0].to(options.network_device), a);
+            policy_loss = log_pi_a(u, current_policy) - critic_output.mean();
             assert(!policy_loss.isnan().any().item().toBool());
         }
 
         auto mean_policy_loss = policy_loss.mean();
         auto mean_value_loss = value_loss.mean();
         auto actor_loss = mean_policy_loss + mean_value_loss;
-        std::vector<torch::Tensor> mean_critic_losses{};
-        mean_critic_losses.reserve(critics.size());
-        for (int i = 0; i < critics.size(); i++) {
-            mean_critic_losses.push_back(critic_losses[i].mean());
-        }
+        auto mean_critic_loss = critic_loss.mean();
 
         // Apply backward passes
         actor_optimizer->zero_grad();
@@ -228,29 +219,21 @@ namespace rl::agents::sac::trainers
         }
         actor_optimizer->step();
 
-        std::vector<float> critic_grad_norms{}; critic_grad_norms.resize(critics.size());
-        for (int i = 0; i < critics.size(); i++)
-        {
-            critic_optimizers[i]->zero_grad();
-            mean_critic_losses[i].backward();
-            critic_grad_norms[i] = rl::torchutils::compute_gradient_norm(critic_optimizers[i]).item().toFloat();
-            if (critic_grad_norms[i] > options.max_gradient_norm) {
-                rl::torchutils::scale_gradients(critic_optimizers[i], 1.0f / critic_grad_norms[i]);
-            }
-            critic_optimizers[i]->step();
+        critic_optimizer->zero_grad();
+        mean_critic_loss.backward();
+        auto critic_grad_norm = rl::torchutils::compute_gradient_norm(critic_optimizer).item().toFloat();
+        if (critic_grad_norm > options.max_gradient_norm) {
+            rl::torchutils::scale_gradients(critic_optimizer, 1.0f / critic_grad_norm);
         }
+        critic_optimizer->step();
 
         if (options.logger) {
             options.logger->log_scalar("SAC/PolicyLoss", mean_policy_loss.item().toFloat());
             options.logger->log_scalar("SAC/ValueLoss", mean_value_loss.item().toFloat());
-            for (int i = 0; i < critics.size(); i++) {
-                options.logger->log_scalar("SAC/CriticLoss" + std::to_string(i), mean_critic_losses[i].item().toFloat());
-            }
+            options.logger->log_scalar("SAC/CriticLoss", mean_critic_loss.item().toFloat());
 
             options.logger->log_scalar("SAC/ActorGradNorm", actor_grad_norm);
-            for (int i = 0; i < critics.size(); i++) {
-                options.logger->log_scalar("SAC/CriticGradNorm" + std::to_string(i), critic_grad_norms[i]);
-            }
+            options.logger->log_scalar("SAC/CriticGradNorm", critic_grad_norm);
         }
 
         {

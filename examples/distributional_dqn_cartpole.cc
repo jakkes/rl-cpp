@@ -70,7 +70,7 @@ Module::Module()
 std::unique_ptr<agents::dqn::modules::DistributionalOutput> Module::forward_impl(const torch::Tensor &states)
 {
     auto logits = net->forward(states).view({-1, 2, 51});
-    return std::make_unique<agents::dqn::modules::DistributionalOutput>(logits, atoms, v_min, v_max);
+    return std::make_unique<agents::dqn::modules::DistributionalOutput>(logits, atoms);
 }
 
 std::unique_ptr<agents::dqn::modules::Base> Module::clone() const

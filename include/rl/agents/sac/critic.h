@@ -3,31 +3,19 @@
 
 
 #include <torch/torch.h>
+#include <rl/agents/utils/distributional_value.h>
 #include <rl/policies/base.h>
+
 
 namespace rl::agents::sac
 {
-    class CriticOutput
-    {
-        public:
-            CriticOutput(torch::Tensor value)
-            : value_{value}
-            {}
-
-            inline
-            const torch::Tensor value() const { return value_; }
-        
-        private:
-            torch::Tensor value_;
-    };
-
     class Critic : public torch::nn::Module
     {
         public:
             virtual ~Critic() = default;
 
             virtual
-            CriticOutput forward(
+            rl::agents::utils::DistributionalValue forward(
                 const torch::Tensor &states,
                 const torch::Tensor &actions
             ) = 0;

@@ -30,6 +30,7 @@ class Actor : public rl::agents::sac::Actor
 {
     public:
         torch::nn::Sequential policy, value;
+        torch::Tensor atoms;
 
         Actor() {
             policy = register_module(
@@ -45,8 +46,12 @@ class Actor : public rl::agents::sac::Actor
                 torch::nn::Sequential{
                     torch::nn::Linear{5, 64},
                     torch::nn::ReLU{true},
-                    torch::nn::Linear{64, 1}
+                    torch::nn::Linear{64, 51}
                 }
+            );
+            atoms = register_buffer(
+                "atoms",
+                torch::linspace(0.0f, 200.0f, 51)
             );
         }
 
@@ -56,9 +61,16 @@ class Actor : public rl::agents::sac::Actor
             auto policy_output = policy->forward(states);
             auto mean = policy_output.index({"...", 0});
             auto std = 1.0f + torch::elu(policy_output.index({"...", 1}));
-            auto value_output = value->forward(states).squeeze(-1);
+            auto value_output = value->forward(states);
 
-            return rl::agents::sac::ActorOutput{mean, std, value_output};
+            return rl::agents::sac::ActorOutput{
+                mean,
+                std,
+                rl::agents::utils::DistributionalValue{
+                    atoms,
+                    value_output
+                }
+            };
         }
 
         std::unique_ptr<rl::agents::sac::Actor> clone() const
@@ -75,6 +87,7 @@ class Critic : public rl::agents::sac::Critic
 {
     public:
         torch::nn::Sequential Q;
+        torch::Tensor atoms;
 
     public:
         Critic() {
@@ -83,17 +96,22 @@ class Critic : public rl::agents::sac::Critic
                 torch::nn::Sequential{
                     torch::nn::Linear{6, 64},
                     torch::nn::ReLU{true},
-                    torch::nn::Linear{64, 1}
+                    torch::nn::Linear{64, 51}
                 }
+            );
+            atoms = register_buffer(
+                "atoms",
+                torch::linspace(0.0f, 200.0f, 51)
             );
         };
 
-        rl::agents::sac::CriticOutput forward(
+        rl::agents::utils::DistributionalValue forward(
             const torch::Tensor &states,
             const torch::Tensor &actions
         )
         {
-            return rl::agents::sac::CriticOutput{
+            return rl::agents::utils::DistributionalValue {
+                atoms,
                 Q->forward(torch::concat({states, actions.unsqueeze(-1)}, -1)).squeeze(-1)
             };
         }
@@ -112,12 +130,8 @@ int main(int argc, char **argv)
     auto args = parse_args(argc, argv);
     auto actor = std::make_shared<Actor>();
     actor->to(torch::kCUDA);
-    std::vector<std::shared_ptr<agents::sac::Critic>> critics{ 
-        std::make_shared<Critic>(), 
-        std::make_shared<Critic>()
-    };
-    critics[0]->to(torch::kCUDA);
-    critics[1]->to(torch::kCUDA);
+    auto critic = std::make_shared<Critic>();
+    critic->to(torch::kCUDA);
 
     auto logger = std::make_shared<logging::client::EMA>(
         std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999},
@@ -130,22 +144,16 @@ int main(int argc, char **argv)
         actor->parameters(),
         torch::optim::AdamOptions{}.weight_decay(1e-6)
     );
-    std::vector<std::shared_ptr<torch::optim::Optimizer>> critic_optimizers {
-        std::make_shared<torch::optim::Adam>(
-            critics[0]->parameters(),
-            torch::optim::AdamOptions{}.weight_decay(1e-6)
-        ),
-        std::make_shared<torch::optim::Adam>(
-            critics[1]->parameters(),
-            torch::optim::AdamOptions{}.weight_decay(1e-6)
-        )
-    };
+    auto critic_optimizer = std::make_shared<torch::optim::Adam>(
+        critic->parameters(),
+        torch::optim::AdamOptions{}.weight_decay(1e-6)
+    );
 
     agents::sac::trainers::Basic trainer {
         actor,
-        critics,
+        critic,
         actor_optimizer,
-        critic_optimizers,
+        critic_optimizer,
         env_factory,
         agents::sac::trainers::BasicOptions{}
             .action_range_max_(1.0f)
@@ -161,7 +169,6 @@ int main(int argc, char **argv)
             .replay_device_(torch::kCPU)
             .network_device_(torch::kCUDA)
             .environment_device_(torch::kCPU)
-            .huber_loss_delta_(1000.0f)
     };
 
     trainer.run(3600);

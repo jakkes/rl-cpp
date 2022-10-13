@@ -31,7 +31,7 @@ TORCH_TEST(distributional_module, distributional_output_value, device)
         {true, false, true}
     });
 
-    DistributionalOutput output{logits, atoms, 0.0f, 1.0f};
+    DistributionalOutput output{logits, atoms};
     output.apply_mask(masks);
 
     auto values = output.value();

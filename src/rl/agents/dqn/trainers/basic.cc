@@ -7,6 +7,7 @@
 
 
 using rl::policies::constraints::CategoricalMask;
+using namespace torch::indexing;
 
 namespace rl::agents::dqn::trainers
 {
@@ -155,6 +156,19 @@ namespace rl::agents::dqn::trainers
                 options.logger->log_frequency("DQN/Update frequency", 1);
             }
 
+            {
+                torch::NoGradGuard guard{};
+                auto target_parameters = target_module->parameters();
+                auto parameters = module->parameters();
+                static int j = 0;
+
+                for (int i = 0; i < parameters.size(); i++) {
+                    target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
+                }
+                
+                j++;
+            }
+
             train_steps++;
         };
 
@@ -211,37 +225,26 @@ namespace rl::agents::dqn::trainers
             env_steps++;
         };
 
-        auto sync_modules = [&] () {
-            torch::InferenceMode guard{};
-            auto target_parameters = target_module->parameters();
-            auto parameters = module->parameters();
-
-            for (int i = 0; i < parameters.size(); i++) {
-                target_parameters[i].copy_(parameters[i]);
-            }
-        };
-
         auto stop_time = std::chrono::high_resolution_clock::now() + std::chrono::seconds{duration};
+        while (buffer->size() < options.minimum_replay_buffer_size
+                            && std::chrono::high_resolution_clock::now() < stop_time)
+        {
+            execute_env_step();
+        }
+
+        env_steps = 0;
+
         while (std::chrono::high_resolution_clock::now() < stop_time)
         {
-            if (buffer->size() < options.minimum_replay_buffer_size) {
-                execute_env_step();
-                continue;
-            }
-
-            if (env_steps % options.environment_steps_per_training_step == 0) {
+            if (env_steps > options.environment_steps_per_training_step * train_steps) {
                 execute_train_step();
-
-                if (train_steps % options.target_network_update_steps == 0) {
-                    sync_modules();
-                }
-
                 if (train_steps % options.checkpoint_callback_period == 0) {
                     if (options.checkpoint_callback) options.checkpoint_callback(train_steps);
                 }
             }
-
-            execute_env_step();
+            else {
+                execute_env_step();
+            }
         }
     }
 }

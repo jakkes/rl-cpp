@@ -3,6 +3,7 @@
 #include <rl/torchutils.h>
 
 
+namespace F = torch::nn::functional;
 namespace rl::agents::sac::trainers
 {
 
@@ -166,7 +167,11 @@ namespace rl::agents::sac::trainers
                     critic_outputs = critic_outputs.min(critics[i]->forward(sample[0].to(options.network_device), a).value());
                 }
             }
-            value_loss = (current_policy.value() - (critic_outputs + options.temperature * entropy_estimator)).square();
+            value_loss = F::huber_loss(
+                current_policy.value(),
+                critic_outputs + options.temperature * entropy_estimator,
+                F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
+            );
             assert (!value_loss.isnan().any().item().toBool());
         }
 
@@ -181,7 +186,13 @@ namespace rl::agents::sac::trainers
 
             for (int i = 0; i < critics.size(); i++) {
                 auto value = critics[i]->forward(sample[0].to(options.network_device), sample[1].to(options.network_device)).value();
-                critic_losses.push_back( (target - value).square() );
+                critic_losses.push_back(
+                    F::huber_loss(
+                        value,
+                        target,
+                        F::HuberLossFuncOptions{}.reduction(torch::kNone).delta(options.huber_loss_delta)
+                    )
+                );
 
                 assert(!critic_losses[i].isnan().any().item().toBool());
             }
@@ -201,6 +212,7 @@ namespace rl::agents::sac::trainers
 
         auto mean_policy_loss = policy_loss.mean();
         auto mean_value_loss = value_loss.mean();
+        auto actor_loss = mean_policy_loss + mean_value_loss;
         std::vector<torch::Tensor> mean_critic_losses{};
         mean_critic_losses.reserve(critics.size());
         for (int i = 0; i < critics.size(); i++) {
@@ -209,14 +221,22 @@ namespace rl::agents::sac::trainers
 
         // Apply backward passes
         actor_optimizer->zero_grad();
-        mean_policy_loss.backward();
-        mean_value_loss.backward();
+        actor_loss.backward();
+        auto actor_grad_norm = rl::torchutils::compute_gradient_norm(actor_optimizer).item().toFloat();
+        if (actor_grad_norm > options.max_gradient_norm) {
+            rl::torchutils::scale_gradients(actor_optimizer, 1.0f / actor_grad_norm);
+        }
         actor_optimizer->step();
 
+        std::vector<float> critic_grad_norms{}; critic_grad_norms.resize(critics.size());
         for (int i = 0; i < critics.size(); i++)
         {
             critic_optimizers[i]->zero_grad();
             mean_critic_losses[i].backward();
+            critic_grad_norms[i] = rl::torchutils::compute_gradient_norm(critic_optimizers[i]).item().toFloat();
+            if (critic_grad_norms[i] > options.max_gradient_norm) {
+                rl::torchutils::scale_gradients(critic_optimizers[i], 1.0f / critic_grad_norms[i]);
+            }
             critic_optimizers[i]->step();
         }
 
@@ -227,9 +247,9 @@ namespace rl::agents::sac::trainers
                 options.logger->log_scalar("SAC/CriticLoss" + std::to_string(i), mean_critic_losses[i].item().toFloat());
             }
 
-            options.logger->log_scalar("SAC/ActorGradNorm", rl::torchutils::compute_gradient_norm(actor_optimizer).item().toFloat());
+            options.logger->log_scalar("SAC/ActorGradNorm", actor_grad_norm);
             for (int i = 0; i < critics.size(); i++) {
-                options.logger->log_scalar("SAC/CriticGradNorm" + std::to_string(i), rl::torchutils::compute_gradient_norm(critic_optimizers[i]).item().toFloat());
+                options.logger->log_scalar("SAC/CriticGradNorm" + std::to_string(i), critic_grad_norms[i]);
             }
         }
 

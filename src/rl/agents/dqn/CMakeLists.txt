@@ -9,6 +9,8 @@ target_sources(
         trainers/basic.cc
         trainers/seed.cc
         trainers/seed_impl/trainer.cc
+        trainers/seed_impl/inferer.cc
+        trainers/seed_impl/env_thread.cc
 
         utils/hindsight_replay.cc
 )

@@ -41,6 +41,7 @@ namespace seed_impl
         private:
             void worker();
             void step();
+            void target_network_update();
     };
 }
 

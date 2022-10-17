@@ -1,5 +1,7 @@
 #include "trainer.h"
 
+#include <rl/torchutils.h>
+
 
 using namespace rl::agents::dqn::trainers;
 
@@ -35,6 +37,7 @@ namespace seed_impl
     void Trainer::worker() {
         while (running) {
             step();
+            target_network_update();
         }
     }
 
@@ -76,13 +79,27 @@ namespace seed_impl
         loss = loss.mean();
         optimizer->zero_grad();
         loss.backward();
-        auto grad_norm = compute_gradient_norm();
+        auto grad_norm = rl::torchutils::compute_gradient_norm(optimizer);
+        if (grad_norm.item().toFloat() > options.max_gradient_norm) {
+            rl::torchutils::scale_gradients(optimizer, 1.0f / options.max_gradient_norm);
+        }
         optimizer->step();
 
         if (options.logger) {
-            options.logger->log_scalar("DQN/Loss", loss.item().toFloat());
-            options.logger->log_scalar("DQN/Gradient norm", grad_norm.item().toFloat());
-            options.logger->log_frequency("DQN/Update frequency", 1);
+            options.logger->log_scalar("SEED_DQN/Loss", loss.item().toFloat());
+            options.logger->log_scalar("SEED_DQN/Gradient norm", grad_norm.item().toFloat());
+            options.logger->log_frequency("SEED_DQN/Update frequency", 1);
+        }
+    }
+
+    void Trainer::target_network_update()
+    {
+        torch::InferenceMode guard{};
+        auto target_parameters = target_module->parameters();
+        auto parameters = module->parameters();
+
+        for (int i = 0; i < parameters.size(); i++) {
+            target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
         }
     }
 }

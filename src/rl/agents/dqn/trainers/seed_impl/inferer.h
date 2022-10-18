@@ -33,9 +33,9 @@ namespace seed_impl
             );
 
             inline
-            bool executed() { return executed_; }
+            bool executed() const { return executed_; }
 
-            InferenceResult get(int64_t id);
+            std::unique_ptr<InferenceResult> get(int64_t id);
 
             int64_t try_add(const torch::Tensor &state, const torch::Tensor &mask);
         
@@ -73,12 +73,12 @@ namespace seed_impl
                 int64_t id
             ) : batch{batch}, id{id}
             {}
-        
-            inline
-            bool ready() { return batch->executed(); }
 
             inline
-            InferenceResult result() { return batch->get(id); }
+            bool ready() const { return batch->executed(); }
+
+            inline
+            std::unique_ptr<InferenceResult> result() { return batch->get(id); }
 
         private:
             const std::shared_ptr<InferenceBatch> batch;
@@ -94,7 +94,10 @@ namespace seed_impl
                 const rl::agents::dqn::trainers::SEEDOptions &options
             );
 
-            InferenceResultFuture infer(const torch::Tensor &state, const torch::Tensor &mask);
+            std::unique_ptr<InferenceResultFuture> infer(
+                const torch::Tensor &state,
+                const torch::Tensor &mask
+            );
         
         private:
             std::shared_ptr<rl::agents::dqn::modules::Base> module;

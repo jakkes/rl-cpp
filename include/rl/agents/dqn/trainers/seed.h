@@ -8,6 +8,7 @@
 
 #include <rl/option.h>
 #include <rl/agents/dqn/modules/base.h>
+#include <rl/agents/dqn/policies/base.h>
 #include <rl/env/base.h>
 
 
@@ -15,8 +16,10 @@ namespace rl::agents::dqn::trainers
 {
     struct SEEDOptions
     {
+        // Number of sequences collected by the inference process before added to the replay.
+        RL_OPTION(int64_t, inference_replay_size) = 1000;
         // Replay buffer size
-        RL_OPTION(int64_t, replay_buffer_size) = 100000;
+        RL_OPTION(int64_t, training_buffer_size) = 100000;
         // Training is paused until the replay buffer is filled with at least this
         // number of samples.
         RL_OPTION(int64_t, minimum_replay_buffer_size) = 10000;
@@ -60,6 +63,7 @@ namespace rl::agents::dqn::trainers
             SEED(
                 std::shared_ptr<rl::agents::dqn::modules::Base> module,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
+                std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 const SEEDOptions &options={}
             );
@@ -71,6 +75,7 @@ namespace rl::agents::dqn::trainers
             std::shared_ptr<rl::agents::dqn::modules::Base> module;
             std::shared_ptr<rl::agents::dqn::modules::Base> target_module;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
+            std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;
     };
 }

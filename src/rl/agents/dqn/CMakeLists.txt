@@ -11,6 +11,7 @@ target_sources(
         trainers/seed_impl/trainer.cc
         trainers/seed_impl/inferer.cc
         trainers/seed_impl/env_thread.cc
+        trainers/seed_impl/transition_collector.cc
 
         utils/hindsight_replay.cc
 )

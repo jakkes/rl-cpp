@@ -14,7 +14,7 @@ namespace seed_impl
         batch = std::make_shared<InferenceBatch>(module, policy, &this->options);
     }
 
-    InferenceResultFuture Inferer::infer(
+    std::unique_ptr<InferenceResultFuture> Inferer::infer(
         const torch::Tensor &state,
         const torch::Tensor &mask
     ) {
@@ -27,8 +27,7 @@ namespace seed_impl
         }
         assert (id >= 0);
 
-        InferenceResultFuture out{batch, id};
-        return out;
+        return std::make_unique<InferenceResultFuture>(batch, id);
     }
 
     InferenceBatch::InferenceBatch(
@@ -88,7 +87,7 @@ namespace seed_impl
         executed_cv.notify_all();
     }
 
-    InferenceResult InferenceBatch::get(int64_t id)
+    std::unique_ptr<InferenceResult> InferenceBatch::get(int64_t id)
     {
         if (!executed()) {
             std::mutex mtx{};
@@ -96,10 +95,9 @@ namespace seed_impl
             executed_cv.wait(lock, [&]() { return executed(); });
         }
 
-        InferenceResult out{};
-        out.action = actions.index({id});
-        out.value = value.index({id});
-
+        auto out = std::make_unique<InferenceResult>();
+        out->action = actions.index({id});
+        out->value = value.index({id});
         return out;
     }
 }

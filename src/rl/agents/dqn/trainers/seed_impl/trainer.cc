@@ -86,9 +86,9 @@ namespace seed_impl
         optimizer->step();
 
         if (options.logger) {
-            options.logger->log_scalar("SEED_DQN/Loss", loss.item().toFloat());
-            options.logger->log_scalar("SEED_DQN/Gradient norm", grad_norm.item().toFloat());
-            options.logger->log_frequency("SEED_DQN/Update frequency", 1);
+            options.logger->log_scalar("SEEDDQN/Loss", loss.item().toFloat());
+            options.logger->log_scalar("SEEDDQN/Gradient norm", grad_norm.item().toFloat());
+            options.logger->log_frequency("SEEDDQN/Update frequency", 1);
         }
     }
 

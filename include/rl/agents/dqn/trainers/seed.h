@@ -51,10 +51,6 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(int, n_step) = 3;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
-        // Checkpoint callback, called with number of training steps executed.
-        RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
-        // Checkpoint callback period, in number of training steps.
-        RL_OPTION(size_t, checkpoint_callback_period) = 100000ul;
     };
 
     class SEED

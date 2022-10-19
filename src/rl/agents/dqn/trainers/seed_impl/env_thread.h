@@ -43,6 +43,8 @@ namespace seed_impl
 
             std::shared_ptr<rl::env::State> state;
             std::unique_ptr<InferenceResultFuture> result_future;
+
+            bool start_state{true};
     };
 
     class EnvThread

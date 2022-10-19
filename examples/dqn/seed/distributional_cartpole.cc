@@ -15,7 +15,7 @@ class Module : public agents::dqn::modules::Distributional
     private:
         torch::nn::Sequential net;
         torch::Tensor atoms;
-        float v_max{200.0f};
+        float v_max{100.0f};
         float v_min{0.0f};
 };
 
@@ -26,7 +26,7 @@ int main()
     auto env_factory = std::make_shared<rl::env::CartPoleDiscreteFactory>(200, 2, logger);
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
-    auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters());
+    auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));
     auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.1);
 
     auto trainer = agents::dqn::trainers::SEED{
@@ -48,6 +48,9 @@ int main()
             .n_step_(3)
             .target_network_lr_(5e-3)
             .training_buffer_size_(1000000)
+            .network_device_(torch::kCPU)
+            .replay_device_(torch::kCPU)
+            .environment_device_(torch::kCPU)
     };
 
     trainer.run(3600);

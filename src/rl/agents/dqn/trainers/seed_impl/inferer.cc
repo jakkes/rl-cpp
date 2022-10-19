@@ -11,7 +11,18 @@ namespace seed_impl
     {
         this->module = module;
         this->policy = policy;
-        batch = std::make_shared<InferenceBatch>(module, policy, &this->options);
+    }
+
+    void Inferer::new_batch()
+    {
+        batches.push_back(
+            std::make_shared<InferenceBatch>(
+                module,
+                policy,
+                std::bind(&Inferer::batch_stale_callback, this, std::placeholders::_1),
+                &options
+            )
+        );
     }
 
     std::unique_ptr<InferenceResultFuture> Inferer::infer(
@@ -20,21 +31,62 @@ namespace seed_impl
     ) {
         std::lock_guard lock{infer_mtx};
 
-        auto id = batch->try_add(state, mask);
+        if (batches.size() == 0) {
+            new_batch();
+        }
+        auto id = batches.back()->try_add(state, mask);
         if (id < 0) {
-            batch = std::make_shared<InferenceBatch>(module, policy, &options);
-            id = batch->try_add(state, mask);
+            new_batch();
+            id = batches.back()->try_add(state, mask);
         }
         assert (id >= 0);
 
-        return std::make_unique<InferenceResultFuture>(batch, id);
+        return std::make_unique<InferenceResultFuture>(batches.back(), id);
+    }
+
+    void Inferer::batch_stale_callback(InferenceBatch *batch)
+    {
+        assert(batch == batches.front().get());
+        std::lock_guard lock{infer_mtx};
+        batch_queue.enqueue(batches.front());
+        batches.pop_front();
+    }
+
+    void Inferer::start()
+    {
+        running = true;
+        worker_thread = std::thread(&Inferer::worker, this);
+    }
+
+    void Inferer::stop()
+    {
+        running = false;
+        if (worker_thread.joinable()) {
+            worker_thread.join();
+        }
+    }
+
+    void Inferer::worker()
+    {
+        while (running)
+        {
+            auto batch_ptr = batch_queue.dequeue(std::chrono::milliseconds(500));
+            if (!batch_ptr) {
+                continue;
+            }
+
+            auto batch = *batch_ptr;
+            batch->execute();
+        }
     }
 
     InferenceBatch::InferenceBatch(
         std::shared_ptr<rl::agents::dqn::modules::Base> module,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
+        std::function<void(InferenceBatch*)> stale_callback,
         const rl::agents::dqn::trainers::SEEDOptions *options
-    ) : options{options}, module{module}, policy{policy} {
+    ) : options{options}, module{module}, policy{policy}, stale_callback{stale_callback}
+    {
         states.reserve(options->inference_batchsize);
         masks.reserve(options->inference_batchsize);
     }
@@ -48,8 +100,8 @@ namespace seed_impl
 
     int64_t InferenceBatch::try_add(const torch::Tensor &state, const torch::Tensor &mask)
     {
-        std::lock_guard lock{execute_mtx};
-        if (full()) {
+        std::lock_guard lock{add_mtx};
+        if (full() || stale()) {
             return -1;
         }
 
@@ -60,7 +112,7 @@ namespace seed_impl
         states.push_back(state);
         masks.push_back(mask);
 
-        add_cv.notify_all();
+        add_cv.notify_one();
 
         return size() - 1;
     }
@@ -70,30 +122,34 @@ namespace seed_impl
     }
 
     void InferenceBatch::worker() {
-        auto start = std::chrono::high_resolution_clock::now();
-        auto end = start + std::chrono::milliseconds(options->inference_max_delay_ms);
+        start_time = std::chrono::high_resolution_clock::now();
+        auto end = start_time + std::chrono::milliseconds(options->inference_max_delay_ms);
         
-        std::unique_lock lock{execute_mtx};
-        add_cv.wait_until(lock, end, [&] () { return full(); });
-
-        assert(lock.owns_lock());
-        execute();
-
-        if (options->logger) {
-            options->logger->log_scalar("SEEDDQN/Inference batch size", states.size());
-            options->logger->log_scalar("SEEDDQN/Inference delay (ms)", (end-start).count() / 1e6);
+        {
+            std::unique_lock lock{add_mtx};
+            add_cv.wait_until(lock, end, [&] () { return full(); });
+            stale_ = true;   
         }
+        stale_callback(this);
     }
+
 
     void InferenceBatch::execute() {
         torch::InferenceMode guard{};
-        auto output = module->forward(torch::stack(states));
-        output->apply_mask(torch::stack(masks));
+        std::lock_guard lock{add_mtx};
+        assert(stale() && !executed());
+        auto output = module->forward(torch::stack(states).to(options->network_device));
+        output->apply_mask(torch::stack(masks).to(options->network_device));
 
         value = output->value();
         actions = policy->policy(*output)->sample();
         executed_ = true;
         executed_cv.notify_all();
+
+        if (options->logger) {
+            options->logger->log_scalar("SEEDDQN/Inference batch size", states.size());
+            options->logger->log_scalar("SEEDDQN/Inference delay", (std::chrono::high_resolution_clock::now() - start_time).count() / 1e6);
+        }
     }
 
     std::unique_ptr<InferenceResult> InferenceBatch::get(int64_t id)

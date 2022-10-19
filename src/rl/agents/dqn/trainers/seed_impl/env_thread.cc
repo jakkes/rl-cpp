@@ -82,7 +82,14 @@ namespace seed_impl
     void EnvWorker::step()
     {
         auto result = result_future->result();
-        auto observation = env->step(result->action);
+        if (start_state) {
+            start_state = false;
+            if (options.logger) {
+                options.logger->log_scalar("SEEDDQN/Start value", result->value.max().item().toFloat());
+            }
+        }
+
+        auto observation = env->step(result->action.to(options.environment_device));
         auto transitions = n_step_collector.step(state, result->action, observation->reward, observation->terminal);
 
         for (const auto &transition : transitions) {
@@ -92,6 +99,10 @@ namespace seed_impl
         state = observation->state;
         if (observation->terminal) {
             state = env->reset();
+            start_state = true;
+            if (options.logger) {
+                options.logger->log_scalar("SEEDDQN/End value", result->value.max().item().toFloat());
+            }
         }
 
         result_future = inferer->infer(state->state, get_mask(*state->action_constraint));

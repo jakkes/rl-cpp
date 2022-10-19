@@ -67,6 +67,7 @@ namespace rl::agents::dqn::trainers
         };
 
         transition_collector->start();
+        inferer->start();
         for (auto &env_thread : env_threads) {
             env_thread->start();
         }
@@ -85,6 +86,7 @@ namespace rl::agents::dqn::trainers
         for (auto &env_thread : env_threads) {
             env_thread->stop();
         }
+        inferer->stop();
         transition_collector->stop();
         trainer->stop();
     }

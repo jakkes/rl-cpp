@@ -32,6 +32,8 @@ namespace seed_impl
                 const rl::agents::dqn::trainers::SEEDOptions *options
             );
 
+            ~InferenceBatch();
+
             inline
             bool executed() const { return executed_; }
 
@@ -59,7 +61,7 @@ namespace seed_impl
         private:
             inline bool full() { return size() >= options->inference_batchsize; }
             inline bool empty() { return size() == 0; }
-            inline bool size() { return states.size(); }
+            inline size_t size() { return states.size(); }
             void execute();
             void start_worker();
             void worker();

@@ -39,6 +39,13 @@ namespace seed_impl
         masks.reserve(options->inference_batchsize);
     }
 
+    InferenceBatch::~InferenceBatch()
+    {
+        if (worker_thread.joinable()) {
+            worker_thread.join();
+        }
+    }
+
     int64_t InferenceBatch::try_add(const torch::Tensor &state, const torch::Tensor &mask)
     {
         std::lock_guard lock{execute_mtx};
@@ -69,6 +76,7 @@ namespace seed_impl
         std::unique_lock lock{execute_mtx};
         add_cv.wait_until(lock, end, [&] () { return full(); });
 
+        assert(lock.owns_lock());
         execute();
 
         if (options->logger) {
@@ -78,6 +86,7 @@ namespace seed_impl
     }
 
     void InferenceBatch::execute() {
+        torch::InferenceMode guard{};
         auto output = module->forward(torch::stack(states));
         output->apply_mask(torch::stack(masks));
 

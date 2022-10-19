@@ -73,7 +73,6 @@ namespace rl::agents::dqn::trainers
         private:
             const SEEDOptions options;
             std::shared_ptr<rl::agents::dqn::modules::Base> module;
-            std::shared_ptr<rl::agents::dqn::modules::Base> target_module;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;

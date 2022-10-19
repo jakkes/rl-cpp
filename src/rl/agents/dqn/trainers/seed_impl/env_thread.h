@@ -59,7 +59,7 @@ namespace seed_impl
             void stop();
 
         private:
-            const rl::agents::dqn::trainers::SEEDOptions options;
+            rl::agents::dqn::trainers::SEEDOptions options;
             std::shared_ptr<Inferer> inferer;
             std::shared_ptr<rl::env::Factory> env_factory;
             std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue;

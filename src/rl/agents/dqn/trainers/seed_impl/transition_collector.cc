@@ -52,7 +52,7 @@ namespace seed_impl
 
             if (inference_buffer->size() == options.inference_replay_size) {
                 auto data = inference_buffer->get(all_indices);
-                training_buffer->add(data);
+                training_buffer->add(*data);
                 inference_buffer->clear();
             }
         }

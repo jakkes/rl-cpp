@@ -39,6 +39,8 @@ namespace seed_impl
 
         while (running)
         {
+            i = i % workers.size();
+
             if (workers[i].ready()) {
                 workers[i++].step();
                 continue;
@@ -91,5 +93,7 @@ namespace seed_impl
         if (observation->terminal) {
             state = env->reset();
         }
+
+        result_future = inferer->infer(state->state, get_mask(*state->action_constraint));
     }
 }

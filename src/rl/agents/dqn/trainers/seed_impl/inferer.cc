@@ -148,6 +148,7 @@ namespace seed_impl
 
         if (options->logger) {
             options->logger->log_scalar("SEEDDQN/Inference batch size", states.size());
+            options->logger->log_frequency("SEEDDQN/Step frequency", states.size());
             options->logger->log_scalar("SEEDDQN/Inference delay", (std::chrono::high_resolution_clock::now() - start_time).count() / 1e6);
         }
     }

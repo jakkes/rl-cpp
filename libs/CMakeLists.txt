@@ -1,11 +1,5 @@
-include(FetchContent)
-FetchContent_Declare(
-  gRPC
-  GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.50.0
-)
-set(FETCHCONTENT_QUIET OFF)
-FetchContent_MakeAvailable(gRPC)
+find_package(Protobuf REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 
 if (NOT TARGET gtest AND RL_BUILD_TESTS)
     add_subdirectory(googletest)
@@ -28,8 +22,6 @@ if (NOT TARGET cppzmq)
     add_subdirectory(cppzmq)
 endif()
 target_link_libraries(rl PUBLIC cppzmq)
-
-find_package(Protobuf REQUIRED)
 
 if (NOT TARGET spdlog::spdlog)
     add_subdirectory(spdlog)

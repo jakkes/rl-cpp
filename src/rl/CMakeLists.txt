@@ -7,6 +7,8 @@ target_sources(
 
         env/cart_pole.cc
         env/base.cc
+        env/remote/cart_pole.cc
+        env/remote/lunar_lander.cc
 
         logging/client/base.cc
         logging/client/ema.cc

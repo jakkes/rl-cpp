@@ -6,6 +6,7 @@ message(STATUS ${gRPC_CPP_PLUGIN})
 
 add_library(rlbuf SHARED)
 target_link_libraries(rlbuf PUBLIC protobuf::libprotobuf)
+target_link_libraries(rlbuf PUBLIC gRPC::grpc++)
 
 function(build_protos)
     foreach(ITEM IN LISTS ARGN)
@@ -26,5 +27,10 @@ function(build_protos)
     
 endfunction()
 
+target_link_libraries(rl PUBLIC rlbuf)
 
-build_protos(rlbuf/env/cart_pole)
+build_protos(
+    rlbuf/env/remote/cart_pole
+    rlbuf/env/remote/lunar_lander
+)
+

@@ -23,11 +23,11 @@ class Module : public agents::dqn::modules::Distributional
 int main()
 {
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.6, 0.9, 0.99, 0.999}, 1);
-    auto env_factory = std::make_shared<rl::env::CartPoleDiscreteFactory>(200, 2, logger);
+    auto env_factory = std::make_shared<rl::env::remote::CartPoleFactory>("localhost:50051");
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));
-    auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.1);
+    auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.01);
 
     auto trainer = agents::dqn::trainers::SEED{
         model,
@@ -61,7 +61,7 @@ Module::Module()
     net = register_module(
         "net",
         torch::nn::Sequential{
-            torch::nn::Linear{5, 64},
+            torch::nn::Linear{4, 64},
             torch::nn::ReLU{true},
             torch::nn::Linear{64, 64},
             torch::nn::ReLU{true},

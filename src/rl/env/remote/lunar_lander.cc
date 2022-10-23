@@ -12,7 +12,7 @@ namespace rl::env::remote
         stub = rlbuf::env::remote::lunar_lander::LunarLanderService::NewStub(channel);
         pipe = stub->EnvStream(&client_context);
 
-        constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::tensor({true, true}));
+        constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::tensor({true, true, true, true}));
 
         read();
     }

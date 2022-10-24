@@ -13,6 +13,7 @@
 #include <rl/env/base.h>
 #include <rl/agents/dqn/trainers/seed.h>
 #include <rl/utils/n_step_collector.h>
+#include <rl/agents/dqn/utils/hindsight_replay.h>
 
 #include "inferer.h"
 
@@ -45,6 +46,10 @@ namespace seed_impl
             std::unique_ptr<InferenceResultFuture> result_future;
 
             bool start_state{true};
+            std::unique_ptr<rl::agents::dqn::utils::HindsightReplayEpisode> episode;
+        
+        private:
+            void process_episode();
     };
 
     class EnvThread

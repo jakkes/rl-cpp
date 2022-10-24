@@ -88,17 +88,25 @@ namespace seed_impl
                 options.logger->log_scalar("SEEDDQN/Start value", result->value.max().item().toFloat());
             }
         }
-
-        auto observation = env->step(result->action.to(options.environment_device));
+        auto action = result->action.to(options.environment_device);
+        auto observation = env->step(action);
         auto transitions = n_step_collector.step(state, result->action, observation->reward, observation->terminal);
 
         for (const auto &transition : transitions) {
             transition_queue->enqueue(transition);
         }
 
+        episode->actions.push_back(action);
+        episode->rewards.push_back(observation->reward);
+        episode->states.push_back(observation->state);
+
         state = observation->state;
         if (observation->terminal) {
+            process_episode();
+
             state = env->reset();
+            episode = std::make_unique<rl::agents::dqn::utils::HindsightReplayEpisode>();
+            episode->states.push_back(state);
             start_state = true;
             if (options.logger) {
                 options.logger->log_scalar("SEEDDQN/End value", result->value.max().item().toFloat());
@@ -106,5 +114,33 @@ namespace seed_impl
         }
 
         result_future = inferer->infer(state->state, get_mask(*state->action_constraint));
+    }
+
+    void EnvWorker::process_episode()
+    {
+        if (!options.hindsight_replay_callback) {
+            return;
+        }
+
+        auto process_hindsight = options.hindsight_replay_callback(episode.get());
+        if (!process_hindsight) {
+            return;
+        }
+
+        assert (n_step_collector.size() == 0);
+        for (int i = 0; i < episode->actions.size(); i++)
+        {
+            auto transitions = n_step_collector.step(
+                episode->states[i],
+                episode->actions[i],
+                episode->rewards[i],
+                i != episode->actions.size() - 1
+            );
+
+            for (const auto &transition : transitions) {
+                transition_queue->enqueue(transition);
+            }
+        }
+        assert (n_step_collector.size() == 0);
     }
 }

@@ -10,6 +10,7 @@
 #include <rl/agents/dqn/modules/base.h>
 #include <rl/agents/dqn/policies/base.h>
 #include <rl/env/base.h>
+#include <rl/agents/dqn/utils/hindsight_replay.h>
 
 
 namespace rl::agents::dqn::trainers
@@ -51,6 +52,15 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(int, n_step) = 3;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
+        // If set, this method is called whenever an episode terminates. The argument
+        // is a pointer to (a copy of) the episode. If the callback returns true, then
+        // the (possibly modified sequence) is added to the replay buffer. If false is
+        // returned, then the sequence is not added to the buffer.
+        // 
+        // NOTE: Any tensors modified in place will also modify the actually observed
+        // tensor. Therefore, if states or masks are to be modified, first clone
+        // the tensors.
+        RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
     };
 
     class SEED

@@ -102,10 +102,7 @@ namespace rl::agents::dqn::trainers
             if (!should_add) return;
 
             for (int i = 0; i < episode->actions.size(); i++) {
-                auto state = std::make_shared<rl::env::State>();
-                state->state = episode->states[i];
-                state->action_constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(episode->masks[i]);
-                auto transitions = collector.step(state, episode->actions[i], episode->rewards[i], i == episode->actions.size() - 1);
+                auto transitions = collector.step(episode->states[i], episode->actions[i], episode->rewards[i], i == episode->actions.size() - 1);
                 add_transitions(transitions);
             }
         };
@@ -184,8 +181,7 @@ namespace rl::agents::dqn::trainers
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
             output->apply_mask(mask.unsqueeze(0).to(options.network_device));
 
-            episode->states.push_back(state->state.clone());
-            episode->masks.push_back(mask.clone());
+            episode->states.push_back(state);
 
             if (options.logger && should_log_start_value) {
                 options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
@@ -210,8 +206,7 @@ namespace rl::agents::dqn::trainers
             add_transitions(transitions);
 
             if (observation->terminal) {
-                episode->states.push_back(observation->state->state.clone());
-                episode->masks.push_back(dynamic_cast<const CategoricalMask&>(*observation->state->action_constraint).mask().clone());
+                episode->states.push_back(observation->state);
                 add_hindsight_replay();
                 
                 if (options.logger) {

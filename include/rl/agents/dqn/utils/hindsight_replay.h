@@ -7,6 +7,8 @@
 
 #include <torch/torch.h>
 
+#include <rl/env/state.h>
+
 namespace rl::agents::dqn::utils
 {
     /**
@@ -18,8 +20,7 @@ namespace rl::agents::dqn::utils
      */
     struct HindsightReplayEpisode
     {
-        std::vector<torch::Tensor> states;
-        std::vector<torch::Tensor> masks;
+        std::vector<std::shared_ptr<rl::env::State>> states;
         std::vector<torch::Tensor> actions;
         std::vector<float> rewards;
     };

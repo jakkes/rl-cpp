@@ -36,6 +36,9 @@ namespace rl::utils
                 bool terminal
             );
 
+            inline
+            int size() const { return looped ? n : i; }
+
         private:
             const int n;
             const float discount;

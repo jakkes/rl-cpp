@@ -21,7 +21,7 @@ namespace rl::logging::client
     }
 
     Tensorboard::Tensorboard(const TensorboardOptions &options)
-    : logger{get_name(), false}, options{options}, metronome{options.frequency_window}
+    : logger{get_name()}, options{options}, metronome{options.frequency_window}
     {
         metronome.start(std::bind(&Tensorboard::metronome_callback, this));
     }

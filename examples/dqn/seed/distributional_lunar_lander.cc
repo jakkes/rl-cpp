@@ -16,14 +16,14 @@ class Module : public agents::dqn::modules::Distributional
         torch::nn::Sequential net;
         torch::Tensor atoms;
         float v_max{100.0f};
-        float v_min{0.0f};
+        float v_min{-100.0f};
 };
 
 
 int main()
 {
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.6, 0.9, 0.99, 0.999}, 1);
-    auto env_factory = std::make_shared<rl::env::remote::CartPoleFactory>("localhost:50051");
+    auto env_factory = std::make_shared<rl::env::remote::LunarLanderFactory>("localhost:50051");
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));
@@ -61,11 +61,11 @@ Module::Module()
     net = register_module(
         "net",
         torch::nn::Sequential{
-            torch::nn::Linear{4, 64},
+            torch::nn::Linear{8, 128},
             torch::nn::ReLU{true},
-            torch::nn::Linear{64, 64},
+            torch::nn::Linear{128, 128},
             torch::nn::ReLU{true},
-            torch::nn::Linear{64, 2 * 51},
+            torch::nn::Linear{128, 4 * 51},
         }
     );
 
@@ -74,7 +74,7 @@ Module::Module()
 
 std::unique_ptr<agents::dqn::modules::DistributionalOutput> Module::forward_impl(const torch::Tensor &states)
 {
-    auto logits = net->forward(states).view({-1, 2, 51});
+    auto logits = net->forward(states).view({-1, 4, 51});
     return std::make_unique<agents::dqn::modules::DistributionalOutput>(logits, atoms, v_min, v_max);
 }
 

@@ -1,0 +1,24 @@
+syntax = "proto3";
+package rlbuf.env.remote.lunar_lander;
+
+
+message State
+{
+    repeated float data = 1;
+}
+
+message Observation
+{
+    float reward = 1;
+    bool terminal = 2;
+    State next_state = 3;
+}
+
+message Action
+{
+    int32 action = 1;
+}
+
+service LunarLanderService {
+    rpc EnvStream(stream Action) returns (stream Observation);
+}

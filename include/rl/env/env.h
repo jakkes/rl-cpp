@@ -5,6 +5,7 @@
 #include "base.h"
 #include "observation.h"
 #include "state.h"
+#include "remote/remote.h"
 
 #include "cart_pole.h"
 

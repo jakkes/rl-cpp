@@ -77,6 +77,8 @@ namespace seed_impl
 
         state = env->reset();
         result_future = inferer->infer(state->state, get_mask(*state->action_constraint));
+        episode = std::make_unique<rl::agents::dqn::utils::HindsightReplayEpisode>();
+        episode->states.push_back(state);
     }
 
     void EnvWorker::step()
@@ -134,7 +136,7 @@ namespace seed_impl
                 episode->states[i],
                 episode->actions[i],
                 episode->rewards[i],
-                i != episode->actions.size() - 1
+                i == episode->actions.size() - 1
             );
 
             for (const auto &transition : transitions) {

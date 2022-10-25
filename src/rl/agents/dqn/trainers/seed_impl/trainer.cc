@@ -35,9 +35,21 @@ namespace seed_impl
     }
 
     void Trainer::worker() {
+
+        auto period = std::chrono::seconds(options.checkpoint_callback_period_seconds);
+        size_t i = 1;
+        auto next_callback = std::chrono::high_resolution_clock::now() + period;
+
         while (running) {
             step();
             target_network_update();
+
+            if (std::chrono::high_resolution_clock::now() >= next_callback) {
+                if (options.checkpoint_callback) {
+                    options.checkpoint_callback(i++ * options.checkpoint_callback_period_seconds);
+                }
+                next_callback = next_callback + period;
+            }
         }
     }
 

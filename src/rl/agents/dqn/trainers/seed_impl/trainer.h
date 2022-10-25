@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 #include <rl/agents/dqn/trainers/seed.h>
 #include <rl/buffers/tensor.h>

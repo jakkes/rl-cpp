@@ -61,6 +61,10 @@ namespace rl::agents::dqn::trainers
         // tensor. Therefore, if states or masks are to be modified, first clone
         // the tensors.
         RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
+        // Checkpoint callback, called with number of seconds trained so far.
+        RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
+        // Checkpoint callback period, in seconds.
+        RL_OPTION(size_t, checkpoint_callback_period_seconds) = 3600;
     };
 
     class SEED

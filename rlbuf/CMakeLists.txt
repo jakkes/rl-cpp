@@ -32,5 +32,6 @@ target_link_libraries(rl PUBLIC rlbuf)
 build_protos(
     rlbuf/env/remote/cart_pole
     rlbuf/env/remote/lunar_lander
+    rlbuf/env/remote/continuous_lunar_lander
 )
 

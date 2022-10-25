@@ -12,7 +12,7 @@ def state_to_proto(state: np.ndarray) -> continuous_lunar_lander.State:
     return continuous_lunar_lander.State(data=state.flatten().tolist())
 
 
-class Service(continuous_lunar_lander.LunarLanderServiceBase):
+class Service(continuous_lunar_lander.ContinuousLunarLanderServiceBase):
 
     async def env_stream(self, action_iterator: AsyncIterator[continuous_lunar_lander.Action]) -> AsyncIterator[continuous_lunar_lander.Observation]:
         env = gym.make("LunarLander-v2", continuous=True)
@@ -23,7 +23,7 @@ class Service(continuous_lunar_lander.LunarLanderServiceBase):
 
         async for action in action_iterator:
             a = (action.main_engine, action.lateral_engine)
-            state, reward, terminal, truncated, _ = env.step(action.action)
+            state, reward, terminal, truncated, _ = env.step(a)
             terminal = terminal or truncated
             if terminal:
                 state, _ = env.reset()

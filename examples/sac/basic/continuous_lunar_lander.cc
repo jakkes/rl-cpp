@@ -106,7 +106,7 @@ int main()
         std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999},
         5
     );
-    auto env_factory = std::make_shared<env::CartPoleContinuousFactory>(200);
+    auto env_factory = std::make_shared<env::remote::ContinuousLunarLanderFactory>("localhost:50051");
     env_factory->set_logger(logger);
     
     auto actor_optimizer = std::make_shared<torch::optim::Adam>(
@@ -135,7 +135,7 @@ int main()
             .action_range_min_(-1.0f)
             .batch_size_(64)
             .discount_(0.99f)
-            .environment_steps_per_training_step_(1.0f)
+            .environment_steps_per_training_step_(0.5f)
             .logger_(logger)
             .minimum_replay_buffer_size_(1000)
             .replay_buffer_size_(100000)

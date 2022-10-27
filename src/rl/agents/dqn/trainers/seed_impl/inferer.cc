@@ -161,7 +161,11 @@ namespace seed_impl
 
             bool did_execute{false};
             while (!did_execute) {
-                did_execute = executed_cv.wait_for(lock, std::chrono::milliseconds(50), [&]() { return executed(); });
+                did_execute = executed_cv.wait_for(
+                    lock,
+                    std::chrono::seconds(1),
+                    [&]() { return executed();
+                });
             }
         }
 

@@ -22,12 +22,17 @@ namespace rl::torchutils
 
         for (const auto &param_group : optimizer->param_groups()) {
             for (const auto &param : param_group.params()) {
+                auto &grad = param.grad();
+                if (!grad.defined()) {
+                    continue;
+                }
+
                 if (first) {
-                    grad_norm = param.grad().square().sum();
+                    grad_norm = grad.square().sum();
                     first = false;
                 }
                 else {
-                    grad_norm += param.grad().square().sum();
+                    grad_norm += grad.square().sum();
                 }
             }
         }

@@ -158,7 +158,15 @@ namespace seed_impl
         if (!executed()) {
             std::mutex mtx{};
             std::unique_lock lock{mtx};
-            executed_cv.wait(lock, [&]() { return executed(); });
+
+            bool did_execute{false};
+            while (!did_execute) {
+                did_execute = executed_cv.wait_for(
+                    lock,
+                    std::chrono::seconds(1),
+                    [&]() { return executed();
+                });
+            }
         }
 
         auto out = std::make_unique<InferenceResult>();

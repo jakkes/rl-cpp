@@ -90,6 +90,7 @@ namespace rl::env::remote
         if (terminal) {
             if (logger) {
                 logger->log_scalar("RemoteContinuousLunarLander/Reward", total_reward);
+                logger->log_frequency("RemoteContinuousLunarLander/Episode frequency", 1);
             }
         }
 

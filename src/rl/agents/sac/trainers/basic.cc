@@ -29,10 +29,11 @@ namespace rl::agents::sac::trainers
         auto env = env_factory->get();
         auto state = env->reset();
         auto state_sizes = state->state.sizes();
+        auto action = actor->forward(state->state.unsqueeze(0).to(options.network_device)).sample().squeeze(0);
 
         std::vector<std::vector<int64_t>> tensor_shapes{};
         tensor_shapes.push_back(state->state.sizes().vec());   // States
-        tensor_shapes.push_back({});   // Actions
+        tensor_shapes.push_back(action.sizes().vec());   // Actions
         tensor_shapes.push_back({});   // Rewards
         tensor_shapes.push_back({});   // Not terminals
         tensor_shapes.push_back(state->state.sizes().vec());   // Next states

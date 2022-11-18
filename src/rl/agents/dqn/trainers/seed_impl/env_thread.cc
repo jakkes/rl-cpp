@@ -4,6 +4,7 @@
 
 namespace seed_impl
 {
+
     EnvThread::EnvThread(
         std::shared_ptr<rl::env::Factory> env_factory,
         std::shared_ptr<Inferer> inferer,
@@ -88,6 +89,7 @@ namespace seed_impl
             start_state = false;
             if (options.logger) {
                 options.logger->log_scalar("SEEDDQN/Start value", result->value.max().item().toFloat());
+                options.logger->log_scalar("SEEDDQN/Start advantage", result->advantage.max().item().toFloat());;
             }
         }
         auto action = result->action.to(options.environment_device);
@@ -112,6 +114,8 @@ namespace seed_impl
             start_state = true;
             if (options.logger) {
                 options.logger->log_scalar("SEEDDQN/End value", result->value.max().item().toFloat());
+                auto advantage = result->advantage.index({~result->advantage.isinf()});
+                options.logger->log_scalar("SEEDDQN/End advantage", advantage.max().item().toFloat());;
             }
         }
 

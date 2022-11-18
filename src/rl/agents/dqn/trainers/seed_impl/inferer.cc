@@ -3,6 +3,7 @@
 
 namespace seed_impl
 {
+
     Inferer::Inferer(
         std::shared_ptr<rl::agents::dqn::modules::Base> module,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
@@ -143,6 +144,8 @@ namespace seed_impl
 
         value = output->value();
         actions = policy->policy(*output)->sample();
+        advantage = std::get<0>(value.max(-1, true)) - value;
+
         executed_ = true;
         executed_cv.notify_all();
 
@@ -172,6 +175,7 @@ namespace seed_impl
         auto out = std::make_unique<InferenceResult>();
         out->action = actions.index({id});
         out->value = value.index({id});
+        out->advantage = advantage.index({id});
         return out;
     }
 }

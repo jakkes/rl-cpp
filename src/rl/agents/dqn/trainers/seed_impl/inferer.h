@@ -25,6 +25,7 @@ namespace seed_impl
     {
         torch::Tensor action;
         torch::Tensor value;
+        torch::Tensor advantage;
     };
 
     class InferenceBatch
@@ -70,6 +71,7 @@ namespace seed_impl
             std::vector<torch::Tensor> masks{};
             torch::Tensor value;
             torch::Tensor actions;
+            torch::Tensor advantage;
 
             std::chrono::_V2::system_clock::time_point start_time;
 

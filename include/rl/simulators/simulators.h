@@ -3,5 +3,8 @@
 
 
 #include "base.h"
+#include "cart_pole.h"
+#include "observation.h"
+#include "state.h"
 
 #endif /* RL_SIM_SIM_H_ */

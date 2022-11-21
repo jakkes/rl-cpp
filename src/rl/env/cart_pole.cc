@@ -125,7 +125,7 @@ namespace rl::env
     : CartPoleContinuous{max_steps}, action_space_dim{action_space_dim}
     {
         actions.reserve(action_space_dim);
-        float spacing = 2.0f / action_space_dim;
+        float spacing = 2.0f / (action_space_dim - 1);
         actions.push_back(-1.0);
         for (int i = 1; i < action_space_dim - 1; i++) {
             actions.push_back(actions[i - 1] + spacing);

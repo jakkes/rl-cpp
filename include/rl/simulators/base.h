@@ -9,41 +9,21 @@
 #include <rl/policies/base.h>
 #include <rl/logging/client/base.h>
 
+#include "state.h"
+#include "observation.h"
+
 namespace rl::simulators
 {
-    struct State
-    {
-        torch::Tensor state;
-        std::shared_ptr<rl::policies::Base> action_constraint;
-    };
-
-    struct Transition
-    {
-        State state;
-        torch::Tensor action;
-        float reward;
-        bool terminal;
-        State next_state;
-    };
-
     class Base
     {
         public:
             virtual ~Base() = default;
 
             virtual
-            State reset() const = 0;
+            States reset(int n) const = 0;
 
             virtual
-            Transition step(const torch::Tensor &state, const torch::Tensor &action) const = 0;
-
-            inline
-            void set_logger(std::shared_ptr<rl::logging::client::Base> logger) {
-                this->logger = logger;
-            }
-        
-        protected:
-            std::shared_ptr<rl::logging::client::Base> logger;
+            Observations step(const torch::Tensor &states, const torch::Tensor &actions) const = 0;
     };
 
     class Factory

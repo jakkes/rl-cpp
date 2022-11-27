@@ -1,23 +1,23 @@
-#include "rl/env/remote/lunar_lander.h"
+#include "rl/remote_env/cart_pole.h"
 
 
-namespace rl::env::remote
+namespace rl::remote_env
 {
-    LunarLander::LunarLander(
+    CartPole::CartPole(
         const std::string &host,
-        const LunarLanderOptions &options
+        const CartPoleOptions &options
     ) : options{options}
     {
         auto channel = grpc::CreateChannel(host, grpc::InsecureChannelCredentials());
-        stub = rlbuf::env::remote::lunar_lander::LunarLanderService::NewStub(channel);
+        stub = rlbuf::remote_env::cart_pole::CartPoleService::NewStub(channel);
         pipe = stub->EnvStream(&client_context);
 
-        constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::tensor({true, true, true, true}));
+        constraint = std::make_shared<rl::policies::constraints::CategoricalMask>(torch::tensor({true, true}));
 
         read();
     }
 
-    LunarLander::~LunarLander()
+    CartPole::~CartPole()
     {
         auto done_result = pipe->WritesDone();
         assert(done_result);
@@ -26,7 +26,7 @@ namespace rl::env::remote
         assert(status.ok());
     }
 
-    std::unique_ptr<rl::env::State> LunarLander::state() const
+    std::unique_ptr<rl::env::State> CartPole::state() const
     {
         auto out = std::make_unique<rl::env::State>();
         out->state = state_;
@@ -34,33 +34,35 @@ namespace rl::env::remote
         return out;
     }
 
-    std::unique_ptr<rl::env::State> LunarLander::reset()
+    std::unique_ptr<rl::env::State> CartPole::reset()
     {
         terminal = false;
         total_reward = 0.0f;
         return state();
     }
 
-    void LunarLander::read()
+    void CartPole::read()
     {
-        rlbuf::env::remote::lunar_lander::Observation observation{};
+        rlbuf::remote_env::cart_pole::Observation observation{};
         auto read_success = pipe->Read(&observation);
         if (!read_success) {
             throw std::runtime_error{"Failed reading from pipe. Is server running?"};
         }
 
-        state_ = torch::tensor(std::vector<float>{
-            observation.next_state().data().begin(),
-            observation.next_state().data().end()
+        state_ = torch::tensor({
+            observation.next_state().position(),
+            observation.next_state().velocity(),
+            observation.next_state().angle(),
+            observation.next_state().angular_velocity()
         });
         terminal = observation.terminal();
         last_reward = observation.reward();
         total_reward += last_reward;
     }
 
-    std::unique_ptr<rl::env::Observation> LunarLander::step(const torch::Tensor &action)
+    std::unique_ptr<rl::env::Observation> CartPole::step(const torch::Tensor &action)
     {
-        rlbuf::env::remote::lunar_lander::Action content{};
+        rlbuf::remote_env::cart_pole::Action content{};
         content.set_action(action.item().toLong());
 
         auto write_success = pipe->Write(content);
@@ -77,7 +79,7 @@ namespace rl::env::remote
 
         if (terminal) {
             if (logger) {
-                logger->log_scalar("RemoteLunarLander/Reward", total_reward);
+                logger->log_scalar("RemoteCartPole/Reward", total_reward);
             }
         }
 

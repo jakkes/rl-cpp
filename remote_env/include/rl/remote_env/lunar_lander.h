@@ -8,14 +8,14 @@
 #include <grpc/grpc.h>
 #include <grpcpp/grpcpp.h>
 
-#include <rlbuf/env/remote/lunar_lander.grpc.pb.h>
-#include <rlbuf/env/remote/lunar_lander.pb.h>
+#include <rlbuf/remote_env/lunar_lander.grpc.pb.h>
+#include <rlbuf/remote_env/lunar_lander.pb.h>
 
 #include <rl/env/base.h>
 #include <rl/policies/constraints/categorical_mask.h>
 #include <rl/option.h>
 
-namespace rl::env::remote
+namespace rl::remote_env
 {
     struct LunarLanderOptions {};
 
@@ -43,8 +43,8 @@ namespace rl::env::remote
             const LunarLanderOptions options;
 
             grpc::ClientContext client_context{};
-            std::unique_ptr<rlbuf::env::remote::lunar_lander::LunarLanderService::Stub> stub;
-            std::unique_ptr<grpc::ClientReaderWriter<rlbuf::env::remote::lunar_lander::Action, rlbuf::env::remote::lunar_lander::Observation>> pipe;
+            std::unique_ptr<rlbuf::remote_env::lunar_lander::LunarLanderService::Stub> stub;
+            std::unique_ptr<grpc::ClientReaderWriter<rlbuf::remote_env::lunar_lander::Action, rlbuf::remote_env::lunar_lander::Observation>> pipe;
 
             bool terminal{true};
             torch::Tensor state_;

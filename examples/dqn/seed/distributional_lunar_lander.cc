@@ -1,4 +1,5 @@
 #include <rl/rl.h>
+#include <rl/remote_env/remote_env.h>
 #include <torchdebug.h>
 
 
@@ -23,7 +24,7 @@ class Module : public agents::dqn::modules::Distributional
 int main()
 {
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.6, 0.9, 0.99, 0.999}, 1);
-    auto env_factory = std::make_shared<rl::env::remote::LunarLanderFactory>("localhost:50051");
+    auto env_factory = std::make_shared<rl::remote_env::LunarLanderFactory>("localhost:50051");
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));

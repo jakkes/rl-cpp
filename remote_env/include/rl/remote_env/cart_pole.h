@@ -8,14 +8,14 @@
 #include <grpc/grpc.h>
 #include <grpcpp/grpcpp.h>
 
-#include <rlbuf/env/remote/cart_pole.grpc.pb.h>
-#include <rlbuf/env/remote/cart_pole.pb.h>
+#include <rlbuf/remote_env/cart_pole.grpc.pb.h>
+#include <rlbuf/remote_env/cart_pole.pb.h>
 
 #include <rl/env/base.h>
 #include <rl/policies/constraints/categorical_mask.h>
 #include <rl/option.h>
 
-namespace rl::env::remote
+namespace rl::remote_env
 {
     struct CartPoleOptions {};
 
@@ -43,8 +43,8 @@ namespace rl::env::remote
             const CartPoleOptions options;
 
             grpc::ClientContext client_context{};
-            std::unique_ptr<rlbuf::env::remote::cart_pole::CartPoleService::Stub> stub;
-            std::unique_ptr<grpc::ClientReaderWriter<rlbuf::env::remote::cart_pole::Action, rlbuf::env::remote::cart_pole::Observation>> pipe;
+            std::unique_ptr<rlbuf::remote_env::cart_pole::CartPoleService::Stub> stub;
+            std::unique_ptr<grpc::ClientReaderWriter<rlbuf::remote_env::cart_pole::Action, rlbuf::remote_env::cart_pole::Observation>> pipe;
 
             bool terminal{true};
             torch::Tensor state_;

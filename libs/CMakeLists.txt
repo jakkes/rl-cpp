@@ -1,5 +1,4 @@
 find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
 
 if (NOT TARGET gtest AND RL_BUILD_TESTS)
     add_subdirectory(googletest)

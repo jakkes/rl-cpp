@@ -16,6 +16,7 @@ include(cmake/submodule.cmake)
 
 option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})
 option(RL_BUILD_EXAMPLES "build examples" ${MAIN_FILE})
+option(RL_BUILD_REMOTE_ENVS "remote envs, require gRPC" OFF)
 
 add_library(rl SHARED)
 add_library(rl::rl ALIAS rl)
@@ -34,6 +35,10 @@ add_subdirectory(src/rl)
 if (RL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if (RL_BUILD_REMOTE_ENVS)
+    add_subdirectory(remote_env)
 endif()
 
 if (RL_BUILD_EXAMPLES)

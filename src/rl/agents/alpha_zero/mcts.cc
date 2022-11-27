@@ -11,10 +11,10 @@ namespace rl::agents::alpha_zero
     {
         dim = prior.size(0);
 
-        this->prior = prior.to(torch::kCPU);
-        *prior_accessor = this->prior.accessor<float, 1>();
+        this->P = prior.to(torch::kCPU);
+        *P_accessor = this->P.accessor<float, 1>();
         
-        Q = torch::zeros_like(this->prior);
+        Q = torch::zeros_like(this->P);
         *Q_accessor = Q.accessor<float, 1>();
 
         static auto N_options = torch::TensorOptions{}.dtype(torch::kLong);
@@ -22,6 +22,29 @@ namespace rl::agents::alpha_zero
         *N_accessor = N.accessor<int64_t, 1>();
 
         children.resize(dim);
+    }
+
+    MCTSSelectResult MCTSNode::select(const MCTSOptions &options) const
+    {
+        auto a = torch::argmax(
+            Q
+            + P * N.sum().sqrt_() / (1 + N) 
+                * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_())
+        ).item().toLong();
+
+        if (children[a]) {
+            return children[a]->select(options);
+        }
+        else
+        {
+            MCTSSelectResult out{};
+        }
+    }
+
+    static inline
+    std::shared_ptr<MCTSNode> selection(std::shared_ptr<MCTSNode> node)
+    {
+
     }
 
     void mcts(

@@ -15,6 +15,21 @@
 
 namespace rl::agents::alpha_zero
 {
+    struct MCTSOptions
+    {
+        RL_OPTION(torch::Device, module_device) = torch::kCPU;
+
+        RL_OPTION(float, c1) = 1.25f;
+        RL_OPTION(float, c2) = 19652;
+    };
+
+    class MCTSNode;
+    struct MCTSSelectResult
+    {
+        std::shared_ptr<MCTSNode> node;
+        int64_t action;
+    };
+
     class MCTSNode
     {
         public:
@@ -26,17 +41,14 @@ namespace rl::agents::alpha_zero
             inline
             std::shared_ptr<MCTSNode> get_child(int i) { return children[i]; }
 
+            MCTSSelectResult select(const MCTSOptions &options={}) const;
+
         private:
             int64_t dim;
-            torch::Tensor state, prior, Q, N;
-            torch::TensorAccessor<float, 1> *prior_accessor, *Q_accessor;
+            torch::Tensor state, P, Q, N;
+            torch::TensorAccessor<float, 1> *P_accessor, *Q_accessor;
             torch::TensorAccessor<int64_t, 1> *N_accessor;
             std::vector<std::shared_ptr<MCTSNode>> children;
-    };
-
-    struct MCTSOptions
-    {
-        RL_OPTION(torch::Device, module_device) = torch::kCPU;
     };
 
     void mcts(

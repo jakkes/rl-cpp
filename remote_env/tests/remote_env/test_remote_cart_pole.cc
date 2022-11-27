@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
-#include <rl/env/remote/lunar_lander.h>
+#include <rl/remote_env/cart_pole.h>
 
 
-using namespace rl::env::remote;
+using namespace rl::remote_env;
 
-TEST(remote, lunar_lander)
+TEST(remote, cart_pole)
 {
-    LunarLanderFactory factory{"localhost:50051"};
+    CartPoleFactory factory{"localhost:50051"};
     std::unique_ptr<rl::env::Base> env;
 
     try {
@@ -21,6 +21,7 @@ TEST(remote, lunar_lander)
     assert(state);
 
     for (int i = 0; i < 1000; i++) {
-        auto observation = env->step(torch::tensor({i % 4}));
+        auto observation = env->step(torch::tensor({i % 2}));
+        ASSERT_EQ(observation->reward, 1.0f);
     }
 }

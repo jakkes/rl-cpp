@@ -1,13 +1,10 @@
 syntax = "proto3";
-package rlbuf.env.remote.cart_pole;
+package rlbuf.remote_env.lunar_lander;
 
 
 message State
 {
-    float position = 1;
-    float velocity = 2;
-    float angle = 3;
-    float angular_velocity = 4;
+    repeated float data = 1;
 }
 
 message Observation
@@ -22,6 +19,6 @@ message Action
     int32 action = 1;
 }
 
-service CartPoleService {
+service LunarLanderService {
     rpc EnvStream(stream Action) returns (stream Observation);
 }

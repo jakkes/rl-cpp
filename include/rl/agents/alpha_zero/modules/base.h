@@ -4,22 +4,25 @@
 
 #include <memory>
 
+#include <torch/torch.h>
+
 #include <rl/policies/categorical.h>
 
 namespace rl::agents::alpha_zero::modules
 {
-    class Base
+    class BaseOutput
     {
         public:
-            Base(const torch::Tensor &prior_probabilities);
-
-            inline
-            const rl::policies::Categorical &priors() const { return priors_; }
+            virtual
+            const rl::policies::Categorical &policy() const = 0;
 
             virtual torch::Tensor value_estimates() const = 0;
-        
-        private:
-            rl::policies::Categorical priors_;
+    };
+
+    class Base : public torch::nn::Module
+    {
+        public:
+            virtual std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) = 0;
     };
 }
 

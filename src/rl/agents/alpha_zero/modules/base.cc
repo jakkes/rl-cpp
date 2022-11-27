@@ -3,7 +3,7 @@
 
 namespace rl::agents::alpha_zero::modules
 {
-    Base::Base(const torch::Tensor &prior_probabilities)
+    BaseOutput::BaseOutput(const torch::Tensor &prior_probabilities)
         : priors_{prior_probabilities}
     {}
 

@@ -37,6 +37,7 @@ rl_append_test(buffers buffers/test_tensor_and_object.cc)
 rl_add_test_target(torchutils test_torchutils.cc)
 
 rl_add_test_target(agents test_agents.cc)
+rl_append_test(agents agents/alpha_zero/test_mcts.cc)
 rl_append_test(agents agents/dqn/modules/test_dqn.cc)
 rl_append_test(agents agents/dqn/modules/test_distributional.cc)
 

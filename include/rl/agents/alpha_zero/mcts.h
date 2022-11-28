@@ -7,6 +7,7 @@
 
 #include <torch/torch.h>
 
+#include <rl/simulators/base.h>
 #include <rl/policies/constraints/categorical_mask.h>
 #include <rl/option.h>
 
@@ -21,12 +22,14 @@ namespace rl::agents::alpha_zero
 
         RL_OPTION(float, c1) = 1.25f;
         RL_OPTION(float, c2) = 19652;
+
+        RL_OPTION(float, discount) = 1.0f;
     };
 
     class MCTSNode;
     struct MCTSSelectResult
     {
-        std::shared_ptr<MCTSNode> node;
+        MCTSNode *node;
         int64_t action;
     };
 
@@ -35,25 +38,56 @@ namespace rl::agents::alpha_zero
         public:
             MCTSNode(
                 const torch::Tensor &state,
-                const torch::Tensor &prior
+                const torch::Tensor &prior,
+                float value
             );
 
             inline
-            std::shared_ptr<MCTSNode> get_child(int i) { return children[i]; }
+            std::shared_ptr<MCTSNode> get_child(int i) const { return children[i]; }
 
-            MCTSSelectResult select(const MCTSOptions &options={}) const;
+            inline
+            const torch::Tensor state() const { return state_; }
+
+            MCTSSelectResult select(const MCTSOptions &options={});
+
+            void expand(
+                int64_t action,
+                float reward,
+                bool terminal,
+                const torch::Tensor &next_state,
+                const torch::Tensor &next_prior,
+                const torch::Tensor &next_value,
+                const MCTSOptions &options={}
+            );
+
+            void backup(const MCTSOptions &options={});
+
+            inline void rootify() {
+                action = -1;
+                parent = nullptr;
+            }
 
         private:
             int64_t dim;
-            torch::Tensor state, P, Q, N;
-            torch::TensorAccessor<float, 1> *P_accessor, *Q_accessor;
-            torch::TensorAccessor<int64_t, 1> *N_accessor;
+            float value;
+            torch::Tensor state_, P, Q, N;
+            torch::TensorAccessor<float, 1> Q_accessor;
+            torch::TensorAccessor<int64_t, 1> N_accessor;
             std::vector<std::shared_ptr<MCTSNode>> children;
+
+            MCTSNode *parent{nullptr};
+            int64_t action{-1};
+            bool terminal{false};
+            float reward{0.0f};
+
+        private:
+            void backup(int64_t action, float value, const MCTSOptions &options);
     };
 
     void mcts(
         std::vector<std::shared_ptr<MCTSNode>> *root_nodes,
         std::shared_ptr<modules::Base> module,
+        std::shared_ptr<rl::simulators::Base> simulator,
         const MCTSOptions &options={}
     );
 
@@ -61,6 +95,7 @@ namespace rl::agents::alpha_zero
         const torch::Tensor &states,
         const std::shared_ptr<rl::policies::constraints::CategoricalMask> masks,
         std::shared_ptr<modules::Base> module,
+        std::shared_ptr<rl::simulators::Base> simulator,
         const MCTSOptions &options={}
     );
 }

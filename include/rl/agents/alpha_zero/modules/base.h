@@ -13,6 +13,8 @@ namespace rl::agents::alpha_zero::modules
     class BaseOutput
     {
         public:
+            virtual ~BaseOutput() = default;
+
             virtual
             const rl::policies::Categorical &policy() const = 0;
 

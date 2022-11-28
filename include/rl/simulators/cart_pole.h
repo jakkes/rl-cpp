@@ -13,7 +13,7 @@ namespace rl::simulators
         public:
             ContinuousCartPole();
 
-            States reset(int n) const override;
+            States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
     };
 
@@ -30,7 +30,7 @@ namespace rl::simulators
         public:
             DiscreteCartPole(int n_actions);
 
-            States reset(int n) const override;
+            States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
         
         private:

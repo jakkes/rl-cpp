@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <rl/agents/alpha_zero/alpha_zero.h>
-
+#include <rl/simulators/combinatorial_lock.h>
 
 
 using namespace rl::agents::alpha_zero;
@@ -32,8 +32,8 @@ class Module : public modules::Base
 
         std::unique_ptr<modules::BaseOutput> forward(const torch::Tensor &states) override {
             return std::make_unique<ModuleOutput>(
-                torch::randn({states.size(0)}),
-                torch::randn({states.size(0), dim})
+                torch::zeros({states.size(0)}),
+                torch::softmax(torch::zeros({states.size(0), dim}), -1)
             );
         }
     
@@ -41,39 +41,29 @@ class Module : public modules::Base
         int64_t dim;
 };
 
-class Simulator : rl::simulators::Base
+
+
+TEST(mcts, single_step)
 {
-    public:
-        Simulator(int64_t dim, int64_t length) : dim{dim}, length{length} {
-            correct_sequence = torch::arange(length).remainder(dim);
-        }
-        
-        rl::simulators::States reset(int64_t n) const override
-        {
-            rl::simulators::States out{};
-            out.states = torch::zeros({n, length, dim}));
-            out.action_constraints = std::make_shared<rl::policies::constraints::CategoricalMask>(
-                torch::ones({n, dim}, torch::TensorOptions{}.dtype(torch::kBool))
-            );
-            return out;
-        }
+    int sims{1000};
+    int n{5};
 
-        rl::simulators::Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override
-        {
-            rl::simulators::Observations out{};
-            auto sequence_lengths = (states > 1.0f).any(-1).sum(-1);
-            auto batchvec = torch::arange(states.size(0));
+    auto module = std::make_shared<Module>(5);
+    auto sim = std::make_shared<rl::simulators::CombinatorialLock>(5, std::vector{0, 1, 2, 3, 4});
 
-            out.next_states = states.index_put({batchvec, sequence_lengths, actions}, torch::ones({states.size(0)}));
-            out.
-        }
+    auto states = sim->reset(n);
+    auto nodes = mcts(
+        states.states,
+        std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(states.action_constraints),
+        module,
+        sim,
+        MCTSOptions{}
+            .steps_(sims)
+    );
 
-    private:
-        int64_t dim, length;
-        torch::Tensor correct_sequence;
-};
-
-TEST(mcts, run)
-{
-
+    for (const auto &node : nodes) {
+        auto visit_count = node->visit_count();
+        ASSERT_EQ(visit_count.sum().item().toLong(), sims);
+        ASSERT_EQ(visit_count.argmax().item().toLong(), 0);
+    }
 }

@@ -24,6 +24,7 @@ namespace rl::agents::alpha_zero
         RL_OPTION(float, c2) = 19652;
 
         RL_OPTION(float, discount) = 1.0f;
+        RL_OPTION(int, steps) = 100;
     };
 
     class MCTSNode;
@@ -47,6 +48,9 @@ namespace rl::agents::alpha_zero
 
             inline
             const torch::Tensor state() const { return state_; }
+
+            inline
+            const torch::Tensor visit_count() const { return N; }
 
             MCTSSelectResult select(const MCTSOptions &options={});
 

@@ -27,7 +27,7 @@ namespace rl::agents::alpha_zero
     {
         auto action = torch::argmax(
             Q
-            + P * N.sum().sqrt_() / (1 + N) 
+            + P * N.sum().sqrt() / (1 + N) 
                 * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_())
         ).item().toLong();
 
@@ -59,7 +59,12 @@ namespace rl::agents::alpha_zero
     )
     {
         if (children[action]) {
-            throw std::invalid_argument{"Action has already been expanded."};
+            // Action was already expanded. This may happen if action resulted in a
+            // terminal state.
+            assert(children[action]->terminal);
+            assert(children[action]->reward == reward);
+            assert(terminal);
+            return;
         }
 
         auto next_node = std::make_shared<MCTSNode>(
@@ -92,6 +97,12 @@ namespace rl::agents::alpha_zero
     {
         Q_accessor[action] = (N_accessor[action] * Q_accessor[action] + value) / (N_accessor[action] + 1);
         N_accessor[action] = N_accessor[action] + 1;
+
+        if (!parent) {
+            return;
+        }
+
+        parent->backup(this->action, reward + options.discount * value, options);
     }
 
     void mcts(
@@ -109,40 +120,43 @@ namespace rl::agents::alpha_zero
         std::vector<MCTSSelectResult> select_results{};
         select_results.resize(root_nodes.size());
 
-        for (int i = 0; i < root_nodes.size(); i++) {
-            select_results[i] = root_nodes[i]->select(options);
-        }
 
-        std::vector<torch::Tensor> states{}; states.reserve(root_nodes.size());
-        std::vector<int64_t> actions{}; actions.reserve(root_nodes.size());
-        for (int i = 0; i < root_nodes.size(); i++) {
-            states.push_back(select_results[i].node->state());
-            actions.push_back(select_results[i].action);
-        }
+        for (int step = 0; step < options.steps; step++) {
+            for (int i = 0; i < root_nodes.size(); i++) {
+                select_results[i] = root_nodes[i]->select(options);
+            }
 
-        auto observation = simulator->step(
-            torch::stack(states, 0),
-            torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong))
-        );
-        auto module_output = module->forward(observation.next_states.states);
-        auto policy = module_output->policy();
-        auto value = module_output->value_estimates();
-        policy.include(observation.next_states.action_constraints);
+            std::vector<torch::Tensor> states{}; states.reserve(root_nodes.size());
+            std::vector<int64_t> actions{}; actions.reserve(root_nodes.size());
+            for (int i = 0; i < root_nodes.size(); i++) {
+                states.push_back(select_results[i].node->state());
+                actions.push_back(select_results[i].action);
+            }
 
-        for (int i = 0; i < root_nodes.size(); i++) {
-            select_results[i].node->expand(
-                select_results[i].action,
-                observation.rewards.index({i}).item().toFloat(),
-                observation.terminals.index({i}).item().toBool(),
-                observation.next_states.states.index({i}),
-                policy.get_probabilities(),
-                value,
-                options
+            auto observation = simulator->step(
+                torch::stack(states, 0),
+                torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong))
             );
-        }
+            auto module_output = module->forward(observation.next_states.states);
+            auto policy = module_output->policy();
+            auto value = module_output->value_estimates();
+            policy.include(observation.next_states.action_constraints);
 
-        for (int i = 0; i < root_nodes.size(); i++) {
-            select_results[i].node->get_child(select_results[i].action)->backup();
+            for (int i = 0; i < root_nodes.size(); i++) {
+                select_results[i].node->expand(
+                    select_results[i].action,
+                    observation.rewards.index({i}).item().toFloat(),
+                    observation.terminals.index({i}).item().toBool(),
+                    observation.next_states.states.index({i}),
+                    policy.get_probabilities().index({i}),
+                    value.index({i}),
+                    options
+                );
+            }
+
+            for (int i = 0; i < root_nodes.size(); i++) {
+                select_results[i].node->get_child(select_results[i].action)->backup();
+            }
         }
     }
 

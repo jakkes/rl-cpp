@@ -24,6 +24,7 @@ target_sources(
             policies/constraints/empty.cc
 
         simulators/cart_pole.cc
+        simulators/combinatorial_lock.cc
 
         utils/n_step_collector.cc
 

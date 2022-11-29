@@ -25,12 +25,6 @@ namespace rl::simulators
             virtual
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const = 0;
     };
-
-    class Factory
-    {
-        public:
-            virtual std::unique_ptr<Base> get() const = 0;
-    };
 }
 
 #endif /* RL_SIMULATORS_BASE_H_ */

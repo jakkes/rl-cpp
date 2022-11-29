@@ -50,7 +50,7 @@ namespace rl::simulators
 
     ContinuousCartPole::ContinuousCartPole() {}
 
-    States ContinuousCartPole::reset(int n) const
+    States ContinuousCartPole::reset(int64_t n) const
     {
         States out{};
         out.states = fresh_states(n);
@@ -112,7 +112,7 @@ namespace rl::simulators
         forces = torch::linspace(-1.0f, 1.0f, n_actions);
     }
 
-    States DiscreteCartPole::reset(int n) const
+    States DiscreteCartPole::reset(int64_t n) const
     {
         States out{};
         out.states = fresh_states(n);

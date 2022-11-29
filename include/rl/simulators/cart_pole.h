@@ -17,14 +17,6 @@ namespace rl::simulators
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
     };
 
-    class ContinuousCartPoleFactory : public Factory
-    {
-        public:
-            std::unique_ptr<Base> get() const override {
-                return std::make_unique<ContinuousCartPole>();
-            }
-    };
-
     class DiscreteCartPole : public Base
     {
         public:
@@ -37,19 +29,6 @@ namespace rl::simulators
             const int n_actions;
             torch::Tensor forces;
             ContinuousCartPole sim{};
-    };
-
-    class DiscreteCartPoleFactory : public Factory
-    {
-        public:
-            DiscreteCartPoleFactory(int n_actions) : n_actions{n_actions} {}
-
-            std::unique_ptr<Base> get() const override {
-                return std::make_unique<DiscreteCartPole>(n_actions);
-            }
-        
-        private:
-            const int n_actions;
     };
 }
 

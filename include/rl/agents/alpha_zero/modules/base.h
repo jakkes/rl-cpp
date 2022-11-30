@@ -18,13 +18,19 @@ namespace rl::agents::alpha_zero::modules
             virtual
             const rl::policies::Categorical &policy() const = 0;
 
-            virtual torch::Tensor value_estimates() const = 0;
+            virtual
+            torch::Tensor value_estimates() const = 0;
     };
 
     class Base : public torch::nn::Module
     {
         public:
-            virtual std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) = 0;
+            
+            virtual
+            std::unique_ptr<BaseOutput> forward(const torch::Tensor &states) = 0;
+
+            virtual
+            std::unique_ptr<Base> clone() const = 0;
     };
 }
 

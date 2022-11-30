@@ -36,6 +36,10 @@ class Module : public modules::Base
                 torch::softmax(torch::zeros({states.size(0), dim}), -1)
             );
         }
+
+        std::unique_ptr<modules::Base> clone() const override {
+            return std::make_unique<Module>(dim);
+        }
     
     private:
         int64_t dim;

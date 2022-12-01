@@ -4,6 +4,5 @@ target_sources(
         ./mcts.cc
         ./modules/base.cc
         
-        ./trainers/seed.cc
-        ./trainers/seed_impl/inferer.cc
+        ./trainer_impl/self_play_worker.cc
 )

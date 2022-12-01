@@ -3,8 +3,8 @@
 
 
 #include "mcts.h"
+#include "trainer.h"
 
 #include "modules/modules.h"
-#include "trainers/trainers.h"
 
 #endif /* RL_AGENTS_ALPHA_ZERO_ALPHA_ZERO_H_ */

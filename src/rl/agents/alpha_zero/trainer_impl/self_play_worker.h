@@ -17,7 +17,8 @@ namespace trainer_impl
 {
     struct SelfPlayWorkerOptions
     {
-
+        RL_OPTION(int, batchsize) = 32;
+        RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
     };
 
     class SelfPlayWorker
@@ -38,11 +39,16 @@ namespace trainer_impl
             const SelfPlayWorkerOptions options;
 
             std::atomic<bool> running{false};
-            std::thread working_thread;        
+            std::thread working_thread;
+
+            torch::Tensor states;
+            torch::Tensor masks;
+            torch::Tensor rewards;
 
         private:
             void worker();
             void step();
+            void set_initial_state();
     };
 }
 

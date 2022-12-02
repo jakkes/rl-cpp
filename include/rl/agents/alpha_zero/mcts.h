@@ -102,6 +102,14 @@ namespace rl::agents::alpha_zero
         std::shared_ptr<rl::simulators::Base> simulator,
         const MCTSOptions &options={}
     );
+
+    std::vector<std::shared_ptr<MCTSNode>> mcts(
+        const torch::Tensor &states,
+        const torch::Tensor &masks,
+        std::shared_ptr<modules::Base> module,
+        std::shared_ptr<rl::simulators::Base> simulator,
+        const MCTSOptions &options={}
+    );
 }
 
 #endif /* RL_AGENTS_ALPHA_ZERO_MCTS_H_ */

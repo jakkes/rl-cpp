@@ -39,6 +39,7 @@ namespace rl::agents::alpha_zero
         public:
             MCTSNode(
                 const torch::Tensor &state,
+                const torch::Tensor &mask,
                 const torch::Tensor &prior,
                 float value
             );
@@ -59,6 +60,7 @@ namespace rl::agents::alpha_zero
                 float reward,
                 bool terminal,
                 const torch::Tensor &next_state,
+                const torch::Tensor &next_mask,
                 const torch::Tensor &next_prior,
                 const torch::Tensor &next_value,
                 const MCTSOptions &options={}
@@ -74,7 +76,7 @@ namespace rl::agents::alpha_zero
         private:
             int64_t dim;
             float value;
-            torch::Tensor state_, P, Q, N;
+            torch::Tensor state_, P, Q, N, mask;
             torch::TensorAccessor<float, 1> Q_accessor;
             torch::TensorAccessor<int64_t, 1> N_accessor;
             std::vector<std::shared_ptr<MCTSNode>> children;

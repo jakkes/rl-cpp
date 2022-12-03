@@ -7,11 +7,13 @@ namespace rl::agents::alpha_zero
 
     MCTSNode::MCTSNode(
         const torch::Tensor &state,
+        const torch::Tensor &mask,
         const torch::Tensor &prior,
         float value
     ) 
         :
         state_{state},
+        mask{mask},
         value{value},
         P{prior.to(torch::kCPU)},
         Q{torch::zeros_like(P)},
@@ -25,11 +27,9 @@ namespace rl::agents::alpha_zero
 
     MCTSSelectResult MCTSNode::select(const MCTSOptions &options)
     {
-        auto action = torch::argmax(
-            Q
-            + P * N.sum().sqrt() / (1 + N) 
-                * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_())
-        ).item().toLong();
+        auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
+        puct = torch::where(mask, puct, torch::zeros_like(puct) - INFINITY);
+        auto action = torch::argmax(puct).item().toLong();
 
         if (terminal) {
             MCTSSelectResult out{};
@@ -53,6 +53,7 @@ namespace rl::agents::alpha_zero
         float reward,
         bool terminal,
         const torch::Tensor &next_state,
+        const torch::Tensor &next_mask,
         const torch::Tensor &next_prior,
         const torch::Tensor &next_value,
         const MCTSOptions &options
@@ -69,6 +70,7 @@ namespace rl::agents::alpha_zero
 
         auto next_node = std::make_shared<MCTSNode>(
             next_state,
+            next_mask,
             next_prior,
             next_value.item().toFloat()
         );
@@ -137,6 +139,10 @@ namespace rl::agents::alpha_zero
                 torch::stack(states, 0),
                 torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong))
             );
+
+            auto next_action_constraints = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints);
+            auto next_masks = next_action_constraints->mask();
+
             auto module_output = module->forward(observation.next_states.states);
             auto policy = module_output->policy();
             auto value = module_output->value_estimates();
@@ -148,6 +154,7 @@ namespace rl::agents::alpha_zero
                     observation.rewards.index({i}).item().toFloat(),
                     observation.terminals.index({i}).item().toBool(),
                     observation.next_states.states.index({i}),
+                    next_masks.index({i}),
                     policy.get_probabilities().index({i}),
                     value.index({i}),
                     options
@@ -158,6 +165,23 @@ namespace rl::agents::alpha_zero
                 select_results[i].node->get_child(select_results[i].action)->backup();
             }
         }
+    }
+
+    std::vector<std::shared_ptr<MCTSNode>> mcts(
+        const torch::Tensor &states,
+        const torch::Tensor &masks,
+        std::shared_ptr<modules::Base> module,
+        std::shared_ptr<rl::simulators::Base> simulator,
+        const MCTSOptions &options
+    )
+    {
+        return mcts(
+            states,
+            std::make_shared<rl::policies::constraints::CategoricalMask>(masks),
+            module,
+            simulator,
+            options
+        );
     }
 
     std::vector<std::shared_ptr<MCTSNode>> mcts(
@@ -181,6 +205,7 @@ namespace rl::agents::alpha_zero
         for (int i = 0; i < root_nodes.size(); i++) {
             root_nodes[i] = std::make_shared<MCTSNode>(
                 states.index({i}),
+                masks->mask().index({i}),
                 priors.index({i}),
                 values.index({i}).item().toFloat()
             );

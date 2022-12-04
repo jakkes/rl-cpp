@@ -1,0 +1,2 @@
+add_executable(alpha_zero_combinatorial_lock combinatorial_lock.cc)
+target_link_libraries(alpha_zero_combinatorial_lock PRIVATE rl::rl argparse)

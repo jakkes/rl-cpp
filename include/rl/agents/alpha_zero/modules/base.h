@@ -13,16 +13,21 @@ namespace rl::agents::alpha_zero::modules
     class BaseOutput
     {
         public:
+            BaseOutput(const torch::Tensor &probabilities);
+            
             virtual ~BaseOutput() = default;
 
-            virtual
-            const rl::policies::Categorical &policy() const = 0;
+            virtual inline
+            const rl::policies::Categorical &policy() const { return policy_; }
 
             virtual
             torch::Tensor value_estimates() const = 0;
 
             virtual
             torch::Tensor value_loss(const torch::Tensor &rewards) const = 0;
+        
+        private:
+            const rl::policies::Categorical policy_;
     };
 
     class Base : public torch::nn::Module

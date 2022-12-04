@@ -131,6 +131,7 @@ namespace trainer_impl
             }
 
             auto episode = *episode_ptr;
+            buffer->add({episode.states, episode.masks, episode.collected_rewards});
         }
     }
 }

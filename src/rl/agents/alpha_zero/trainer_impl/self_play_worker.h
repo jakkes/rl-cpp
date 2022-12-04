@@ -4,12 +4,17 @@
 
 #include <atomic>
 #include <thread>
+#include <vector>
+#include <thread_safe/collections/queue.h>
 
 #include <torch/torch.h>
 
 #include <rl/option.h>
 #include <rl/simulators/base.h>
 #include <rl/agents/alpha_zero/alpha_zero.h>
+#include <rl/logging/client/base.h>
+
+#include "self_play_episode.h"
 
 using namespace rl::agents::alpha_zero;
 
@@ -18,7 +23,12 @@ namespace trainer_impl
     struct SelfPlayWorkerOptions
     {
         RL_OPTION(int, batchsize) = 32;
+        RL_OPTION(int, max_episode_length) = 100;
+        RL_OPTION(float, temperature) = 1.0f;
+        RL_OPTION(float, discount) = 1.0f;
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
+
+        RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };
 
     class SelfPlayWorker
@@ -27,6 +37,7 @@ namespace trainer_impl
             SelfPlayWorker(
                 std::shared_ptr<rl::simulators::Base> simulator,
                 std::shared_ptr<modules::Base> module,
+                std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
                 const SelfPlayWorkerOptions &options={}
             );
 
@@ -36,19 +47,25 @@ namespace trainer_impl
         private:
             std::shared_ptr<rl::simulators::Base> simulator;
             std::shared_ptr<modules::Base> module;
+            std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             const SelfPlayWorkerOptions options;
 
             std::atomic<bool> running{false};
             std::thread working_thread;
 
-            torch::Tensor states;
-            torch::Tensor masks;
-            torch::Tensor rewards;
+            std::vector<std::shared_ptr<MCTSNode>> mcts_nodes;
+            torch::Tensor batchvec;
+            torch::Tensor state_history;
+            torch::Tensor mask_history;
+            torch::Tensor reward_history;
+            torch::Tensor steps;
 
         private:
             void worker();
             void step();
             void set_initial_state();
+            void reset_mcts_nodes(const torch::Tensor &terminal_mask);
+            void process_terminals(const torch::Tensor &terminal_mask);
     };
 }
 

@@ -13,7 +13,7 @@ namespace rl::agents::alpha_zero
     ) 
         :
         state_{state},
-        mask{mask},
+        mask_{mask},
         value{value},
         P{prior.to(torch::kCPU)},
         Q{torch::zeros_like(P)},
@@ -28,7 +28,7 @@ namespace rl::agents::alpha_zero
     MCTSSelectResult MCTSNode::select(const MCTSOptions &options)
     {
         auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
-        puct = torch::where(mask, puct, torch::zeros_like(puct) - INFINITY);
+        puct = torch::where(mask_, puct, torch::zeros_like(puct) - INFINITY);
         auto action = torch::argmax(puct).item().toLong();
 
         if (terminal) {
@@ -114,6 +114,8 @@ namespace rl::agents::alpha_zero
         const MCTSOptions &options
     )
     {
+        torch::InferenceMode inference_guard{};
+
         auto &root_nodes{*root_nodes_};
         for (auto &node : root_nodes) {
             node->rootify();
@@ -140,8 +142,7 @@ namespace rl::agents::alpha_zero
                 torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong))
             );
 
-            auto next_action_constraints = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints);
-            auto next_masks = next_action_constraints->mask();
+            auto next_masks = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints)->mask();
 
             auto module_output = module->forward(observation.next_states.states);
             auto policy = module_output->policy();
@@ -192,6 +193,8 @@ namespace rl::agents::alpha_zero
         const MCTSOptions &options
     )
     {
+        torch::InferenceMode inference_guard{};
+
         auto output = module->forward(states.to(options.module_device));
         auto prior_policy = output->policy();
         prior_policy.include(masks);

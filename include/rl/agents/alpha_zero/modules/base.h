@@ -20,6 +20,9 @@ namespace rl::agents::alpha_zero::modules
 
             virtual
             torch::Tensor value_estimates() const = 0;
+
+            virtual
+            torch::Tensor value_loss(const torch::Tensor &rewards) const = 0;
     };
 
     class Base : public torch::nn::Module

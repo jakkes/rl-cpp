@@ -3,7 +3,7 @@
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
 #include <rl/policies/constraints/categorical_mask.h>
-#include <rl/utils/n_step_collector.h>
+#include <rl/utils/reward/n_step_collector.h>
 
 
 using rl::policies::constraints::CategoricalMask;
@@ -61,7 +61,7 @@ namespace rl::agents::dqn::trainers
         );
 
         rl::buffers::samplers::Uniform sampler{buffer};
-        rl::utils::NStepCollector collector{options.n_step, options.discount};
+        rl::utils::reward::NStepCollector collector{options.n_step, options.discount};
         std::unique_ptr<rl::agents::dqn::utils::HindsightReplayEpisode> episode;
 
         size_t env_steps{0};
@@ -79,7 +79,7 @@ namespace rl::agents::dqn::trainers
             return grad_norm.sqrt_();
         };
 
-        auto add_transitions = [&] (const std::vector<rl::utils::NStepCollectorTransition> &transitions) {
+        auto add_transitions = [&] (const std::vector<rl::utils::reward::NStepCollectorTransition> &transitions) {
             for (const auto &transition : transitions) {
                 auto mask = dynamic_cast<const CategoricalMask&>(*transition.state->action_constraint).mask();
                 auto next_mask = dynamic_cast<const CategoricalMask&>(*transition.next_state->action_constraint).mask();

@@ -9,7 +9,7 @@
 #include <rl/env/observation.h>
 
 
-namespace rl::utils
+namespace rl::utils::reward
 {
     struct NStepCollectorTransition
     {

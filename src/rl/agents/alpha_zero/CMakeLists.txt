@@ -5,4 +5,5 @@ target_sources(
         ./modules/base.cc
         
         ./trainer_impl/self_play_worker.cc
+        ./trainer_impl/trainer.cc
 )

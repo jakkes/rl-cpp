@@ -2,7 +2,7 @@
 #define RL_UTILS_UTILS_H_
 
 
-#include "n_step_collector.h"
+#include "reward/reward.h"
 
 
 /**

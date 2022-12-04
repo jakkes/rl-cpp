@@ -8,7 +8,7 @@ namespace seed_impl
     EnvThread::EnvThread(
         std::shared_ptr<rl::env::Factory> env_factory,
         std::shared_ptr<Inferer> inferer,
-        std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+        std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
         const rl::agents::dqn::trainers::SEEDOptions &options
     ) :
         options{options},
@@ -68,7 +68,7 @@ namespace seed_impl
     EnvWorker::EnvWorker(
         std::shared_ptr<rl::env::Factory> env_factory,
         std::shared_ptr<Inferer> inferer,
-        std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+        std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
         const rl::agents::dqn::trainers::SEEDOptions &options
     ) : options{options}, n_step_collector{options.n_step, options.discount}
     {

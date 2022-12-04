@@ -5,7 +5,7 @@
 namespace seed_impl
 {
     TransitionCollector::TransitionCollector(
-        std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+        std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
         std::shared_ptr<rl::buffers::Tensor> training_buffer,
         std::shared_ptr<rl::env::Factory> env_factory,
         const rl::agents::dqn::trainers::SEEDOptions &options

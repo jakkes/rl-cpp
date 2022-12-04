@@ -20,6 +20,10 @@ class ModuleOutput : public modules::BaseOutput
 
         torch::Tensor value_estimates() const override { return values; }
 
+        torch::Tensor value_loss(const torch::Tensor &rewards) const override {
+            return torch::tensor(0.0f);
+        }
+
     private:
         torch::Tensor values;
         rl::policies::Categorical priors;

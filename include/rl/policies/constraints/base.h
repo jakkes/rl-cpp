@@ -24,10 +24,16 @@ namespace rl::policies::constraints
                 return dynamic_cast<T&>(*this);
             }
 
-            template<typename T> inline 
-            bool is_type() {
-                return dynamic_cast<T*>(this);
+            template<typename T> inline
+            const T &as_type() const {
+                return dynamic_cast<const T&>(*this);
             }
+
+            template<typename T> inline 
+            bool is_type() const {
+                return dynamic_cast<const T*>(this);
+            }
+
     };
 }
 

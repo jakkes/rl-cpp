@@ -51,6 +51,9 @@ namespace rl::agents::alpha_zero
             const torch::Tensor state() const { return state_; }
 
             inline
+            const torch::Tensor mask() const { return mask_; }
+
+            inline
             const torch::Tensor visit_count() const { return N; }
 
             MCTSSelectResult select(const MCTSOptions &options={});
@@ -76,7 +79,7 @@ namespace rl::agents::alpha_zero
         private:
             int64_t dim;
             float value;
-            torch::Tensor state_, P, Q, N, mask;
+            torch::Tensor state_, P, Q, N, mask_;
             torch::TensorAccessor<float, 1> Q_accessor;
             torch::TensorAccessor<int64_t, 1> N_accessor;
             std::vector<std::shared_ptr<MCTSNode>> children;

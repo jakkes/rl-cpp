@@ -8,7 +8,7 @@
 
 #include <thread_safe/collections/queue.h>
 
-#include <rl/utils/n_step_collector.h>
+#include <rl/utils/reward/n_step_collector.h>
 #include <rl/buffers/tensor.h>
 #include <rl/agents/dqn/trainers/seed.h>
 
@@ -19,7 +19,7 @@ namespace seed_impl
     {
         public:
             TransitionCollector(
-                std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+                std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
                 std::shared_ptr<rl::buffers::Tensor> training_buffer,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 const rl::agents::dqn::trainers::SEEDOptions &options
@@ -32,7 +32,7 @@ namespace seed_impl
             const rl::agents::dqn::trainers::SEEDOptions options;
             std::shared_ptr<rl::buffers::Tensor> training_buffer;
             std::shared_ptr<rl::buffers::Tensor> inference_buffer;
-            std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue;
+            std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue;
 
             std::atomic<bool> running{false};
             std::thread working_thread;

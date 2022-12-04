@@ -44,7 +44,7 @@ namespace rl::agents::dqn::trainers
             options
         );
         auto sampler = std::make_shared<rl::buffers::samplers::Uniform<rl::buffers::Tensor>>(replay_buffer);
-        auto transition_queue = std::make_shared<thread_safe::Queue<rl::utils::NStepCollectorTransition>>(options.inference_replay_size);
+        auto transition_queue = std::make_shared<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>>(options.inference_replay_size);
         auto transition_collector = std::make_shared<TransitionCollector>(
             transition_queue,
             replay_buffer,

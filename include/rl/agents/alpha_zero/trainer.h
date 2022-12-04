@@ -3,6 +3,8 @@
 
 
 #include <rl/option.h>
+#include <rl/agents/alpha_zero/mcts.h>
+
 
 namespace rl::agents::alpha_zero
 {

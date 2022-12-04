@@ -22,22 +22,24 @@ namespace rl::agents::alpha_zero
     {
         auto episode_queue = std::make_shared<thread_safe::Queue<trainer_impl::SelfPlayEpisode>>(1000);
 
-        std::vector<trainer_impl::SelfPlayWorker> self_play_workers{};
+        std::vector<std::unique_ptr<trainer_impl::SelfPlayWorker>> self_play_workers{};
         self_play_workers.reserve(options.self_play_workers);
         for (int i = 0; i < options.self_play_workers; i++) {
-            self_play_workers.emplace_back(
-                simulator,
-                module,
-                episode_queue,
-                trainer_impl::SelfPlayWorkerOptions{}
-                    .batchsize_(options.self_play_batchsize)
-                    .discount_(options.discount)
-                    .logger_(options.logger)
-                    .max_episode_length_(options.max_episode_length)
-                    .temperature_(options.self_play_temperature)
-                    .mcts_options_(options.self_play_mcts_options)
+            self_play_workers.push_back(
+                std::make_unique<trainer_impl::SelfPlayWorker>(
+                    simulator,
+                    module,
+                    episode_queue,
+                    trainer_impl::SelfPlayWorkerOptions{}
+                        .batchsize_(options.self_play_batchsize)
+                        .discount_(options.discount)
+                        .logger_(options.logger)
+                        .max_episode_length_(options.max_episode_length)
+                        .temperature_(options.self_play_temperature)
+                        .mcts_options_(options.self_play_mcts_options)
+                )
             );
-            self_play_workers.back().start();
+            self_play_workers.back()->start();
         }
 
         trainer_impl::Trainer trainer_worker{
@@ -64,7 +66,7 @@ namespace rl::agents::alpha_zero
 
         trainer_worker.stop();
         for (auto &self_play_worker : self_play_workers) {
-            self_play_worker.stop();
+            self_play_worker->stop();
         }
     }
 }

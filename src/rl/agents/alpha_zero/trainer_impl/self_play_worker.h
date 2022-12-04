@@ -34,6 +34,7 @@ namespace trainer_impl
     class SelfPlayWorker
     {
         public:
+            SelfPlayWorker() = default;
             SelfPlayWorker(
                 std::shared_ptr<rl::simulators::Base> simulator,
                 std::shared_ptr<modules::Base> module,

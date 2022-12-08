@@ -99,7 +99,7 @@ namespace trainer_impl
         auto policy = mcts_nodes_to_policy(nodes, masks, options.temperature);
         auto posteriors = policy.get_probabilities();
 
-        auto policy_loss = (posteriors * module_output->policy().get_probabilities().log()).sum(1).mean();
+        auto policy_loss = module_output->policy_loss(posteriors).mean();
         auto value_loss = module_output->value_loss(rewards).mean();
         auto loss = policy_loss + value_loss;
 

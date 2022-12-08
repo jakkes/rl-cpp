@@ -11,12 +11,10 @@ class ModuleOutput : public modules::BaseOutput
 {    
     public:
         ModuleOutput(const torch::Tensor &values, const torch::Tensor &priors)
-            : values{values}, priors{priors}
+            : BaseOutput{priors}, values{values}
         {}
 
         ~ModuleOutput() = default;
-
-        const rl::policies::Categorical &policy() const override { return priors; }
 
         torch::Tensor value_estimates() const override { return values; }
 
@@ -26,7 +24,6 @@ class ModuleOutput : public modules::BaseOutput
 
     private:
         torch::Tensor values;
-        rl::policies::Categorical priors;
 };
 
 class Module : public modules::Base
@@ -37,12 +34,8 @@ class Module : public modules::Base
         std::unique_ptr<modules::BaseOutput> forward(const torch::Tensor &states) override {
             return std::make_unique<ModuleOutput>(
                 torch::zeros({states.size(0)}),
-                torch::softmax(torch::zeros({states.size(0), dim}), -1)
+                torch::zeros({states.size(0), dim})
             );
-        }
-
-        std::unique_ptr<modules::Base> clone() const override {
-            return std::make_unique<Module>(dim);
         }
     
     private:

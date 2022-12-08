@@ -68,20 +68,28 @@ namespace trainer_impl
 
         mcts_nodes.resize(options.batchsize);
 
-        state_history = torch::concat(
-            {
-                states.unsqueeze(1),
-                torch::zeros_like(states).unsqueeze(1).repeat({1, options.max_episode_length-1})
-            },
-            1
-        );
-        mask_history = torch::concat(
-            {
-                masks.unsqueeze(1),
-                torch::zeros_like(masks).unsqueeze(1).repeat({1, options.max_episode_length-1})
-            },
-            1
-        );
+        state_history = states.unsqueeze(1);
+        mask_history = masks.unsqueeze(1);
+
+        for (int i = 0; i < options.max_episode_length - 1; i++)
+        {
+            state_history = torch::concat(
+                {
+                    state_history,
+                    torch::zeros_like(states).unsqueeze(1)
+                },
+                1
+            );
+
+            mask_history = torch::concat(
+                {
+                    mask_history,
+                    torch::zeros_like(masks).unsqueeze(1)
+                },
+                1
+            );
+        }
+
         reward_history = torch::zeros({options.batchsize, options.max_episode_length});
         steps = torch::zeros({options.batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
 
@@ -105,7 +113,7 @@ namespace trainer_impl
         auto states = state_history.index({batchvec, steps});
         auto observations = simulator->step(states, actions);
 
-        reward_history.index_put({batchvec, steps}, observations.rewards);
+        reward_history = reward_history.index_put({batchvec, steps}, observations.rewards);
         
         steps += 1;
         observations.terminals = observations.terminals.logical_or(steps >= options.max_episode_length);

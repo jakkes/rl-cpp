@@ -12,7 +12,7 @@ namespace rl::agents::alpha_zero::modules
     {
         public:
             FixedValueSupportOutput(
-                const torch::Tensor &probabilities,
+                const torch::Tensor &prior_logits,
                 const torch::Tensor &value_logits,
                 float v_min,
                 float v_max,

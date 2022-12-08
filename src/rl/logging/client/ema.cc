@@ -6,10 +6,11 @@
 namespace rl::logging::client
 {
 
-    EMA::EMA(const std::vector<double> &smoothing_values, int output_period_s)
+    EMA::EMA(const std::vector<double> &smoothing_values, int output_period_s, int frequency_window_seconds)
     :
     smoothing_values{smoothing_values},
-    output_period{output_period_s}
+    output_period{output_period_s},
+    metronome{static_cast<int>(frequency_window_seconds)}
     {
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
         output_producing_thread = std::thread(&EMA::output_producer, this);

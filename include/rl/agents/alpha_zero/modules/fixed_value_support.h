@@ -8,16 +8,23 @@
 
 namespace rl::agents::alpha_zero::modules
 {
-    class FixedValueSupport : public Base
+    class FixedValueSupportOutput : public BaseOutput
     {
         public:
-            FixedSupport(float v_min, float v_max, int n_atoms);
+            FixedValueSupportOutput(
+                const torch::Tensor &probabilities,
+                const torch::Tensor &value_logits,
+                float v_min,
+                float v_max,
+                int n_atoms
+            );
+
+            torch::Tensor value_estimates() const override;
+            torch::Tensor value_loss(const torch::Tensor &rewards) const override;
         
         private:
-            const float v_min, v_max;
-            const int n_atoms;
-
-            torch::Tensor atoms;
+            float v_min, v_max;
+            torch::Tensor atoms, value_logits;
     };
 }
 

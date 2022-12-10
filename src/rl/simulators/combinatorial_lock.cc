@@ -10,8 +10,12 @@ namespace rl::simulators
     static auto long_dtype = torch::TensorOptions{}.dtype(torch::kLong);
     static auto bool_dtype = torch::TensorOptions{}.dtype(torch::kBool);
 
-    CombinatorialLock::CombinatorialLock(int dim, const std::vector<int> &correct_sequence)
-    : dim{dim}
+    CombinatorialLock::CombinatorialLock(
+        int dim,
+        const std::vector<int> &correct_sequence,
+        const CombinatorialLockOptions &options
+    )
+    : dim{dim}, options{options}
     {
         auto non_negative = [] (int x) { return x >= 0; };
         auto less_than_dim = [dim] (int x) { return x < dim; };
@@ -47,6 +51,10 @@ namespace rl::simulators
         }
 
         auto sequence_lengths = (states >= 0).sum(-1);
+        if ((sequence_lengths >= correct_sequence.size(0)).any().item().toBool()) {
+            throw std::runtime_error{"Cannot step a terminal state."};
+        }
+        
         auto batchvec = torch::arange(states.size(0));
         
         Observations out{};
@@ -54,8 +62,14 @@ namespace rl::simulators
         out.next_states.action_constraints = std::make_shared<rl::policies::constraints::CategoricalMask>(
             torch::ones({states.size(0), dim}, bool_dtype)
         );
-        out.rewards = (out.next_states.states == correct_sequence).all(-1);
-        out.terminals = sequence_lengths + 1 == correct_sequence.size(0);
+
+        if (options.intermediate_rewards) {
+            out.rewards = ((out.next_states.states == correct_sequence).sum(-1) > sequence_lengths).to(torch::kFloat32) / correct_sequence.size(0);
+        }
+        else {
+            out.rewards = (out.next_states.states == correct_sequence).all(-1).to(torch::kFloat32);
+        }
+        out.terminals = sequence_lengths + 1 >= correct_sequence.size(0);
         return out;
     }
 }

@@ -64,8 +64,10 @@ namespace trainer_impl
         private:
             void worker();
             void step();
+            void step_mcts_nodes(const torch::Tensor &actions);
             void set_initial_state();
             void reset_mcts_nodes(const torch::Tensor &terminal_mask);
+            void reset_histories(const torch::Tensor &terminal_mask);
             void process_terminals(const torch::Tensor &terminal_mask);
     };
 }

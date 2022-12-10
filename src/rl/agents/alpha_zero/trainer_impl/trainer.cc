@@ -52,7 +52,7 @@ namespace trainer_impl
             std::vector{
                 state.options(),
                 mask.options(),
-                state.options()
+                torch::TensorOptions{}.dtype(torch::kFloat32).device(state.device())
             }
         );
 

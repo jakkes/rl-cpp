@@ -27,16 +27,16 @@ namespace rl::agents::alpha_zero
 
     MCTSSelectResult MCTSNode::select(const MCTSOptions &options)
     {
-        auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
-        puct = torch::where(mask_, puct, torch::zeros_like(puct) - INFINITY);
-        auto action = torch::argmax(puct).item().toLong();
-
         if (terminal) {
             MCTSSelectResult out{};
             out.node = parent;
             out.action = this->action;
             return out;
         }
+
+        auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
+        puct = torch::where(mask_, puct, torch::zeros_like(puct) - INFINITY);
+        auto action = torch::argmax(puct).item().toLong();
         
         if (children[action]) {
             return children[action]->select(options);

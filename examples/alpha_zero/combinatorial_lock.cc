@@ -62,7 +62,8 @@ int main(int argc, char **argv)
     }
     auto sim = std::make_shared<simulators::CombinatorialLock>(
         dim,
-        correct_sequence
+        correct_sequence,
+        simulators::CombinatorialLockOptions{}.intermediate_rewards_(true)
     );
 
     agents::alpha_zero::Trainer trainer {
@@ -80,14 +81,14 @@ int main(int argc, char **argv)
                 agents::alpha_zero::MCTSOptions{}
                     .steps_(length / 4)
             )
-            .self_play_temperature_(1.0f)
+            .self_play_temperature_(1e-2f)
             .self_play_workers_(1)
             .training_batchsize_(128)
             .training_mcts_options_(
                 agents::alpha_zero::MCTSOptions{}
                     .steps_(length / 2)
             )
-            .training_temperature_(0.1)
+            .training_temperature_(1e-3)
     };
 
     trainer.run(3600);
@@ -147,6 +148,6 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
     auto value_logits = value->forward(encoding.reshape({batchsize, -1}));
 
     return std::make_unique<agents::alpha_zero::modules::FixedValueSupportOutput>(
-        policy_logits, value_logits, 0.0f, 1.0f, atoms
+        policy_logits, value_logits, 0.0f, 10.0f, atoms
     );
 }

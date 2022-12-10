@@ -11,10 +11,19 @@
 
 namespace rl::simulators
 {
+    struct CombinatorialLockOptions
+    {
+        RL_OPTION(bool, intermediate_rewards) = false;
+    };
+
     class CombinatorialLock : public Base
     {
         public:
-            CombinatorialLock(int dim, const std::vector<int> &correct_sequence);
+            CombinatorialLock(
+                int dim,
+                const std::vector<int> &correct_sequence,
+                const CombinatorialLockOptions &options={}
+            );
             ~CombinatorialLock() = default;
 
             States reset(int64_t n) const override;
@@ -22,6 +31,7 @@ namespace rl::simulators
                                 const torch::Tensor &actions) const override;
 
         private:
+            const CombinatorialLockOptions options;
             int dim;
             torch::Tensor correct_sequence;
     };

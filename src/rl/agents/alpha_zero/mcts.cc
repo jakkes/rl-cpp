@@ -147,7 +147,6 @@ namespace rl::agents::alpha_zero
             auto module_output = module->forward(observation.next_states.states);
             auto policy = module_output->policy();
             auto value = module_output->value_estimates();
-            policy.include(observation.next_states.action_constraints);
 
             for (int i = 0; i < root_nodes.size(); i++) {
                 select_results[i].node->expand(

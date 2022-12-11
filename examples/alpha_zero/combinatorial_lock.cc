@@ -81,14 +81,14 @@ int main(int argc, char **argv)
                 agents::alpha_zero::MCTSOptions{}
                     .steps_(length / 4)
             )
-            .self_play_temperature_(1e-2f)
+            .self_play_temperature_(1e-1f)
             .self_play_workers_(1)
             .training_batchsize_(128)
             .training_mcts_options_(
                 agents::alpha_zero::MCTSOptions{}
-                    .steps_(length / 2)
+                    .steps_(10 * length)
             )
-            .training_temperature_(1e-3)
+            .training_temperature_(1e-1)
     };
 
     trainer.run(3600);
@@ -148,6 +148,6 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
     auto value_logits = value->forward(encoding.reshape({batchsize, -1}));
 
     return std::make_unique<agents::alpha_zero::modules::FixedValueSupportOutput>(
-        policy_logits, value_logits, 0.0f, 10.0f, atoms
+        policy_logits, value_logits, 0.0f, 1.0f, atoms
     );
 }

@@ -74,6 +74,11 @@ namespace trainer_impl
                 values.index({j}).item().toFloat()
             );
         }
+
+        if (options.logger) {
+            options.logger->log_scalar("AlphaZero/Start value", values.mean().item().toFloat());
+            options.logger->log_scalar("AlphaZero/Start entropy", module_output->policy().entropy().mean().item().toFloat());
+        }
     }
 
     void SelfPlayWorker::set_initial_state()
@@ -248,6 +253,7 @@ namespace trainer_impl
 
         if (options.logger) {
             options.logger->log_scalar("AlphaZero/Reward", G.index({Slice(), 0}).mean().item().toFloat());
+            options.logger->log_frequency("AlphaZero/Episode rate", batchsize);
         }
     }
 }

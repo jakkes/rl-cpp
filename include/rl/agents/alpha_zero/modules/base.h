@@ -22,7 +22,7 @@ namespace rl::agents::alpha_zero::modules
 
             inline
             torch::Tensor policy_loss(const torch::Tensor &target_policy) const {
-                return (target_policy * torch::log_softmax(policy_logits, -1)).sum(-1);
+                return - (target_policy * torch::log_softmax(policy_logits, -1)).sum(-1);
             }
 
             virtual

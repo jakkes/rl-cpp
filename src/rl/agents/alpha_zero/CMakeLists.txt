@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         ./mcts.cc
         ./modules/base.cc
+        ./modules/mean_value.cc
         ./modules/fixed_value_support.cc
         
         ./trainer.cc

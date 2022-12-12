@@ -25,6 +25,9 @@ namespace rl::agents::alpha_zero
 
         RL_OPTION(float, discount) = 1.0f;
         RL_OPTION(int, steps) = 100;
+
+        RL_OPTION(float, dirchlet_noise_alpha) = 0.1f;
+        RL_OPTION(float, dirchlet_noise_epsilon) = 0.5f;
     };
 
     class MCTSNode;
@@ -79,6 +82,7 @@ namespace rl::agents::alpha_zero
         private:
             int64_t dim;
             float value;
+            bool N_is_zero{true};
             torch::Tensor state_, P, Q, N, mask_;
             torch::TensorAccessor<float, 1> Q_accessor;
             torch::TensorAccessor<int64_t, 1> N_accessor;

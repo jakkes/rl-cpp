@@ -34,9 +34,16 @@ namespace rl::agents::alpha_zero
             return out;
         }
 
-        auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
-        puct = torch::where(mask_, puct, torch::zeros_like(puct) - INFINITY);
-        auto action = torch::argmax(puct).item().toLong();
+        int64_t action;
+
+        if (N_is_zero) {
+            action = P.argmax().item().toLong();
+        }
+        else {
+            auto puct = Q + P * N.sum().sqrt() / (1 + N) * (options.c1 + ((N.sum() + options.c2 + 1.0f) / options.c2).log_());
+            puct = torch::where(mask_, puct, torch::zeros_like(puct) - INFINITY);
+            action = torch::argmax(puct).item().toLong();
+        }
         
         if (children[action]) {
             return children[action]->select(options);
@@ -99,6 +106,10 @@ namespace rl::agents::alpha_zero
     {
         Q_accessor[action] = (N_accessor[action] * Q_accessor[action] + value) / (N_accessor[action] + 1);
         N_accessor[action] = N_accessor[action] + 1;
+
+        if (N_is_zero) {
+            N_is_zero = false;
+        }
 
         if (!parent) {
             return;

@@ -32,3 +32,22 @@ TORCH_TEST(policies, dirchlet, device)
         );
     } 
 }
+
+
+TORCH_TEST(policies, dirchlet_mean_std, device)
+{
+    Dirchlet d {
+        0.1f * torch::ones({100000, 10}).to(device)
+    };
+
+    auto sample = d.sample();
+    auto mean = sample.mean(0);
+    auto std = sample.std(0);
+    
+    ASSERT_TRUE(
+        (mean - 0.1f).abs().max().item().toFloat() < 1e-2
+    );
+    ASSERT_TRUE(
+        (std - 0.212f).abs().max().item().toFloat() < 1e-2
+    );
+}

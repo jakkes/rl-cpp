@@ -10,7 +10,7 @@ namespace rl::logging::client
     :
     smoothing_values{smoothing_values},
     output_period{output_period_s},
-    metronome{static_cast<int>(frequency_window_seconds)}
+    metronome{static_cast<size_t>(frequency_window_seconds)}
     {
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
         output_producing_thread = std::thread(&EMA::output_producer, this);

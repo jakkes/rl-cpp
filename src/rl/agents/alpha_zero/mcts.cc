@@ -1,5 +1,7 @@
 #include "rl/agents/alpha_zero/mcts.h"
 
+#include <rl/policies/dirchlet.h>
+
 
 namespace rl::agents::alpha_zero
 {
@@ -23,6 +25,13 @@ namespace rl::agents::alpha_zero
     {
         dim = prior.size(0);
         children.resize(dim);
+    }
+
+    void MCTSNode::rootify(float noise_epsilon, const torch::Tensor &noise) {
+        action = -1;
+        parent = nullptr;
+
+        P = (1 - noise_epsilon) * P + noise_epsilon * noise;
     }
 
     MCTSSelectResult MCTSNode::select(const MCTSOptions &options)
@@ -125,11 +134,19 @@ namespace rl::agents::alpha_zero
         const MCTSOptions &options
     )
     {
+        auto &root_nodes{*root_nodes_};
         torch::InferenceMode inference_guard{};
 
-        auto &root_nodes{*root_nodes_};
-        for (auto &node : root_nodes) {
-            node->rootify();
+        int64_t batchsize = root_nodes.size();
+        int64_t dim = root_nodes.front()->mask().size(0);
+
+        rl::policies::Dirchlet dirchlet_distribution{
+            options.dirchlet_noise_alpha + torch::zeros({batchsize, dim})
+        };
+        auto dirchlet_noise = dirchlet_distribution.sample();
+
+        for (int i = 0; i < batchsize; i++) {
+            root_nodes[i]->rootify(options.dirchlet_noise_epsilon, dirchlet_noise.index({i}));
         }
 
         std::vector<MCTSSelectResult> select_results{};

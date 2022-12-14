@@ -74,10 +74,7 @@ namespace rl::agents::alpha_zero
 
             void backup(const MCTSOptions &options={});
 
-            inline void rootify() {
-                action = -1;
-                parent = nullptr;
-            }
+            void rootify(float noise_epsilon, const torch::Tensor &noise);
 
         private:
             int64_t dim;

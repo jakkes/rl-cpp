@@ -32,7 +32,7 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
 
     parser
         .add_argument("--length")
-        .default_value<int>(10)
+        .default_value<int>(20)
         .scan<'i', int>();
 
     try {
@@ -81,6 +81,8 @@ int main(int argc, char **argv)
             .self_play_mcts_options_(
                 agents::alpha_zero::MCTSOptions{}
                     .steps_(length / 4)
+                    .dirchlet_noise_epsilon_(0.25)
+                    .dirchlet_noise_alpha_(0.1)
             )
             .self_play_temperature_(1e-1f)
             .self_play_workers_(1)
@@ -88,6 +90,8 @@ int main(int argc, char **argv)
             .training_mcts_options_(
                 agents::alpha_zero::MCTSOptions{}
                     .steps_(10 * length)
+                    .dirchlet_noise_epsilon_(0.25)
+                    .dirchlet_noise_alpha_(0.1)
             )
             .training_temperature_(1e-1)
     };

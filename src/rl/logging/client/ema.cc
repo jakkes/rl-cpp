@@ -10,8 +10,12 @@ namespace rl::logging::client
     :
     smoothing_values{smoothing_values},
     output_period{output_period_s},
-    metronome{static_cast<size_t>(frequency_window_seconds)}
+    metronome{static_cast<size_t>(frequency_window_seconds > 0 ? frequency_window_seconds : output_period_s)}
     {
+        if (output_period_s <= 0) {
+            throw std::invalid_argument{"Output period must be positive."};
+        }
+
         queue_consuming_thread = std::thread(&EMA::queue_consumer, this);
         output_producing_thread = std::thread(&EMA::output_producer, this);
         
@@ -21,6 +25,7 @@ namespace rl::logging::client
     EMA::~EMA()
     {
         is_running = false;
+        metronome.stop();
         if (queue_consuming_thread.joinable()) queue_consuming_thread.join();
         if (output_producing_thread.joinable()) output_producing_thread.join();
     }

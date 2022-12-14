@@ -60,6 +60,7 @@ TEST(mcts, single_step)
         sim,
         MCTSOptions{}
             .steps_(sims)
+            .dirchlet_noise_epsilon_(0.0f)
     );
 
     for (const auto &node : nodes) {

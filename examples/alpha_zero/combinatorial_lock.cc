@@ -106,7 +106,7 @@ Net::Net(int dim, int length)
     policy = register_module(
         "policy",
         nn::Sequential{
-            nn::Linear{length+2, 32},
+            nn::Linear{dim+2, 32},
             nn::ReLU{nn::ReLUOptions{true}},
             nn::Linear{32, dim}
         }
@@ -119,7 +119,7 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
     auto one_hot_encoded = torch::zeros({batchsize, dim+2});
 
     auto length = (states >= 0).sum(1);
-    one_hot_encoded.index_put_({torch::arange(batchsize), length}, 1.0f);
+    one_hot_encoded.index_put_({torch::arange(batchsize), length.remainder(dim)}, 1.0f);
 
     auto correct = torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kBool));
 
@@ -129,7 +129,7 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
 
     for (int64_t i = 0; i < batchsize; i++) {
         for (int j = 0; j < dim; j++) {
-            auto &value = state_accessor[i][j];
+            auto value = state_accessor[i][j] % dim;
             if (value < 0) {
                 break;
             }
@@ -148,7 +148,7 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
     }
     
     auto policy_logits = policy->forward(one_hot_encoded);
-    auto values = (1.0f - 0.1f * length) * correct;
+    auto values = (1.0f - 0.05f * length) * correct;
 
     return std::make_unique<agents::alpha_zero::modules::MeanValueOutput>(
         policy_logits, values

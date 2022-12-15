@@ -24,7 +24,7 @@ namespace trainer_impl
     {
         RL_OPTION(int, batchsize) = 32;
         RL_OPTION(int, max_episode_length) = 100;
-        RL_OPTION(float, temperature) = 1.0f;
+        RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
         RL_OPTION(float, discount) = 1.0f;
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
 

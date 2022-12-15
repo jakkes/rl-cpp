@@ -10,6 +10,7 @@
 
 #include <rl/option.h>
 #include <rl/logging/client/base.h>
+#include <rl/utils/float_control/fixed.h>
 #include <rl/agents/alpha_zero/alpha_zero.h>
 #include <rl/buffers/buffers.h>
 
@@ -24,7 +25,7 @@ namespace trainer_impl
     {
         RL_OPTION(int, batchsize) = 128;
         RL_OPTION(int64_t, replay_size) = 1000;
-        RL_OPTION(float, temperature) = 0.1;
+        RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
         RL_OPTION(float, gradient_norm) = 40.0f;
         RL_OPTION(size_t, min_replay_size) = 1000;
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};

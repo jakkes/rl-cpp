@@ -2,7 +2,10 @@
 #define RL_AGENTS_ALPHA_ZERO_TRAINER_H_
 
 
+#include <memory>
+
 #include <rl/option.h>
+#include <rl/utils/float_control/fixed.h>
 #include <rl/agents/alpha_zero/mcts.h>
 
 
@@ -11,19 +14,27 @@ namespace rl::agents::alpha_zero
     struct TrainerOptions
     {
         RL_OPTION(int, max_episode_length) = 100;
-        RL_OPTION(float, self_play_temperature) = 1.0f;
         RL_OPTION(int, self_play_batchsize) = 32;
         RL_OPTION(int, self_play_workers) = 1;
-        RL_OPTION(MCTSOptions, self_play_mcts_options) = MCTSOptions{};
+        RL_OPTION(int, self_play_mcts_steps) = 100;
+        RL_OPTION(float, self_play_dirchlet_noise_alpha) = 0.1f;
+        RL_OPTION(float, self_play_dirchlet_noise_epsilon) = 0.5f;
+        RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, self_play_temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
+
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
 
         RL_OPTION(float, discount) = 1.0f;
+        RL_OPTION(float, c1) = 1.25f;
+        RL_OPTION(float, c2) = 19652;
+
         RL_OPTION(int, training_batchsize) = 128;
         RL_OPTION(int, replay_size) = 10000;
         RL_OPTION(int, min_replay_size) = 1000;
         RL_OPTION(float, max_gradient_norm) = 40.0f;
-        RL_OPTION(MCTSOptions, training_mcts_options) = MCTSOptions{};
-        RL_OPTION(float, training_temperature) = 1.0f;
+        RL_OPTION(int, training_mcts_steps) = 100;
+        RL_OPTION(float, training_dirchlet_noise_alpha) = 0.1f;
+        RL_OPTION(float, training_dirchlet_noise_epsilon) = 0.5f;
+        RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, training_temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
     };

@@ -180,7 +180,7 @@ namespace trainer_impl
         mcts(&mcts_nodes, module, simulator, options.mcts_options);
 
         auto masks = mask_history.index({batchvec, steps});
-        auto policy = mcts_nodes_to_policy(mcts_nodes, masks, options.temperature);
+        auto policy = mcts_nodes_to_policy(mcts_nodes, masks, options.temperature_control->get());
 
         auto actions = policy.sample();
         step_mcts_nodes(actions);

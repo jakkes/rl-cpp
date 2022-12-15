@@ -35,8 +35,17 @@ namespace rl::agents::alpha_zero
                         .discount_(options.discount)
                         .logger_(options.logger)
                         .max_episode_length_(options.max_episode_length)
-                        .temperature_(options.self_play_temperature)
-                        .mcts_options_(options.self_play_mcts_options)
+                        .temperature_control_(options.self_play_temperature_control)
+                        .mcts_options_(
+                            rl::agents::alpha_zero::MCTSOptions{}
+                                .dirchlet_noise_alpha_(options.self_play_dirchlet_noise_alpha)
+                                .dirchlet_noise_epsilon_(options.self_play_dirchlet_noise_epsilon)
+                                .discount_(options.discount)
+                                .c1_(options.c1)
+                                .c2_(options.c2)
+                                .module_device_(options.module_device)
+                                .steps_(options.self_play_mcts_steps)
+                        )
                 )
             );
             self_play_workers.back()->start();
@@ -51,10 +60,19 @@ namespace rl::agents::alpha_zero
                 .batchsize_(options.training_batchsize)
                 .gradient_norm_(options.max_gradient_norm)
                 .logger_(options.logger)
-                .mcts_options_(options.training_mcts_options)
                 .min_replay_size_(options.min_replay_size)
                 .replay_size_(options.replay_size)
-                .temperature_(options.training_temperature)
+                .temperature_control_(options.training_temperature_control)
+                .mcts_options_(
+                    rl::agents::alpha_zero::MCTSOptions{}
+                        .c1_(options.c1)
+                        .c2_(options.c2)
+                        .dirchlet_noise_alpha_(options.training_dirchlet_noise_alpha)
+                        .dirchlet_noise_epsilon_(options.training_dirchlet_noise_epsilon)
+                        .discount_(options.discount)
+                        .module_device_(options.module_device)
+                        .steps_(options.training_mcts_steps)
+                )
         };
 
         trainer_worker.start();

@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     auto logger = std::make_shared<logging::client::EMA>(std::vector{0.6, 0.9, 0.99}, 10, 10);
     auto net = std::make_shared<Net>( dim, length );
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
+    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0f, 0.1f, 300);
 
     std::vector<int> correct_sequence{};
     for (int i = 0; i < args.get<int>("--length"); i++) {
@@ -78,22 +79,16 @@ int main(int argc, char **argv)
             .replay_size_(10000)
             .module_device_(torch::kCPU)
             .self_play_batchsize_(1)
-            .self_play_mcts_options_(
-                agents::alpha_zero::MCTSOptions{}
-                    .steps_(length / 4)
-                    .dirchlet_noise_epsilon_(0.25)
-                    .dirchlet_noise_alpha_(0.1)
-            )
-            .self_play_temperature_(1e-1f)
+            .self_play_mcts_steps_(length)
+            .self_play_dirchlet_noise_alpha_(0.1)
+            .self_play_dirchlet_noise_epsilon_(0.25)
+            .self_play_temperature_control_(temperature_control)
             .self_play_workers_(1)
             .training_batchsize_(64)
-            .training_mcts_options_(
-                agents::alpha_zero::MCTSOptions{}
-                    .steps_(10 * length)
-                    .dirchlet_noise_epsilon_(0.25)
-                    .dirchlet_noise_alpha_(0.1)
-            )
-            .training_temperature_(1e-1)
+            .training_mcts_steps_(10 * length)
+            .training_dirchlet_noise_alpha_(0.25)
+            .training_dirchlet_noise_epsilon_(0.1)
+            .training_temperature_control_(temperature_control)
     };
 
     trainer.run(3600);
@@ -109,6 +104,19 @@ Net::Net(int dim, int length)
             nn::Linear{dim+2, 32},
             nn::ReLU{nn::ReLUOptions{true}},
             nn::Linear{32, dim}
+        }
+    );
+
+    value = register_module(
+        "value",
+        nn::Sequential{
+            nn::Linear{dim+2, 32},
+            nn::ReLU{nn::ReLUOptions{true}},
+            nn::Linear{32, 32},
+            nn::ReLU{nn::ReLUOptions{true}},
+            nn::Linear{32, 32},
+            nn::ReLU{nn::ReLUOptions{true}},
+            nn::Linear{32, 1}
         }
     );
 }
@@ -148,7 +156,7 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
     }
     
     auto policy_logits = policy->forward(one_hot_encoded);
-    auto values = (1.0f - 0.05f * length) * correct;
+    auto values = value->forward(one_hot_encoded).squeeze(1);
 
     return std::make_unique<agents::alpha_zero::modules::MeanValueOutput>(
         policy_logits, values

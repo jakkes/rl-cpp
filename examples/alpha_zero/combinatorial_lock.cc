@@ -1,6 +1,7 @@
 #include <rl/rl.h>
 #include <torch/torch.h>
 #include <argparse/argparse.hpp>
+#include <rl/torchutils.h>
 
 #include "torchdebug.h"
 
@@ -12,9 +13,9 @@ class Net : public agents::alpha_zero::modules::Base
 {
     public:
         Net(int dim, int length);
-        
+
         std::unique_ptr<agents::alpha_zero::modules::BaseOutput> forward(
-                                            const torch::Tensor &states) override;
+            const torch::Tensor &states) override;
 
     private:
         const int dim, length;
@@ -32,7 +33,7 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
 
     parser
         .add_argument("--length")
-        .default_value<int>(20)
+        .default_value<int>(100)
         .scan<'i', int>();
 
     try {
@@ -46,22 +47,39 @@ argparse::ArgumentParser parse_args(int argc, char **argv)
     }
 }
 
+std::vector<int> correct_sequence{};
+int length, dim;
+
+
+bool hindsight_callback(agents::alpha_zero::SelfPlayEpisode *episode)
+{
+    episode->collected_rewards = torch::ones_like(episode->collected_rewards);
+    
+    auto state = -1 + torch::zeros_like(episode->states.index({0}));
+    for (int i = 0; i < episode->states.size(0); i++) {
+        episode->states.index_put_({i}, state);
+        state.index_put_({i}, i % dim);
+    }
+
+    return true;
+}
+
 
 int main(int argc, char **argv)
 {
     auto args = parse_args(argc, argv);
-    int length = args.get<int>("--length");
-    int dim = args.get<int>("--dim");
+    length = args.get<int>("--length");
+    dim = args.get<int>("--dim");
+
+    for (int i = 0; i < length; i++) {
+        correct_sequence.push_back(i % dim);
+    }
 
     auto logger = std::make_shared<logging::client::EMA>(std::vector{0.6, 0.9, 0.99}, 10, 10);
     auto net = std::make_shared<Net>( dim, length );
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
-    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0f, 0.1f, 300);
+    auto temperature_control = std::make_shared<rl::utils::float_control::Fixed>(1.0);
 
-    std::vector<int> correct_sequence{};
-    for (int i = 0; i < args.get<int>("--length"); i++) {
-        correct_sequence.push_back(i % dim);
-    }
     auto sim = std::make_shared<simulators::CombinatorialLock>(
         dim,
         correct_sequence,
@@ -76,16 +94,17 @@ int main(int argc, char **argv)
             .logger_(logger)
             .max_episode_length_(length)
             .min_replay_size_(100)
-            .replay_size_(10000)
+            .replay_size_(1000)
             .module_device_(torch::kCPU)
             .self_play_batchsize_(1)
-            .self_play_mcts_steps_(length)
+            .self_play_mcts_steps_(length / 2)
             .self_play_dirchlet_noise_alpha_(0.1)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
+            .hindsight_callback_(hindsight_callback)
             .self_play_workers_(1)
             .training_batchsize_(64)
-            .training_mcts_steps_(10 * length)
+            .training_mcts_steps_(length)
             .training_dirchlet_noise_alpha_(0.25)
             .training_dirchlet_noise_epsilon_(0.1)
             .training_temperature_control_(temperature_control)
@@ -101,22 +120,19 @@ Net::Net(int dim, int length)
     policy = register_module(
         "policy",
         nn::Sequential{
-            nn::Linear{dim+2, 32},
+            nn::Linear{dim+1, 128},
             nn::ReLU{nn::ReLUOptions{true}},
-            nn::Linear{32, dim}
+            nn::Linear{128, dim}
         }
     );
 
     value = register_module(
         "value",
         nn::Sequential{
-            nn::Linear{dim+2, 32},
-            nn::ReLU{nn::ReLUOptions{true}},
-            nn::Linear{32, 32},
-            nn::ReLU{nn::ReLUOptions{true}},
-            nn::Linear{32, 32},
-            nn::ReLU{nn::ReLUOptions{true}},
-            nn::Linear{32, 1}
+            nn::Linear{1, 32},
+            nn::Sigmoid{},
+            nn::Linear{32, 1},
+            nn::Sigmoid{}
         }
     );
 }
@@ -155,8 +171,10 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
         }
     }
     
-    auto policy_logits = policy->forward(one_hot_encoded);
-    auto values = value->forward(one_hot_encoded).squeeze(1);
+    auto policy_logits = policy->forward(one_hot_encoded.index({Slice(), Slice(None, -1)}));
+    auto values = value->forward(
+        one_hot_encoded.index({Slice(), Slice(-1, None)})
+    ).squeeze(1);
 
     return std::make_unique<agents::alpha_zero::modules::MeanValueOutput>(
         policy_logits, values

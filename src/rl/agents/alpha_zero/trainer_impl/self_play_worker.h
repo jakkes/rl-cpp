@@ -5,16 +5,17 @@
 #include <atomic>
 #include <thread>
 #include <vector>
-#include <thread_safe/collections/queue.h>
+#include <functional>
 
+#include <thread_safe/collections/queue.h>
 #include <torch/torch.h>
 
 #include <rl/option.h>
 #include <rl/simulators/base.h>
-#include <rl/agents/alpha_zero/alpha_zero.h>
 #include <rl/logging/client/base.h>
+#include <rl/agents/alpha_zero/alpha_zero.h>
+#include <rl/agents/alpha_zero/self_play_episode.h>
 
-#include "self_play_episode.h"
 
 using namespace rl::agents::alpha_zero;
 
@@ -29,6 +30,7 @@ namespace trainer_impl
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
+        RL_OPTION(std::function<bool(SelfPlayEpisode*)>, hindsight_callback) = nullptr;
     };
 
     class SelfPlayWorker
@@ -69,6 +71,7 @@ namespace trainer_impl
             void reset_mcts_nodes(const torch::Tensor &terminal_mask);
             void reset_histories(const torch::Tensor &terminal_mask);
             void process_terminals(const torch::Tensor &terminal_mask);
+            void enqueue_episode(const SelfPlayEpisode &episode);
     };
 }
 

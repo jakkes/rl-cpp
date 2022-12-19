@@ -1,5 +1,7 @@
 #include "rl/agents/alpha_zero/trainer.h"
 
+#include <rl/agents/alpha_zero/self_play_episode.h>
+
 #include "trainer_impl/self_play_worker.h"
 #include "trainer_impl/trainer.h"
 
@@ -20,7 +22,7 @@ namespace rl::agents::alpha_zero
 
     void Trainer::run(size_t duration_seconds)
     {
-        auto episode_queue = std::make_shared<thread_safe::Queue<trainer_impl::SelfPlayEpisode>>(1000);
+        auto episode_queue = std::make_shared<thread_safe::Queue<SelfPlayEpisode>>(1000);
 
         std::vector<std::unique_ptr<trainer_impl::SelfPlayWorker>> self_play_workers{};
         self_play_workers.reserve(options.self_play_workers);
@@ -36,6 +38,7 @@ namespace rl::agents::alpha_zero
                         .logger_(options.logger)
                         .max_episode_length_(options.max_episode_length)
                         .temperature_control_(options.self_play_temperature_control)
+                        .hindsight_callback_(options.hindsight_callback)
                         .mcts_options_(
                             rl::agents::alpha_zero::MCTSOptions{}
                                 .dirchlet_noise_alpha_(options.self_play_dirchlet_noise_alpha)

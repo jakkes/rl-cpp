@@ -3,10 +3,13 @@
 
 
 #include <memory>
+#include <functional>
 
 #include <rl/option.h>
 #include <rl/utils/float_control/fixed.h>
-#include <rl/agents/alpha_zero/mcts.h>
+
+#include "mcts.h"
+#include "self_play_episode.h"
 
 
 namespace rl::agents::alpha_zero
@@ -37,6 +40,7 @@ namespace rl::agents::alpha_zero
         RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, training_temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
+        RL_OPTION(std::function<bool(SelfPlayEpisode*)>, hindsight_callback) = nullptr;
     };
 
     class Trainer

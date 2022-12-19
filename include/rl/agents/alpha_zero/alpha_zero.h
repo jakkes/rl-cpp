@@ -4,6 +4,7 @@
 
 #include "mcts.h"
 #include "trainer.h"
+#include "self_play_episode.h"
 
 #include "modules/modules.h"
 

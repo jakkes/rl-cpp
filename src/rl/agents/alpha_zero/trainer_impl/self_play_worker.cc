@@ -177,7 +177,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::step()
     {
-        mcts(&mcts_nodes, module, simulator, options.mcts_options);
+         mcts(&mcts_nodes, module, simulator, options.mcts_options);
 
         auto masks = mask_history.index({batchvec, steps});
         auto policy = mcts_nodes_to_policy(mcts_nodes, masks, options.temperature_control->get());
@@ -243,9 +243,18 @@ namespace trainer_impl
             episode.masks = masks.index({i, Slice(None, episode_length)});
             episode.collected_rewards = G.index({i, Slice(None, episode_length)});
 
-            bool enqueued{false};
-            while (!enqueued) {
-                enqueued = episode_queue->enqueue(episode, std::chrono::seconds(5));
+            enqueue_episode(episode);
+
+            if (options.hindsight_callback) {
+                SelfPlayEpisode hindsight_episode{};
+                hindsight_episode.states = episode.states.clone();
+                hindsight_episode.masks = episode.masks.clone();
+                hindsight_episode.collected_rewards = episode.collected_rewards.clone();
+                auto should_enqueue = options.hindsight_callback(&hindsight_episode);
+
+                if (should_enqueue) {
+                    enqueue_episode(hindsight_episode);
+                }
             }
         }
 
@@ -254,6 +263,14 @@ namespace trainer_impl
         if (options.logger) {
             options.logger->log_scalar("AlphaZero/Reward", G.index({Slice(), 0}).mean().item().toFloat());
             options.logger->log_frequency("AlphaZero/Episode rate", batchsize);
+        }
+    }
+
+    void SelfPlayWorker::enqueue_episode(const SelfPlayEpisode &episode)
+    {
+        bool enqueued{false};
+        while (!enqueued) {
+            enqueued = episode_queue->enqueue(episode, std::chrono::seconds(5));
         }
     }
 }

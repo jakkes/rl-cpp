@@ -14,8 +14,6 @@
 #include <rl/agents/alpha_zero/alpha_zero.h>
 #include <rl/buffers/buffers.h>
 
-#include "self_play_episode.h"
-
 
 using namespace rl::agents::alpha_zero;
 

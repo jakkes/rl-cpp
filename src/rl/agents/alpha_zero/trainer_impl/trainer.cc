@@ -96,7 +96,7 @@ namespace trainer_impl
         }
 
         mcts(&nodes, module, simulator, options.mcts_options);
-        auto policy = mcts_nodes_to_policy(nodes, masks, options.temperature_control->get());
+        auto policy = mcts_nodes_to_policy(nodes, options.temperature_control->get());
         auto posteriors = policy.get_probabilities();
 
         auto policy_loss = module_output->policy_loss(posteriors).mean();

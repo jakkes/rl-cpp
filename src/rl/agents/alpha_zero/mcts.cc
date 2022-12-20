@@ -36,7 +36,7 @@ namespace rl::agents::alpha_zero
 
     MCTSSelectResult MCTSNode::select(const MCTSOptions &options)
     {
-        if (terminal) {
+        if (terminal_) {
             MCTSSelectResult out{};
             out.node = parent;
             out.action = this->action;
@@ -78,8 +78,8 @@ namespace rl::agents::alpha_zero
         if (children[action]) {
             // Action was already expanded. This may happen if action resulted in a
             // terminal state.
-            assert(children[action]->terminal);
-            assert(children[action]->reward == reward);
+            assert(children[action]->terminal_);
+            assert(children[action]->reward_ == reward);
             assert(terminal);
             return;
         }
@@ -93,8 +93,8 @@ namespace rl::agents::alpha_zero
         children[action] = next_node;
         next_node->parent = this;
         next_node->action = action;
-        next_node->reward = reward;
-        next_node->terminal = terminal;
+        next_node->reward_ = reward;
+        next_node->terminal_ = terminal;
     }
 
     void MCTSNode::backup(const MCTSOptions &options)
@@ -103,11 +103,11 @@ namespace rl::agents::alpha_zero
             throw std::runtime_error{"Cannot backup from root node."};
         }
 
-        if (terminal) {
-            parent->backup(action, reward, options);
+        if (terminal_) {
+            parent->backup(action, reward_, options);
         }
         else {
-            parent->backup(action, reward + options.discount * value, options);
+            parent->backup(action, reward_ + options.discount * value, options);
         }
     }
 
@@ -124,7 +124,7 @@ namespace rl::agents::alpha_zero
             return;
         }
 
-        parent->backup(this->action, reward + options.discount * value, options);
+        parent->backup(this->action, reward_ + options.discount * value, options);
     }
 
     void mcts(

@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     auto sim = std::make_shared<simulators::CombinatorialLock>(
         dim,
         correct_sequence,
-        simulators::CombinatorialLockOptions{}.intermediate_rewards_(true)
+        simulators::CombinatorialLockOptions{}.intermediate_rewards_(false)
     );
 
     agents::alpha_zero::Trainer trainer {

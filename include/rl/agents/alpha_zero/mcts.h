@@ -57,6 +57,15 @@ namespace rl::agents::alpha_zero
             const torch::Tensor mask() const { return mask_; }
 
             inline
+            float reward() const { return reward_; }
+
+            inline
+            bool terminal() const { return terminal_; }
+
+            inline
+            bool is_root() const { return parent == nullptr; }
+
+            inline
             const torch::Tensor visit_count() const { return N; }
 
             MCTSSelectResult select(const MCTSOptions &options={});
@@ -87,8 +96,8 @@ namespace rl::agents::alpha_zero
 
             MCTSNode *parent{nullptr};
             int64_t action{-1};
-            bool terminal{false};
-            float reward{0.0f};
+            bool terminal_{false};
+            float reward_{0.0f};
 
         private:
             void backup(int64_t action, float value, const MCTSOptions &options);

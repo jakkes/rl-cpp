@@ -21,7 +21,6 @@ namespace trainer_impl
     inline
     rl::policies::Categorical mcts_nodes_to_policy(
         const std::vector<std::shared_ptr<MCTSNode>> &nodes,
-        const torch::Tensor &masks,
         float temperature
     )
     {
@@ -30,10 +29,9 @@ namespace trainer_impl
             visit_counts_vector.push_back(node->visit_count());
         }
         auto visit_counts = torch::stack({visit_counts_vector}).to(torch::kFloat32);
-        
-        visit_counts = visit_counts.index_put_({~masks}, -INFINITY).div_(temperature);
+        visit_counts.pow_(1.0f / temperature);
 
-        return rl::policies::Categorical{torch::softmax(visit_counts, -1)};
+        return rl::policies::Categorical{visit_counts};
     }
 }
 

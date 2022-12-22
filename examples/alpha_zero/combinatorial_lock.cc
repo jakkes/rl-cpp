@@ -79,6 +79,7 @@ int main(int argc, char **argv)
     auto net = std::make_shared<Net>( dim, length );
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
     auto temperature_control = std::make_shared<rl::utils::float_control::Fixed>(1.0);
+    // auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(2.0, 1.0, 600);
 
     auto sim = std::make_shared<simulators::CombinatorialLock>(
         dim,
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
             .training_temperature_control_(temperature_control)
     };
 
-    trainer.run(3600);
+    trainer.run(10800);
 }
 
 
@@ -171,7 +172,9 @@ std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const torc
         }
     }
     
-    auto policy_logits = policy->forward(one_hot_encoded.index({Slice(), Slice(None, -1)}));
+    auto policy_logits = policy->forward(
+        one_hot_encoded.index({Slice(), Slice(None, -1)})
+    );
     auto values = value->forward(
         one_hot_encoded.index({Slice(), Slice(-1, None)})
     ).squeeze(1);

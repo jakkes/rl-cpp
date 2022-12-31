@@ -31,6 +31,7 @@ namespace rl::agents::alpha_zero
         RL_OPTION(float, c2) = 19652;
 
         RL_OPTION(int, training_batchsize) = 128;
+        RL_OPTION(int, training_workers) = 1;
         RL_OPTION(int, replay_size) = 10000;
         RL_OPTION(int, min_replay_size) = 1000;
         RL_OPTION(float, max_gradient_norm) = 40.0f;

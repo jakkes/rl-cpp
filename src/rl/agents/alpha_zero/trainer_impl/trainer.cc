@@ -12,10 +12,11 @@ namespace trainer_impl
         std::shared_ptr<modules::Base> module,
         std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
+        std::shared_ptr<std::mutex> optimizer_step_mtx,
         const TrainerOptions &options
     )
     :   simulator{simulator}, module{module}, episode_queue{episode_queue},
-        optimizer{optimizer}, options{options}
+        optimizer{optimizer}, optimizer_step_mtx{optimizer_step_mtx}, options{options}
     {
         init_buffer();
     }
@@ -70,18 +71,12 @@ namespace trainer_impl
         }
     }
 
-    void Trainer::step()
+    torch::Tensor Trainer::get_target_policy(const torch::Tensor &states, const torch::Tensor &masks)
     {
-        auto sample_storage = sampler->sample(options.batchsize);
-        auto &sample{*sample_storage};
-        auto &states = sample[0];
-        auto &masks = sample[1];
-        auto &rewards = sample[2];
-
+        torch::NoGradGuard no_grad_guard{};
         auto module_output = module->forward(states);
-
-        auto priors = module_output->policy().get_probabilities().detach();
-        auto values = module_output->value_estimates().detach();
+        auto priors = module_output->policy().get_probabilities();
+        auto values = module_output->value_estimates();
 
         std::vector<std::shared_ptr<MCTSNode>> nodes{}; nodes.reserve(options.batchsize);
         for (int i = 0; i < options.batchsize; i++) {
@@ -97,8 +92,21 @@ namespace trainer_impl
 
         mcts(&nodes, module, simulator, options.mcts_options);
         auto policy = mcts_nodes_to_policy(nodes, options.temperature_control->get());
-        auto posteriors = policy.get_probabilities();
+        return policy.get_probabilities();
+    }
 
+    void Trainer::step()
+    {
+        auto sample_storage = sampler->sample(options.batchsize);
+        auto &sample{*sample_storage};
+        auto &states = sample[0];
+        auto &masks = sample[1];
+        auto &rewards = sample[2];
+
+        auto posteriors = get_target_policy(states, masks);
+
+        std::unique_lock optimizer_step_guard{*optimizer_step_mtx};
+        auto module_output = module->forward(states);
         auto policy_loss = module_output->policy_loss(posteriors).mean();
         auto value_loss = module_output->value_loss(rewards).mean();
         auto loss = policy_loss + value_loss;
@@ -112,6 +120,7 @@ namespace trainer_impl
         }
 
         optimizer->step();
+        optimizer_step_guard.unlock();
 
         if (options.logger)
         {

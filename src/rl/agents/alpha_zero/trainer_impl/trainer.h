@@ -3,6 +3,7 @@
 
 
 #include <atomic>
+#include <mutex>
 #include <thread>
 
 #include <torch/torch.h>
@@ -39,6 +40,7 @@ namespace trainer_impl
                 std::shared_ptr<modules::Base> module,
                 std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
+                std::shared_ptr<std::mutex> optimizer_step_mtx,
                 const TrainerOptions &options={}
             );
 
@@ -50,6 +52,7 @@ namespace trainer_impl
             std::shared_ptr<modules::Base> module;
             std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
+            std::shared_ptr<std::mutex> optimizer_step_mtx;
             const TrainerOptions options;
 
             std::shared_ptr<rl::buffers::Tensor> buffer;
@@ -64,6 +67,7 @@ namespace trainer_impl
             void worker();
             void queue_consumer();
             void step();
+            torch::Tensor get_target_policy(const torch::Tensor &states, const torch::Tensor &masks);
     };
 }
 

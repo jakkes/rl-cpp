@@ -20,7 +20,7 @@ namespace rl::utils::float_control
             inline
             float get() const override {
                 auto delta_s = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start_time_point).count();
-                return (end - start) * std::pow(0.5f, delta_s / half_life_seconds) + start;
+                return end + (start - end) * std::pow(0.5f, delta_s / half_life_seconds);
             }
 
         private:

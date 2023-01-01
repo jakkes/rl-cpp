@@ -78,8 +78,7 @@ int main(int argc, char **argv)
     auto logger = std::make_shared<logging::client::EMA>(std::vector{0.6, 0.9, 0.99}, 10, 10);
     auto net = std::make_shared<Net>( dim, length );
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
-    auto temperature_control = std::make_shared<rl::utils::float_control::Fixed>(1.0);
-    // auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(2.0, 1.0, 600);
+    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(2.0, 0.5, 600);
 
     auto sim = std::make_shared<simulators::CombinatorialLock>(
         dim,
@@ -99,15 +98,15 @@ int main(int argc, char **argv)
             .module_device_(torch::kCPU)
             .self_play_batchsize_(1)
             .self_play_mcts_steps_(2 * length)
-            .self_play_dirchlet_noise_alpha_(0.1)
+            .self_play_dirchlet_noise_alpha_(0.5)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
             .hindsight_callback_(hindsight_callback)
             .self_play_workers_(6)
             .training_batchsize_(64)
             .training_mcts_steps_(8 * length)
-            .training_dirchlet_noise_alpha_(0.25)
-            .training_dirchlet_noise_epsilon_(0.1)
+            .training_dirchlet_noise_alpha_(0.5)
+            .training_dirchlet_noise_epsilon_(0.25)
             .training_temperature_control_(temperature_control)
             .training_workers_(8)
     };

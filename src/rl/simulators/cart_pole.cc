@@ -48,7 +48,7 @@ namespace rl::simulators
         return 0.1f * torch::rand({n, 4}) - 0.05f;
     }
 
-    ContinuousCartPole::ContinuousCartPole() {}
+    ContinuousCartPole::ContinuousCartPole(int steps) : steps{steps} {}
 
     States ContinuousCartPole::reset(int64_t n) const
     {
@@ -84,6 +84,7 @@ namespace rl::simulators
         auto v = states.index({Slice(), 1});
         auto theta = states.index({Slice(), 2});
         auto omega = states.index({Slice(), 3});
+        auto steps = states.index({Slice(), 4});
 
         auto temp = (force + POLE_MASS_LENGTH * omega.square() * theta.sin()) / MASS_TOTAL;
         auto alpha = (G * theta.sin() - theta.cos() * temp) / (HALF_POLE_LENGTH * (4.0f / 3.0f - MASS_POLE * theta.cos().square() / MASS_TOTAL));
@@ -95,15 +96,20 @@ namespace rl::simulators
         omega = omega + DT * alpha;
 
         Observations out{};
-        out.next_states.states = torch::stack({x, v, theta, omega}, 1);
+        out.next_states.states = torch::stack({x, v, theta, omega, steps + 1}, 1);
         out.next_states.action_constraints = get_continuous_constraint(n);
         out.rewards = torch::ones({n});
-        out.terminals = (x.abs() > POSITION_LIMIT).logical_or(theta.abs() > ANGLE_LIMIT);
+        out.terminals = (
+            (x.abs() > POSITION_LIMIT)
+            .logical_or(theta.abs() > ANGLE_LIMIT)
+            .logical_or(steps >= this->steps)
+        );
 
         return out;
     }
 
-    DiscreteCartPole::DiscreteCartPole(int n_actions) : n_actions{n_actions}
+    DiscreteCartPole::DiscreteCartPole(int steps, int n_actions)
+        : sim{steps}, n_actions{n_actions}
     {
         if (n_actions < 2) {
             throw std::invalid_argument{"Must use at least two actions."};

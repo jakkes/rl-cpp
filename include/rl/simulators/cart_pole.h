@@ -11,16 +11,19 @@ namespace rl::simulators
     class ContinuousCartPole : public Base
     {
         public:
-            ContinuousCartPole();
+            ContinuousCartPole(int steps);
 
             States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
+        
+        private:
+            const int steps;
     };
 
     class DiscreteCartPole : public Base
     {
         public:
-            DiscreteCartPole(int n_actions);
+            DiscreteCartPole(int steps, int n_actions);
 
             States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
@@ -28,7 +31,7 @@ namespace rl::simulators
         private:
             const int n_actions;
             torch::Tensor forces;
-            ContinuousCartPole sim{};
+            ContinuousCartPole sim;
     };
 }
 

@@ -46,7 +46,7 @@ namespace rl::simulators
     static inline
     torch::Tensor fresh_states(int n) {
         return torch::concat(
-            {0.1f * torch::rand({n, 4}) - 0.05f, torch::ones({n, 1})},
+            {0.1f * torch::rand({n, 4}) - 0.05f, torch::zeros({n, 1})},
             1
         );
     }
@@ -120,7 +120,7 @@ namespace rl::simulators
         else {
             out.rewards = torch::ones({n});
         }
-        out.rewards /= options.reward_scaling_factor;
+        out.rewards *= options.reward_scaling_factor;
 
         return out;
     }

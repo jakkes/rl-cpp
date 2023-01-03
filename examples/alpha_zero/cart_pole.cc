@@ -69,7 +69,7 @@ int main()
             .self_play_dirchlet_noise_alpha_(0.5)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
-            .self_play_workers_(6)
+            .self_play_workers_(7)
             .training_batchsize_(64)
             .training_mcts_steps_(50)
             .training_dirchlet_noise_alpha_(0.5)
@@ -85,7 +85,7 @@ int main()
 
 std::unique_ptr<agents::alpha_zero::modules::BaseOutput> Net::forward(const Tensor &states_)
 {
-    auto states = states_;
+    auto states = states_.clone();
     states.index({Slice(), 4}).sub_(100.0f).div_(100.0f);
 
     auto policy_logits = policy->forward(states);

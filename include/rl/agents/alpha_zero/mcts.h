@@ -68,6 +68,10 @@ namespace rl::agents::alpha_zero
             inline
             const torch::Tensor visit_count() const { return N; }
 
+            inline float v() const { return value; }
+
+            inline torch::Tensor p() const { return P; }
+
             MCTSSelectResult select(const MCTSOptions &options={});
 
             void expand(

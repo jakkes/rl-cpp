@@ -111,7 +111,7 @@ namespace rl::simulators
         out.terminals = (
             (x.abs() > POSITION_LIMIT)
             .logical_or(theta.abs() > ANGLE_LIMIT)
-            .logical_or(steps >= this->steps)
+            .logical_or(steps + 1 >= this->steps)
         );
 
         if (options.sparse_reward) {

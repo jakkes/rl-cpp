@@ -126,22 +126,33 @@ namespace trainer_impl
         auto step_accessor{steps.accessor<int64_t, 1>()};
         auto terminals_accessor{terminals.accessor<bool, 1>()};
 
+        float end_value{0.0f};
+        int n_terminals{0};
+
         for (int64_t i = 0; i < options.batchsize; i++) {
-            mcts_nodes[i] = mcts_nodes[i]->get_child(action_accessor[i]);
+            auto next_node = mcts_nodes[i]->get_child(action_accessor[i]);
 
             auto &step = step_accessor[i];
-            reward_history.index_put_({i, step}, mcts_nodes[i]->reward());
+            reward_history.index_put_({i, step}, next_node->reward());
 
             step += 1;
-            if (step >= options.max_episode_length || mcts_nodes[i]->terminal()) {
+            if (step >= options.max_episode_length || next_node->terminal()) {
                 terminals_accessor[i] = true;
+                end_value += mcts_nodes[i]->v();
+                n_terminals++;
             }
             // State and mask are added to the start of next step, if state is not
             // terminal.
             else {
-                state_history.index_put_({i, step}, mcts_nodes[i]->state());
-                mask_history.index_put_({i, step}, mcts_nodes[i]->mask());
+                state_history.index_put_({i, step}, next_node->state());
+                mask_history.index_put_({i, step}, next_node->mask());
             }
+
+            mcts_nodes[i] = next_node;
+        }
+
+        if (options.logger && n_terminals > 0) {
+            options.logger->log_scalar("AlphaZero/End value", end_value / n_terminals);
         }
 
         return terminals;

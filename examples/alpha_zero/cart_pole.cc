@@ -45,13 +45,13 @@ Net::Net()
 
 int main()
 {
-    auto logger = std::make_shared<logging::client::EMA>(std::vector{0.6, 0.9, 0.99}, 10, 10);
+    auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
     auto net = std::make_shared<Net>();
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
-    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.5, 600);
+    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.1, 600);
 
     auto sim = std::make_shared<simulators::DiscreteCartPole>(
-        200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(true)
+        200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(false)
     );
 
     agents::alpha_zero::Trainer trainer {
@@ -60,23 +60,23 @@ int main()
         sim,
         agents::alpha_zero::TrainerOptions{}
             .logger_(logger)
-            .max_episode_length_(210)
-            .min_replay_size_(1000)
-            .replay_size_(5000)
+            .max_episode_length_(200)
+            .min_replay_size_(500)
+            .replay_size_(1000)
             .module_device_(torch::kCPU)
             .self_play_batchsize_(32)
-            .self_play_mcts_steps_(50)
+            .self_play_mcts_steps_(80)
             .self_play_dirchlet_noise_alpha_(0.5)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
             .self_play_workers_(7)
             .training_batchsize_(64)
-            .training_mcts_steps_(50)
+            .training_mcts_steps_(80)
             .training_dirchlet_noise_alpha_(0.5)
             .training_dirchlet_noise_epsilon_(0.25)
             .training_temperature_control_(temperature_control)
             .training_workers_(8)
-            .discount_(0.99)
+            .discount_(1.0)
     };
 
     trainer.run(10800);

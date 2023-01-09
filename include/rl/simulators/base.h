@@ -20,16 +20,10 @@ namespace rl::simulators
             virtual ~Base() = default;
 
             virtual
-            States reset(int n) const = 0;
+            States reset(int64_t n) const = 0;
 
             virtual
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const = 0;
-    };
-
-    class Factory
-    {
-        public:
-            virtual std::unique_ptr<Base> get() const = 0;
     };
 }
 

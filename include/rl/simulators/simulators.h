@@ -4,6 +4,7 @@
 
 #include "base.h"
 #include "cart_pole.h"
+#include "combinatorial_lock.h"
 #include "observation.h"
 #include "state.h"
 

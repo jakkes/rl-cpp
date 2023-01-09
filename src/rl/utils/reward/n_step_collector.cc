@@ -1,7 +1,7 @@
-#include "rl/utils/n_step_collector.h"
+#include "rl/utils/reward/n_step_collector.h"
 
 
-namespace rl::utils
+namespace rl::utils::reward
 {
     NStepCollector::NStepCollector(int n, float discount)
     : n{n}, discount{discount}

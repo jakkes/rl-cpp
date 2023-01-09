@@ -45,12 +45,17 @@ namespace rl::simulators
 
     static inline
     torch::Tensor fresh_states(int n) {
-        return 0.1f * torch::rand({n, 4}) - 0.05f;
+        return torch::concat(
+            {0.1f * torch::rand({n, 4}) - 0.05f, torch::zeros({n, 1})},
+            1
+        );
     }
 
-    ContinuousCartPole::ContinuousCartPole() {}
+    ContinuousCartPole::ContinuousCartPole(int steps, const CartPoleOptions &options)
+    : steps{steps}, options{options}
+    {}
 
-    States ContinuousCartPole::reset(int n) const
+    States ContinuousCartPole::reset(int64_t n) const
     {
         States out{};
         out.states = fresh_states(n);
@@ -84,6 +89,11 @@ namespace rl::simulators
         auto v = states.index({Slice(), 1});
         auto theta = states.index({Slice(), 2});
         auto omega = states.index({Slice(), 3});
+        auto steps = states.index({Slice(), 4});
+
+        if ((steps >= this->steps).any().item().toBool()) {
+            throw std::invalid_argument{"Cannot step a terminal state."};
+        }
 
         auto temp = (force + POLE_MASS_LENGTH * omega.square() * theta.sin()) / MASS_TOTAL;
         auto alpha = (G * theta.sin() - theta.cos() * temp) / (HALF_POLE_LENGTH * (4.0f / 3.0f - MASS_POLE * theta.cos().square() / MASS_TOTAL));
@@ -95,15 +105,29 @@ namespace rl::simulators
         omega = omega + DT * alpha;
 
         Observations out{};
-        out.next_states.states = torch::stack({x, v, theta, omega}, 1);
+        out.next_states.states = torch::stack({x, v, theta, omega, steps + 1}, 1);
         out.next_states.action_constraints = get_continuous_constraint(n);
-        out.rewards = torch::ones({n});
-        out.terminals = (x.abs() > POSITION_LIMIT).logical_or(theta.abs() > ANGLE_LIMIT);
+
+        out.terminals = (
+            (x.abs() > POSITION_LIMIT)
+            .logical_or(theta.abs() > ANGLE_LIMIT)
+            .logical_or(steps + 1 >= this->steps)
+        );
+
+        if (options.sparse_reward) {
+            out.rewards = torch::where(out.terminals, steps + 1, torch::zeros_like(steps));
+        }
+        else {
+            out.rewards = torch::ones({n});
+        }
+        out.rewards *= options.reward_scaling_factor;
 
         return out;
     }
 
-    DiscreteCartPole::DiscreteCartPole(int n_actions) : n_actions{n_actions}
+    DiscreteCartPole::DiscreteCartPole(
+        int steps, int n_actions, const CartPoleOptions &options
+    ) : sim{steps, options}, n_actions{n_actions}
     {
         if (n_actions < 2) {
             throw std::invalid_argument{"Must use at least two actions."};
@@ -112,7 +136,7 @@ namespace rl::simulators
         forces = torch::linspace(-1.0f, 1.0f, n_actions);
     }
 
-    States DiscreteCartPole::reset(int n) const
+    States DiscreteCartPole::reset(int64_t n) const
     {
         States out{};
         out.states = fresh_states(n);

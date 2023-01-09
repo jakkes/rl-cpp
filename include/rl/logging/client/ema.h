@@ -29,8 +29,9 @@ namespace rl::logging::client
              * 
              * @param smoothing_values Smoothing values to be used in the logging.
              * @param output_period_s Period, in seconds, of the output.
+             * @param frequency_window_seconds Frequencies are estimated in window of this length.
              */
-            EMA(const std::vector<double> &smoothing_values, int output_period_s);
+            EMA(const std::vector<double> &smoothing_values, int output_period_s, int frequency_window_seconds=-1);
             ~EMA();
             
             /// <inheritdoc/>
@@ -90,7 +91,7 @@ namespace rl::logging::client
 
             std::mutex occurances_reset_mtx{};
             std::unordered_map<std::string, std::atomic<size_t>> occurences;
-            rl::cpputils::Metronome<std::chrono::seconds> metronome{5};
+            rl::cpputils::Metronome<std::chrono::seconds> metronome;
 
             std::mutex text_mtx{};
             std::unordered_map<std::string, std::string> text_logs;

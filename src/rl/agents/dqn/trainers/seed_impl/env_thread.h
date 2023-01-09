@@ -12,7 +12,7 @@
 
 #include <rl/env/base.h>
 #include <rl/agents/dqn/trainers/seed.h>
-#include <rl/utils/n_step_collector.h>
+#include <rl/utils/reward/n_step_collector.h>
 #include <rl/agents/dqn/utils/hindsight_replay.h>
 
 #include "inferer.h"
@@ -25,7 +25,7 @@ namespace seed_impl
             EnvWorker(
                 std::shared_ptr<rl::env::Factory> env_factory,
                 std::shared_ptr<Inferer> inferer,
-                std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+                std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
                 const rl::agents::dqn::trainers::SEEDOptions &options
             );
 
@@ -37,10 +37,10 @@ namespace seed_impl
         private:
             const rl::agents::dqn::trainers::SEEDOptions options;
             std::shared_ptr<Inferer> inferer;
-            std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue;
+            std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue;
             std::unique_ptr<rl::env::Base> env;
 
-            rl::utils::NStepCollector n_step_collector;
+            rl::utils::reward::NStepCollector n_step_collector;
 
             std::shared_ptr<rl::env::State> state;
             std::unique_ptr<InferenceResultFuture> result_future;
@@ -58,7 +58,7 @@ namespace seed_impl
             EnvThread(
                 std::shared_ptr<rl::env::Factory> env_factory,
                 std::shared_ptr<Inferer> inferer,
-                std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue,
+                std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue,
                 const rl::agents::dqn::trainers::SEEDOptions &options
             );
 
@@ -69,7 +69,7 @@ namespace seed_impl
             rl::agents::dqn::trainers::SEEDOptions options;
             std::shared_ptr<Inferer> inferer;
             std::shared_ptr<rl::env::Factory> env_factory;
-            std::shared_ptr<thread_safe::Queue<rl::utils::NStepCollectorTransition>> transition_queue;
+            std::shared_ptr<thread_safe::Queue<rl::utils::reward::NStepCollectorTransition>> transition_queue;
 
             std::atomic<bool> running{false};
             std::thread worker_thread;

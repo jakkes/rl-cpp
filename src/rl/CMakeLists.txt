@@ -11,7 +11,7 @@ target_sources(
         logging/client/base.cc
         logging/client/ema.cc
         logging/client/tensorboard.cc
-        
+
         policies/categorical.cc
         policies/beta.cc
         policies/dirchlet.cc
@@ -24,8 +24,10 @@ target_sources(
             policies/constraints/empty.cc
 
         simulators/cart_pole.cc
+        simulators/combinatorial_lock.cc
 
-        utils/n_step_collector.cc
+        utils/reward/n_step_collector.cc
+        utils/reward/backpropagate.cc
 
         torchutils.cc
 )

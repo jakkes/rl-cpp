@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <rl/utils/n_step_collector.h>
+#include <rl/utils/reward/n_step_collector.h>
 
 
 void check_transition(
-    const rl::utils::NStepCollectorTransition &transition,
+    const rl::utils::reward::NStepCollectorTransition &transition,
     int64_t start_state,
     int64_t action,
     float reward,
@@ -32,7 +32,7 @@ void check_transition(
     ASSERT_EQ(transition.terminal, terminal);
 }
 
-auto step(rl::utils::NStepCollector *collector, int i, bool terminal)
+auto step(rl::utils::reward::NStepCollector *collector, int i, bool terminal)
 {
     auto state = std::make_shared<rl::env::State>();
     state->state = torch::tensor(i);
@@ -47,7 +47,7 @@ auto step(rl::utils::NStepCollector *collector, int i, bool terminal)
 
 TEST(n_step_collector, terminal_single_step)
 {
-    rl::utils::NStepCollector collector{3, 0.75};
+    rl::utils::reward::NStepCollector collector{3, 0.75};
 
     auto o = std::vector{
         step(&collector, 0, true),
@@ -73,7 +73,7 @@ TEST(n_step_collector, terminal_single_step)
 
 TEST(n_step_collector, single_step)
 {
-    rl::utils::NStepCollector collector{1, 0.75};
+    rl::utils::reward::NStepCollector collector{1, 0.75};
 
     auto o = std::vector{
         step(&collector, 0, false),
@@ -113,7 +113,7 @@ TEST(n_step_collector, single_step)
 
 TEST(n_step_collector, loop)
 {
-    rl::utils::NStepCollector collector{3, 0.75};
+    rl::utils::reward::NStepCollector collector{3, 0.75};
 
     for (int i = 0; i < 3; i++)
     {
@@ -140,7 +140,7 @@ TEST(n_step_collector, loop)
 
 TEST(n_step_collector, loop_terminal)
 {
-    rl::utils::NStepCollector collector{3, 0.75};
+    rl::utils::reward::NStepCollector collector{3, 0.75};
 
     auto step = [&collector] (int i, bool terminal)
     {
@@ -210,7 +210,7 @@ TEST(n_step_collector, loop_terminal)
 
 // TEST(n_step_collector, no_loop_terminal)
 // {
-//     rl::utils::NStepCollector collector{3, 0.75};
+//     rl::utils::reward::NStepCollector collector{3, 0.75};
 
 //     auto step = [&collector] (int i, bool terminal)
 //     {

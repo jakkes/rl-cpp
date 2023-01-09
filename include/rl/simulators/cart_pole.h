@@ -4,52 +4,43 @@
 
 #include <torch/torch.h>
 
+#include <rl/option.h>
+
 #include "base.h"
 
 namespace rl::simulators
 {
+    struct CartPoleOptions
+    {
+        RL_OPTION(bool, sparse_reward) = false;
+        RL_OPTION(float, reward_scaling_factor) = 1.0f;
+    };
+
     class ContinuousCartPole : public Base
     {
         public:
-            ContinuousCartPole();
+            ContinuousCartPole(int steps, const CartPoleOptions &options={});
 
-            States reset(int n) const override;
+            States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
-    };
-
-    class ContinuousCartPoleFactory : public Factory
-    {
-        public:
-            std::unique_ptr<Base> get() const override {
-                return std::make_unique<ContinuousCartPole>();
-            }
+        
+        private:
+            const int steps;
+            const CartPoleOptions options;
     };
 
     class DiscreteCartPole : public Base
     {
         public:
-            DiscreteCartPole(int n_actions);
+            DiscreteCartPole(int steps, int n_actions, const CartPoleOptions &options={});
 
-            States reset(int n) const override;
+            States reset(int64_t n) const override;
             Observations step(const torch::Tensor &states, const torch::Tensor &actions) const override;
         
         private:
             const int n_actions;
             torch::Tensor forces;
-            ContinuousCartPole sim{};
-    };
-
-    class DiscreteCartPoleFactory : public Factory
-    {
-        public:
-            DiscreteCartPoleFactory(int n_actions) : n_actions{n_actions} {}
-
-            std::unique_ptr<Base> get() const override {
-                return std::make_unique<DiscreteCartPole>(n_actions);
-            }
-        
-        private:
-            const int n_actions;
+            ContinuousCartPole sim;
     };
 }
 

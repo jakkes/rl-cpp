@@ -51,7 +51,7 @@ int main()
     auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.1, 600);
 
     auto sim = std::make_shared<simulators::DiscreteCartPole>(
-        200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(false)
+        200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(true)
     );
 
     agents::alpha_zero::Trainer trainer {
@@ -62,7 +62,7 @@ int main()
             .logger_(logger)
             .max_episode_length_(200)
             .min_replay_size_(500)
-            .replay_size_(1000)
+            .replay_size_(100000)
             .module_device_(torch::kCPU)
             .self_play_batchsize_(32)
             .self_play_mcts_steps_(80)

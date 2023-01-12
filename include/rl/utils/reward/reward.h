@@ -3,5 +3,6 @@
 
 
 #include "n_step_collector.h"
+#include "backpropagate.h"
 
 #endif /* RL_UTILS_REWARD_REWARD_H_ */

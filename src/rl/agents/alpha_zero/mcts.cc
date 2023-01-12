@@ -172,9 +172,9 @@ namespace rl::agents::alpha_zero
 
             auto next_masks = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints)->mask();
 
-            auto module_output = module->forward(observation.next_states.states);
-            auto policy = module_output->policy();
-            auto value = module_output->value_estimates();
+            auto module_output = module->forward(observation.next_states.states.to(options.module_device));
+            auto policy = module_output->policy().get_probabilities().to(torch::kCPU);
+            auto value = module_output->value_estimates().to(torch::kCPU);
 
             for (int i = 0; i < root_nodes.size(); i++) {
                 select_results[i].node->expand(
@@ -183,7 +183,7 @@ namespace rl::agents::alpha_zero
                     observation.terminals.index({i}).item().toBool(),
                     observation.next_states.states.index({i}),
                     next_masks.index({i}),
-                    policy.get_probabilities().index({i}),
+                    policy.index({i}),
                     value.index({i}),
                     options
                 );

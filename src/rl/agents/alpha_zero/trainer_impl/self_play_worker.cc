@@ -56,9 +56,9 @@ namespace trainer_impl
 
         auto states = this->state_history.index({terminal_mask}).index({Slice(), 0});
         auto masks = this->mask_history.index({terminal_mask}).index({Slice(), 0});
-        auto module_output = module->forward(states);
-        auto priors = module_output->policy().get_probabilities();
-        auto values = module_output->value_estimates();
+        auto module_output = module->forward(states.to(options.module_device));
+        auto priors = module_output->policy().get_probabilities().to(torch::kCPU);
+        auto values = module_output->value_estimates().to(torch::kCPU);
         
         int j{-1};
         for (int i = 0; i < options.batchsize; i++)

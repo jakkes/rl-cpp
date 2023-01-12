@@ -74,9 +74,9 @@ namespace trainer_impl
     torch::Tensor Trainer::get_target_policy(const torch::Tensor &states, const torch::Tensor &masks)
     {
         torch::NoGradGuard no_grad_guard{};
-        auto module_output = module->forward(states);
-        auto priors = module_output->policy().get_probabilities();
-        auto values = module_output->value_estimates();
+        auto module_output = module->forward(states.to(options.module_device));
+        auto priors = module_output->policy().get_probabilities().to(torch::kCPU);
+        auto values = module_output->value_estimates().to(torch::kCPU);
 
         std::vector<std::shared_ptr<MCTSNode>> nodes{}; nodes.reserve(options.batchsize);
         for (int i = 0; i < options.batchsize; i++) {
@@ -103,12 +103,12 @@ namespace trainer_impl
         auto &masks = sample[1];
         auto &rewards = sample[2];
 
-        auto posteriors = get_target_policy(states, masks);
+        auto posteriors = get_target_policy(states, masks).to(options.module_device);
 
         std::unique_lock optimizer_step_guard{*optimizer_step_mtx};
-        auto module_output = module->forward(states);
+        auto module_output = module->forward(states.to(options.module_device));
         auto policy_loss = module_output->policy_loss(posteriors).mean();
-        auto value_loss = module_output->value_loss(rewards).mean();
+        auto value_loss = module_output->value_loss(rewards.to(options.module_device)).mean();
         auto loss = policy_loss + value_loss;
 
         optimizer->zero_grad();

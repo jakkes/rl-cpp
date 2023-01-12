@@ -41,6 +41,7 @@ namespace rl::agents::alpha_zero
                         .batchsize_(options.self_play_batchsize)
                         .discount_(options.discount)
                         .logger_(options.logger)
+                        .module_device_(options.module_device)
                         .max_episode_length_(options.max_episode_length)
                         .temperature_control_(options.self_play_temperature_control)
                         .hindsight_callback_(options.hindsight_callback)
@@ -78,6 +79,7 @@ namespace rl::agents::alpha_zero
                         .gradient_norm_(options.max_gradient_norm)
                         .logger_(options.logger)
                         .min_replay_size_(options.min_replay_size)
+                        .module_device_(options.module_device)
                         .replay_size_(options.replay_size)
                         .temperature_control_(options.training_temperature_control)
                         .mcts_options_(

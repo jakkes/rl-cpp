@@ -47,6 +47,7 @@ int main()
 {
     auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
     auto net = std::make_shared<Net>();
+    net->to(torch::kCUDA);
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
     auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.1, 600);
 
@@ -63,19 +64,19 @@ int main()
             .max_episode_length_(200)
             .min_replay_size_(500)
             .replay_size_(100000)
-            .module_device_(torch::kCPU)
+            .module_device_(torch::kCUDA)
             .self_play_batchsize_(32)
             .self_play_mcts_steps_(80)
             .self_play_dirchlet_noise_alpha_(0.5)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
-            .self_play_workers_(7)
+            .self_play_workers_(1)
             .training_batchsize_(64)
             .training_mcts_steps_(80)
             .training_dirchlet_noise_alpha_(0.5)
             .training_dirchlet_noise_epsilon_(0.25)
             .training_temperature_control_(temperature_control)
-            .training_workers_(8)
+            .training_workers_(1)
             .discount_(1.0)
     };
 

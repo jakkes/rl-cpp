@@ -216,6 +216,16 @@ namespace trainer_impl
 
                 if (should_enqueue) {
                     enqueue_episode(hindsight_episode);
+
+                    if (options.logger) {
+                        options.logger->log_scalar(
+                            "AlphaZero/Hindsight reward",
+                            hindsight_episode.collected_rewards.index({0}).item().toFloat()
+                        );
+                        options.logger->log_frequency(
+                            "AlphaZero/Hindsight episode rate", 1
+                        );
+                    }
                 }
             }
         }

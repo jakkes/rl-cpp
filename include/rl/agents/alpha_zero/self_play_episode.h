@@ -9,8 +9,11 @@ namespace rl::agents::alpha_zero
 {
     struct SelfPlayEpisode
     {
+        // Sequence of states in an episode.
         torch::Tensor states;
+        // Sequence of masks in an episode.
         torch::Tensor masks;
+        // Sequence of (future, discounted) rewards collected during an episode, G.
         torch::Tensor collected_rewards;
     };
 }

@@ -1,5 +1,6 @@
 #include "trainer.h"
 
+#include <c10/cuda/CUDAStream.h>
 #include <rl/torchutils.h>
 
 #include "helpers.h"
@@ -62,6 +63,8 @@ namespace trainer_impl
 
     void Trainer::worker()
     {
+        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
+
         while (running && buffer->size() < options.min_replay_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }

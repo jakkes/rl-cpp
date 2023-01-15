@@ -1,5 +1,6 @@
 #include "self_play_worker.h"
 
+#include <c10/cuda/CUDAStream.h>
 #include <rl/utils/reward/backpropagate.h>
 
 #include "helpers.h"
@@ -56,9 +57,10 @@ namespace trainer_impl
 
         auto states = this->state_history.index({terminal_mask}).index({Slice(), 0});
         auto masks = this->mask_history.index({terminal_mask}).index({Slice(), 0});
-        auto module_output = module->forward(states.to(options.module_device));
-        auto priors = module_output->policy().get_probabilities().to(torch::kCPU);
-        auto values = module_output->value_estimates().to(torch::kCPU);
+
+        auto output = inference_fn(states.to(options.module_device));
+        auto priors = output.policies.get_probabilities().to(torch::kCPU);
+        auto values = output.values.to(torch::kCPU);
         
         int j{-1};
         for (int i = 0; i < options.batchsize; i++)
@@ -78,7 +80,7 @@ namespace trainer_impl
 
         if (options.logger) {
             options.logger->log_scalar("AlphaZero/Start value", values.mean().item().toFloat());
-            options.logger->log_scalar("AlphaZero/Start entropy", module_output->policy().entropy().mean().item().toFloat());
+            options.logger->log_scalar("AlphaZero/Start entropy", output.policies.entropy().mean().item().toFloat());
         }
     }
 
@@ -174,8 +176,10 @@ namespace trainer_impl
 
     void SelfPlayWorker::worker()
     {
-        set_initial_state();
+        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
+        inference_fn_setup();
 
+        set_initial_state();
         while (running) {
             step();
         }
@@ -242,5 +246,37 @@ namespace trainer_impl
         while (!enqueued) {
             enqueued = episode_queue->enqueue(episode, std::chrono::seconds(5));
         }
+    }
+
+    void SelfPlayWorker::inference_fn_setup()
+    {
+        if (options.module_device.is_cuda()) {
+            cuda_graph_inference_setup();
+            inference_fn = std::bind(&SelfPlayWorker::cuda_graph_inference_fn, this, std::placeholders::_1);
+        }
+        else {
+            inference_fn = std::bind(&SelfPlayWorker::cpu_inference_fn, this, std::placeholders::_1);
+        }
+    }
+
+    void SelfPlayWorker::cuda_graph_inference_setup()
+    {
+        inference_graph = std::make_unique<at::cuda::CUDAGraph>();
+        inference_input = simulator->reset(options.batchsize).states.to(options.module_device);
+
+        inference_graph->capture_begin();
+        auto module_output = module->forward(inference_input);
+        inference_policy_output = module_output->policy().get_probabilities();
+        inference_value_output = module_output->value_estimates();
+        inference_graph->capture_end();
+    }
+
+    MCTSInferenceResult SelfPlayWorker::cuda_graph_inference_fn(const torch::Tensor &states)
+    {
+        inference_input.fill_(states);
+        inference_graph->replay();
+        return MCTSInferenceResult{
+            inference_policy_output.clone(), inference_value_output.clone()
+        };
     }
 }

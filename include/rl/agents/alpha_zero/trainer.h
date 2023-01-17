@@ -34,7 +34,6 @@ namespace rl::agents::alpha_zero
         RL_OPTION(int, training_workers) = 1;
         RL_OPTION(int, replay_size) = 10000;
         RL_OPTION(int, min_replay_size) = 1000;
-        RL_OPTION(float, max_gradient_norm) = 40.0f;
         RL_OPTION(int, training_mcts_steps) = 100;
         RL_OPTION(float, training_dirchlet_noise_alpha) = 0.1f;
         RL_OPTION(float, training_dirchlet_noise_epsilon) = 0.5f;

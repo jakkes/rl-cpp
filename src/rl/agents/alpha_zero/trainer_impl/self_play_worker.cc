@@ -261,22 +261,29 @@ namespace trainer_impl
 
     void SelfPlayWorker::cuda_graph_inference_setup()
     {
+        torch::NoGradGuard no_grad_guard{};
+
         inference_graph = std::make_unique<at::cuda::CUDAGraph>();
         inference_input = simulator->reset(options.batchsize).states.to(options.module_device);
+        auto intermediate_output_1 = module->forward(inference_input);
+        inference_policy_output = intermediate_output_1->policy().get_probabilities();
+        inference_value_output = intermediate_output_1->value_estimates();
 
         inference_graph->capture_begin();
-        auto module_output = module->forward(inference_input);
-        inference_policy_output = module_output->policy().get_probabilities();
-        inference_value_output = module_output->value_estimates();
+        auto intermediate_output_2 = module->forward(inference_input);
+        inference_policy_output = intermediate_output_2->policy().get_probabilities();
+        inference_value_output = intermediate_output_2->value_estimates();
         inference_graph->capture_end();
     }
 
     MCTSInferenceResult SelfPlayWorker::cuda_graph_inference_fn(const torch::Tensor &states)
     {
-        inference_input.fill_(states);
+        auto N = states.size(0);
+        inference_input.index_put_({Slice(None, N)}, states);
         inference_graph->replay();
         return MCTSInferenceResult{
-            inference_policy_output.clone(), inference_value_output.clone()
+            inference_policy_output.index({Slice(None, N)}).clone(),
+            inference_value_output.index({Slice(None, N)}).clone()
         };
     }
 }

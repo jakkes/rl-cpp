@@ -22,7 +22,6 @@ namespace rl::policies
         dim{probabilities.size(-1)},
         sample_shape{rl::cpputils::slice(probabilities.sizes().vec(), 0, -1)}
     {
-        check_probabilities();
         compute_internals();
     }
 
@@ -43,16 +42,6 @@ namespace rl::policies
         batchvec = torch::arange(probabilities.size(0), torch::TensorOptions{}.device(probabilities.device()));
     }
 
-    void Categorical::check_probabilities()
-    {
-        if (probabilities.isnan().any().item().toBool()) {
-            throw std::runtime_error{"Categorical policy did not expect NaN values."};
-        }
-        if (probabilities.lt(0.0).any().item().toBool()) {
-            throw std::invalid_argument{"Probabilities must all be non-negative."};
-        }
-    }
-
     void Categorical::include(std::shared_ptr<constraints::Base> constraint)
     {
         auto categorical_mask = std::dynamic_pointer_cast<constraints::CategoricalMask>(constraint);
@@ -60,7 +49,6 @@ namespace rl::policies
         if (categorical_mask) {
             auto mask = categorical_mask->mask().view_as(probabilities);
             probabilities.index_put_({~mask}, 0.0);
-            check_probabilities();
             compute_internals();
             return;
         }

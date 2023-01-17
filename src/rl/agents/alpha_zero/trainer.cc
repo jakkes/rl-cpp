@@ -76,7 +76,6 @@ namespace rl::agents::alpha_zero
                     optimizer_step_mtx,
                     trainer_impl::TrainerOptions{}
                         .batchsize_(options.training_batchsize)
-                        .gradient_norm_(options.max_gradient_norm)
                         .logger_(options.logger)
                         .min_replay_size_(options.min_replay_size)
                         .module_device_(options.module_device)

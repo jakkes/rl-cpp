@@ -162,7 +162,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::step()
     {
-        mcts(&mcts_nodes, module, simulator, options.mcts_options);
+        mcts(&mcts_nodes, inference_fn, simulator, options.mcts_options);
         auto policy = mcts_nodes_to_policy(mcts_nodes, options.temperature_control->get());
         auto actions = policy.sample();
         auto terminals = step_mcts_nodes(actions);

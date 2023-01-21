@@ -17,7 +17,7 @@ namespace trainer_impl
     ) : simulator{simulator}, module{module}, episode_queue{episode_queue}, options{options}
     {
         batchvec = torch::arange(options.batchsize);
-        this->inference_fn_setup();
+        inference_fn_setup();
     }
 
     void SelfPlayWorker::start()

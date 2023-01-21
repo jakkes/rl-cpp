@@ -58,10 +58,6 @@ namespace rl::agents::alpha_zero
                 )
             );
         }
-        for (auto &worker : self_play_workers) {
-            worker->start();
-        }
-
         
         auto optimizer_step_mtx = make_shared<mutex>();
         vector<unique_ptr<trainer_impl::Trainer>> trainers{};
@@ -95,6 +91,9 @@ namespace rl::agents::alpha_zero
                         )
                 )
             );
+        }
+        for (auto &worker : self_play_workers) {
+            worker->start();
         }
         for (auto &trainer : trainers) {
             trainer->start();

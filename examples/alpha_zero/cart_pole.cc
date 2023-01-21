@@ -76,7 +76,7 @@ int main()
             .training_dirchlet_noise_alpha_(0.5)
             .training_dirchlet_noise_epsilon_(0.25)
             .training_temperature_control_(temperature_control)
-            .training_workers_(1)
+            .training_workers_(8)
             .discount_(1.0)
     };
 

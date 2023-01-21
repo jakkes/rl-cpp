@@ -6,9 +6,10 @@
 #include <mutex>
 #include <thread>
 
+#include <thread_safe/collections/queue.h>
 #include <torch/torch.h>
 #include <ATen/cuda/CUDAGraph.h>
-#include <thread_safe/collections/queue.h>
+#include <c10/cuda/CUDAStream.h>
 
 #include <rl/option.h>
 #include <rl/logging/client/base.h>
@@ -61,9 +62,15 @@ namespace trainer_impl
             std::shared_ptr<rl::buffers::Tensor> buffer;
             std::unique_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
 
+            c10::cuda::CUDAStream cuda_stream{c10::cuda::getStreamFromPool()};
+            std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
+            torch::Tensor inference_input, inference_policy_output, inference_value_output;
+
             std::atomic<bool> running{false};
             std::thread working_thread;
             std::thread queue_consuming_thread;
+
+            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn;
         
         private:
             void init_buffer();
@@ -71,6 +78,18 @@ namespace trainer_impl
             void queue_consumer();
             void step();
             torch::Tensor get_target_policy(const torch::Tensor &states, const torch::Tensor &masks);
+
+            MCTSInferenceResult cuda_graph_inference_fn(const torch::Tensor &states);
+            void cuda_graph_inference_setup();
+
+            inline
+            MCTSInferenceResult cpu_inference_fn(const torch::Tensor &states) {
+                torch::InferenceMode guard{};
+                auto module_output = module->forward(states);
+                return MCTSInferenceResult{module_output->policy(), module_output->value_estimates()};
+            }
+
+            void inference_fn_setup();
     };
 }
 

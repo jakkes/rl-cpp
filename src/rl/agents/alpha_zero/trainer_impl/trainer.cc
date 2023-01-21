@@ -6,6 +6,8 @@
 #include "helpers.h"
 
 
+using namespace torch::indexing;
+
 namespace trainer_impl
 {
     Trainer::Trainer(
@@ -20,6 +22,7 @@ namespace trainer_impl
         optimizer{optimizer}, optimizer_step_mtx{optimizer_step_mtx}, options{options}
     {
         init_buffer();
+        inference_fn_setup();
     }
 
     void Trainer::start() {
@@ -63,7 +66,7 @@ namespace trainer_impl
 
     void Trainer::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
+        torch::StreamGuard stream_guard{cuda_stream};
 
         while (running && buffer->size() < options.min_replay_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -77,9 +80,9 @@ namespace trainer_impl
     torch::Tensor Trainer::get_target_policy(const torch::Tensor &states, const torch::Tensor &masks)
     {
         torch::NoGradGuard no_grad_guard{};
-        auto module_output = module->forward(states.to(options.module_device));
-        auto priors = module_output->policy().get_probabilities().to(torch::kCPU);
-        auto values = module_output->value_estimates().to(torch::kCPU);
+        auto inference_output = inference_fn(states.to(options.module_device));
+        auto priors = inference_output.policies.get_probabilities().to(torch::kCPU);
+        auto values = inference_output.values.to(torch::kCPU);
 
         std::vector<std::shared_ptr<MCTSNode>> nodes{}; nodes.reserve(options.batchsize);
         for (int i = 0; i < options.batchsize; i++) {
@@ -93,7 +96,7 @@ namespace trainer_impl
             );
         }
 
-        mcts(&nodes, module, simulator, options.mcts_options);
+        mcts(&nodes, inference_fn, simulator, options.mcts_options);
         auto policy = mcts_nodes_to_policy(nodes, options.temperature_control->get());
         return policy.get_probabilities();
     }
@@ -145,5 +148,45 @@ namespace trainer_impl
             auto episode = *episode_ptr;
             buffer->add({episode.states, episode.masks, episode.collected_rewards});
         }
+    }
+
+    void Trainer::inference_fn_setup()
+    {
+        if (options.module_device.is_cuda()) {
+            cuda_graph_inference_setup();
+            inference_fn = std::bind(&Trainer::cuda_graph_inference_fn, this, std::placeholders::_1);
+        }
+        else {
+            inference_fn = std::bind(&Trainer::cpu_inference_fn, this, std::placeholders::_1);
+        }
+    }
+
+    void Trainer::cuda_graph_inference_setup()
+    {
+        torch::StreamGuard stream_guard{cuda_stream};
+        torch::NoGradGuard no_grad_guard{};
+
+        inference_graph = std::make_unique<at::cuda::CUDAGraph>();
+        inference_input = simulator->reset(options.batchsize).states.to(options.module_device);
+        auto intermediate_output_1 = module->forward(inference_input);
+        inference_policy_output = intermediate_output_1->policy().get_probabilities();
+        inference_value_output = intermediate_output_1->value_estimates();
+
+        inference_graph->capture_begin();
+        auto intermediate_output_2 = module->forward(inference_input);
+        inference_policy_output = intermediate_output_2->policy().get_probabilities();
+        inference_value_output = intermediate_output_2->value_estimates();
+        inference_graph->capture_end();
+    }
+
+    MCTSInferenceResult Trainer::cuda_graph_inference_fn(const torch::Tensor &states)
+    {
+        auto N = states.size(0);
+        inference_input.index_put_({Slice(None, N)}, states);
+        inference_graph->replay();
+        return MCTSInferenceResult{
+            inference_policy_output.index({Slice(None, N)}).clone(),
+            inference_value_output.index({Slice(None, N)}).clone()
+        };
     }
 }

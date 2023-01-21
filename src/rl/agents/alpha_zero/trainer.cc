@@ -57,7 +57,9 @@ namespace rl::agents::alpha_zero
                         )
                 )
             );
-            self_play_workers.back()->start();
+        }
+        for (auto &worker : self_play_workers) {
+            worker->start();
         }
 
         
@@ -93,7 +95,9 @@ namespace rl::agents::alpha_zero
                         )
                 )
             );
-            trainers.back()->start();
+        }
+        for (auto &trainer : trainers) {
+            trainer->start();
         }
 
         auto end_time = std::chrono::high_resolution_clock::now() + std::chrono::seconds(duration_seconds);

@@ -11,6 +11,7 @@
 #include <thread_safe/collections/queue.h>
 #include <torch/torch.h>
 #include <ATen/cuda/CUDAGraph.h>
+#include <c10/cuda/CUDAStream.h>
 
 #include <rl/option.h>
 #include <rl/simulators/base.h>
@@ -57,6 +58,7 @@ namespace trainer_impl
             std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             const SelfPlayWorkerOptions options;
 
+            c10::cuda::CUDAStream inference_cuda_stream{c10::cuda::getStreamFromPool()};
             std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
             torch::Tensor inference_input, inference_policy_output, inference_value_output;
 

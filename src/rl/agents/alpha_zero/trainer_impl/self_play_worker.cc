@@ -1,6 +1,5 @@
 #include "self_play_worker.h"
 
-#include <c10/cuda/CUDAStream.h>
 #include <rl/utils/reward/backpropagate.h>
 
 #include "helpers.h"
@@ -18,6 +17,7 @@ namespace trainer_impl
     ) : simulator{simulator}, module{module}, episode_queue{episode_queue}, options{options}
     {
         batchvec = torch::arange(options.batchsize);
+        this->inference_fn_setup();
     }
 
     void SelfPlayWorker::start()
@@ -176,8 +176,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
-        inference_fn_setup();
+        torch::StreamGuard stream_guard{inference_cuda_stream};
 
         set_initial_state();
         while (running) {
@@ -261,6 +260,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::cuda_graph_inference_setup()
     {
+        torch::StreamGuard stream_guard{inference_cuda_stream};
         torch::NoGradGuard no_grad_guard{};
 
         inference_graph = std::make_unique<at::cuda::CUDAGraph>();

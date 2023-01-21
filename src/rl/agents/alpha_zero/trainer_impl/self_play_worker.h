@@ -6,9 +6,11 @@
 #include <thread>
 #include <vector>
 #include <functional>
+#include <memory>
 
 #include <thread_safe/collections/queue.h>
 #include <torch/torch.h>
+#include <ATen/cuda/CUDAGraph.h>
 
 #include <rl/option.h>
 #include <rl/simulators/base.h>
@@ -55,6 +57,9 @@ namespace trainer_impl
             std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             const SelfPlayWorkerOptions options;
 
+            std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
+            torch::Tensor inference_input, inference_policy_output, inference_value_output;
+
             std::atomic<bool> running{false};
             std::thread working_thread;
 
@@ -65,6 +70,8 @@ namespace trainer_impl
             torch::Tensor reward_history;
             torch::Tensor steps;
 
+            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn;
+
         private:
             void worker();
             void step();
@@ -74,6 +81,18 @@ namespace trainer_impl
             void reset_histories(const torch::Tensor &terminal_mask);
             void process_terminals(const torch::Tensor &terminal_mask);
             void enqueue_episode(const SelfPlayEpisode &episode);
+            
+            MCTSInferenceResult cuda_graph_inference_fn(const torch::Tensor &states);
+            void cuda_graph_inference_setup();
+
+            inline
+            MCTSInferenceResult cpu_inference_fn(const torch::Tensor &states) {
+                torch::InferenceMode guard{};
+                auto module_output = module->forward(states);
+                return MCTSInferenceResult{module_output->policy(), module_output->value_estimates()};
+            }
+
+            void inference_fn_setup();
     };
 }
 

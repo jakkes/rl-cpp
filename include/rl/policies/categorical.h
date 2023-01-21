@@ -46,7 +46,6 @@ namespace rl::policies
             const std::vector<int64_t> sample_shape;
             const int64_t dim;
 
-            void check_probabilities();
             void compute_internals();
     };
 }

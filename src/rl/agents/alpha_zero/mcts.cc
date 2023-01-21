@@ -129,13 +129,12 @@ namespace rl::agents::alpha_zero
 
     void mcts(
         std::vector<std::shared_ptr<MCTSNode>> *root_nodes_,
-        std::shared_ptr<modules::Base> module,
+        std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn,
         std::shared_ptr<rl::simulators::Base> simulator,
         const MCTSOptions &options
     )
     {
         auto &root_nodes{*root_nodes_};
-        torch::InferenceMode inference_guard{};
 
         int64_t batchsize = root_nodes.size();
         int64_t dim = root_nodes.front()->mask().size(0);
@@ -172,9 +171,9 @@ namespace rl::agents::alpha_zero
 
             auto next_masks = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints)->mask();
 
-            auto module_output = module->forward(observation.next_states.states.to(options.module_device));
-            auto policy = module_output->policy().get_probabilities().to(torch::kCPU);
-            auto value = module_output->value_estimates().to(torch::kCPU);
+            auto output = inference_fn(observation.next_states.states.to(options.module_device));
+            auto priors = output.policies.get_probabilities().to(torch::kCPU);
+            auto value = output.values.to(torch::kCPU);
 
             for (int i = 0; i < root_nodes.size(); i++) {
                 select_results[i].node->expand(
@@ -183,7 +182,7 @@ namespace rl::agents::alpha_zero
                     observation.terminals.index({i}).item().toBool(),
                     observation.next_states.states.index({i}),
                     next_masks.index({i}),
-                    policy.index({i}),
+                    priors.index({i}),
                     value.index({i}),
                     options
                 );
@@ -197,37 +196,17 @@ namespace rl::agents::alpha_zero
 
     std::vector<std::shared_ptr<MCTSNode>> mcts(
         const torch::Tensor &states,
-        const torch::Tensor &masks,
-        std::shared_ptr<modules::Base> module,
-        std::shared_ptr<rl::simulators::Base> simulator,
-        const MCTSOptions &options
-    )
-    {
-        return mcts(
-            states,
-            std::make_shared<rl::policies::constraints::CategoricalMask>(masks),
-            module,
-            simulator,
-            options
-        );
-    }
-
-    std::vector<std::shared_ptr<MCTSNode>> mcts(
-        const torch::Tensor &states,
         std::shared_ptr<rl::policies::constraints::CategoricalMask> masks,
-        std::shared_ptr<modules::Base> module,
+        std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn,
         std::shared_ptr<rl::simulators::Base> simulator,
         const MCTSOptions &options
     )
     {
-        torch::InferenceMode inference_guard{};
+        auto output = inference_fn(states.to(options.module_device));
+        output.policies.include(masks);
 
-        auto output = module->forward(states.to(options.module_device));
-        auto prior_policy = output->policy();
-        prior_policy.include(masks);
-
-        auto priors = prior_policy.get_probabilities();
-        auto values = output->value_estimates();
+        auto priors = output.policies.get_probabilities().to(torch::kCPU);
+        auto values = output.values.to(torch::kCPU);
 
         std::vector<std::shared_ptr<MCTSNode>> root_nodes{};
         root_nodes.resize(priors.size(0));
@@ -241,7 +220,7 @@ namespace rl::agents::alpha_zero
             );
         }
 
-        mcts(&root_nodes, module, simulator, options);
+        mcts(&root_nodes, inference_fn, simulator, options);
 
         return root_nodes;
     }

@@ -7,6 +7,7 @@
 #include <thread>
 
 #include <torch/torch.h>
+#include <ATen/cuda/CUDAGraph.h>
 #include <thread_safe/collections/queue.h>
 
 #include <rl/option.h>

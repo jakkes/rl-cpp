@@ -47,9 +47,9 @@ int main()
 {
     auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
     auto net = std::make_shared<Net>();
-    // net->to(torch::kCUDA);
+    net->to(torch::kCUDA);
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
-    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.1, 600);
+    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.5, 600);
 
     auto sim = std::make_shared<simulators::DiscreteCartPole>(
         200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(true)
@@ -62,9 +62,9 @@ int main()
         agents::alpha_zero::TrainerOptions{}
             .logger_(logger)
             .max_episode_length_(200)
-            .min_replay_size_(500)
+            .min_replay_size_(1000)
             .replay_size_(100000)
-            // .module_device_(torch::kCUDA)
+            .module_device_(torch::kCUDA)
             .self_play_batchsize_(32)
             .self_play_mcts_steps_(80)
             .self_play_dirchlet_noise_alpha_(0.5)

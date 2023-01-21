@@ -49,7 +49,7 @@ int main()
     auto net = std::make_shared<Net>();
     net->to(torch::kCUDA);
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
-    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.1, 600);
+    auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.5, 600);
 
     auto sim = std::make_shared<simulators::DiscreteCartPole>(
         200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(true)
@@ -62,7 +62,7 @@ int main()
         agents::alpha_zero::TrainerOptions{}
             .logger_(logger)
             .max_episode_length_(200)
-            .min_replay_size_(500)
+            .min_replay_size_(1000)
             .replay_size_(100000)
             .module_device_(torch::kCUDA)
             .self_play_batchsize_(32)

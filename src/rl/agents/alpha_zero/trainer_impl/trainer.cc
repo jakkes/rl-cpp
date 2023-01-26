@@ -23,6 +23,7 @@ namespace trainer_impl
     {
         init_buffer();
         inference_fn_setup();
+        train_step_fn_setup();
     }
 
     void Trainer::start() {
@@ -109,29 +110,21 @@ namespace trainer_impl
         auto &masks = sample[1];
         auto &rewards = sample[2];
 
-        auto posteriors = get_target_policy(states, masks).to(options.module_device);
+        auto posteriors = get_target_policy(states, masks);
 
         std::unique_lock optimizer_step_guard{*optimizer_step_mtx};
-        auto module_output = module->forward(states.to(options.module_device));
-        auto policy_loss = module_output->policy_loss(posteriors).mean();
-        auto value_loss = module_output->value_loss(rewards.to(options.module_device)).mean();
-        auto loss = policy_loss + value_loss;
-
-        optimizer->zero_grad();
-        loss.backward();
-
-        auto gradient_norm = rl::torchutils::compute_gradient_norm(optimizer).item().toFloat();
-        if (gradient_norm > options.gradient_norm) {
-            rl::torchutils::scale_gradients(optimizer, options.gradient_norm / gradient_norm);
-        }
-
-        optimizer->step();
+        auto train_step_output = train_step_fn(
+            states.to(options.module_device),
+            posteriors.to(options.module_device),
+            rewards.to(options.module_device)
+        );
         optimizer_step_guard.unlock();
 
         if (options.logger)
         {
-            options.logger->log_scalar("AlphaZero/Value loss", value_loss.item().toFloat());
-            options.logger->log_scalar("AlphaZero/Policy loss", policy_loss.item().toFloat());
+            options.logger->log_scalar("AlphaZero/Value loss", train_step_output.value_loss);
+            options.logger->log_scalar("AlphaZero/Policy loss", train_step_output.policy_loss);
+            options.logger->log_scalar("AlphaZero/Gradient norm", train_step_output.gradient_norm);
             options.logger->log_frequency("AlphaZero/Training rate", 1);
         }
     }
@@ -188,5 +181,47 @@ namespace trainer_impl
             inference_policy_output.index({Slice(None, N)}).clone(),
             inference_value_output.index({Slice(None, N)}).clone()
         };
+    }
+
+    void Trainer::train_step_fn_impl(const torch::Tensor &states, const torch::Tensor &posteriors, const torch::Tensor &rewards)
+    {
+        auto module_output = module->forward(states);
+        policy_loss = module_output->policy_loss(posteriors).mean();
+        value_loss = module_output->value_loss(rewards).mean();
+        auto loss = policy_loss + value_loss;
+
+        optimizer->zero_grad();
+        loss.backward();
+        gradient_norm = rl::torchutils::compute_gradient_norm(optimizer);
+        optimizer->step();
+    }
+
+    void Trainer::train_step_fn_setup()
+    {
+        torch::StreamGuard stream_guard{cuda_stream};
+        if (options.module_device.is_cuda())
+        {
+            auto sim_states = simulator->reset(options.batchsize);
+            auto states = sim_states.states.to(options.module_device);
+            auto masks = sim_states.action_constraints->as_type<rl::policies::constraints::CategoricalMask>().mask();
+            auto rewards = torch::randn({options.batchsize}).to(options.module_device);
+
+            auto posteriors = get_target_policy(sim_states.states, masks).to(options.module_device);
+
+            training_graph = std::make_unique<at::cuda::CUDAGraph>();
+            training_graph->capture_begin();
+            training_posteriors_input = posteriors;
+            training_states_input = states;
+            training_rewards_input = rewards;
+
+            train_step_fn_impl(training_states_input, training_posteriors_input, training_rewards_input);
+            training_graph->capture_end();
+
+            train_step_fn = std::bind(&Trainer::cuda_train_step_fn, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        }
+        else
+        {
+            train_step_fn = std::bind(&Trainer::cpu_train_step_fn, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        }
     }
 }

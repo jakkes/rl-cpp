@@ -22,12 +22,18 @@ using namespace rl::agents::alpha_zero;
 
 namespace trainer_impl
 {
+    struct TrainStepOutput
+    {
+        float policy_loss;
+        float value_loss;
+        float gradient_norm;
+    };
+
     struct TrainerOptions
     {
         RL_OPTION(int, batchsize) = 128;
         RL_OPTION(int64_t, replay_size) = 1000;
         RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
-        RL_OPTION(float, gradient_norm) = 40.0f;
         RL_OPTION(size_t, min_replay_size) = 1000;
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
 
@@ -66,11 +72,15 @@ namespace trainer_impl
             std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
             torch::Tensor inference_input, inference_policy_output, inference_value_output;
 
+            std::unique_ptr<at::cuda::CUDAGraph> training_graph = nullptr;
+            torch::Tensor training_states_input, training_posteriors_input, training_rewards_input, policy_loss, value_loss, gradient_norm;
+
             std::atomic<bool> running{false};
             std::thread working_thread;
             std::thread queue_consuming_thread;
 
             std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn;
+            std::function<TrainStepOutput(const torch::Tensor &, const torch::Tensor &, const torch::Tensor &)> train_step_fn;
         
         private:
             void init_buffer();
@@ -90,6 +100,36 @@ namespace trainer_impl
             }
 
             void inference_fn_setup();
+
+            void train_step_fn_impl(const torch::Tensor &states, const torch::Tensor &posteriors, const torch::Tensor &rewards);
+            void train_step_fn_setup();
+
+            inline
+            TrainStepOutput cpu_train_step_fn(const torch::Tensor &states, const torch::Tensor &posteriors, const torch::Tensor &rewards)
+            {
+                train_step_fn_impl(states, posteriors, rewards);
+                return TrainStepOutput {
+                    policy_loss.item().toFloat(),
+                    value_loss.item().toFloat(),
+                    gradient_norm.item().toFloat()
+                };
+            }
+
+            inline
+            TrainStepOutput cuda_train_step_fn(const torch::Tensor &states, const torch::Tensor &posteriors, const torch::Tensor &rewards)
+            {
+                training_states_input.copy_(states);
+                training_posteriors_input.copy_(posteriors);
+                training_rewards_input.copy_(rewards);
+
+                training_graph->replay();
+
+                return TrainStepOutput {
+                    policy_loss.item().toFloat(),
+                    value_loss.item().toFloat(),
+                    gradient_norm.item().toFloat()
+                };
+            }
     };
 }
 

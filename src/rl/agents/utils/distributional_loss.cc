@@ -29,20 +29,15 @@ namespace rl::agents::utils
         auto upper = b.ceil().to(torch::kLong).clamp_(0, n_atoms - 1);
 
         auto lower_eq_upper = lower == upper;
-        if (lower_eq_upper.any().item().toBool()) {
-            auto lower_mask = (upper > 0).logical_and_(lower_eq_upper);
-            lower.index_put_({lower_mask}, lower.index({lower_mask}) - 1);
-        }
+        auto lower_mask = (upper > 0).logical_and_(lower_eq_upper);
+        lower = torch::where(lower_mask, lower - 1, lower);
 
         lower_eq_upper = lower == upper;
-        if (lower_eq_upper.any().item().toBool()) {
-            auto upper_mask = (lower < n_atoms - 1).logical_and_(lower_eq_upper);
-            upper.index_put_({upper_mask}, upper.index({upper_mask}) + 1);
-        }
+        auto upper_mask = (lower < n_atoms - 1).logical_and_(lower_eq_upper);
+        upper = torch::where(upper_mask, upper + 1, upper);
 
         auto index_vec_0 = batchvec.view({-1, 1}).repeat({1, n_atoms}).view({-1});
         auto index_vec_1a = lower.view({-1});
-
 
         auto next_distribution = next_logits.softmax(-1);
         m.index_put_(

@@ -63,8 +63,20 @@ namespace rl::env
             std::shared_ptr<rl::simulators::Base> sim;
             torch::Tensor state_;
             std::shared_ptr<rl::policies::constraints::Base> action_constraint;
+    };
 
+    class SimWrapperFactory : public Factory
+    {
+        public:
+            SimWrapperFactory(std::shared_ptr<rl::simulators::Base> sim) : sim{sim} {}
 
+        private:
+            std::shared_ptr<rl::simulators::Base> sim;
+
+        private:
+            std::unique_ptr<Base> get_impl() const override {
+                return std::make_unique<SimWrapper>(sim);
+            }
     };
 }
 

@@ -31,6 +31,12 @@ namespace rl::env
                 out->state = state();
                 out->terminal = step.terminals.squeeze(0).item().toBool();
 
+                reward += out->reward;
+                if (out->terminal && logger) {
+                    logger->log_scalar("SimWrapper/Reward", reward);
+                }
+
+                must_reset = out->terminal;
                 return out;
             }
 
@@ -38,6 +44,7 @@ namespace rl::env
             std::unique_ptr<State> reset() override
             {
                 must_reset = false;
+                reward = 0.0f;
                 auto states = sim->reset(1);
                 state_ = states.states.squeeze_(0);
                 action_constraint = states.action_constraints->index({0});
@@ -60,6 +67,7 @@ namespace rl::env
 
         private:
             bool must_reset{true};
+            float reward{0.0f};
             std::shared_ptr<rl::simulators::Base> sim;
             torch::Tensor state_;
             std::shared_ptr<rl::policies::constraints::Base> action_constraint;

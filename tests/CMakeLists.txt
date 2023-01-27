@@ -11,6 +11,7 @@ endfunction()
 
 rl_add_test_target(env test_env.cc)
 rl_append_test(env env/test_cart_pole.cc)
+rl_append_test(env env/test_sim_wrapper.cc)
 
 rl_add_test_target(logging test_logging.cc)
 rl_append_test(logging logging/test_ema.cc)

@@ -5,6 +5,7 @@
 #include "base.h"
 #include "observation.h"
 #include "state.h"
+#include "sim_wrapper.h"
 
 #include "cart_pole.h"
 

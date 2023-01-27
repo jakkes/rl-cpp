@@ -7,6 +7,7 @@ target_sources(
 
         env/cart_pole.cc
         env/base.cc
+        env/sim_wrapper.cc
 
         logging/client/base.cc
         logging/client/ema.cc

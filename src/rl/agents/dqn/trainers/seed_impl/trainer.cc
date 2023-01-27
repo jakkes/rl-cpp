@@ -1,5 +1,6 @@
 #include "trainer.h"
 
+#include <c10/cuda/CUDAStream.h>
 #include <rl/torchutils.h>
 
 
@@ -34,8 +35,9 @@ namespace seed_impl
         }
     }
 
-    void Trainer::worker() {
-
+    void Trainer::worker()
+    {
+        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
         auto period = std::chrono::seconds(options.checkpoint_callback_period_seconds);
         size_t i = 1;
         auto next_callback = std::chrono::high_resolution_clock::now() + period;

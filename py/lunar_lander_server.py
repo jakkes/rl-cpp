@@ -5,7 +5,7 @@ import numpy as np
 import gym
 from grpclib.server import Server
 
-from rlbuf.env.remote import lunar_lander
+from rlbuf.remote_env import lunar_lander
 
 
 def state_to_proto(state: np.ndarray) -> lunar_lander.State:

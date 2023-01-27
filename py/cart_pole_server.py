@@ -5,7 +5,7 @@ import numpy as np
 import gym
 from grpclib.server import Server
 
-from rlbuf.env.remote import cart_pole
+from rlbuf.remote_env import cart_pole
 
 
 def state_to_proto(state: np.ndarray) -> cart_pole.State:

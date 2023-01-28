@@ -33,8 +33,6 @@ namespace seed_impl
 
     void EnvThread::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
-
         workers.reserve(options.envs_per_worker);
         for (int i = 0; i < options.envs_per_worker; i++) {
             workers.emplace_back(env_factory, inferer, transition_queue, options);

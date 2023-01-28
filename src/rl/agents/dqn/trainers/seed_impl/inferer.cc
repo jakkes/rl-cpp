@@ -71,7 +71,6 @@ namespace seed_impl
 
     void Inferer::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
         while (running)
         {
             auto batch_ptr = batch_queue.dequeue(std::chrono::milliseconds(500));

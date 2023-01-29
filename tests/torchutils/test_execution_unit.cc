@@ -3,14 +3,13 @@
 #include <rl/torchutils/execution_unit.h>
 
 
-
 class Example : public rl::torchutils::ExecutionUnit
 {
     public:
         using rl::torchutils::ExecutionUnit::ExecutionUnit;
 
     private:
-        std::vector<torch::Tensor> forward(const std::vector<torch::Tensor> &inputs)
+        rl::torchutils::ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs)
         {
             auto x = inputs[0];
             for (int i = 0; i < 10000; i++)
@@ -19,7 +18,9 @@ class Example : public rl::torchutils::ExecutionUnit
                 x = x.sigmoid();
             }
 
-            return {x};
+            rl::torchutils::ExecutionUnitOutput out{1, 0};
+            out.tensors[0] = x;
+            return out;
         }
 };
 
@@ -32,19 +33,19 @@ TEST(execution_unit, simple)
 
     Example x{true, 32};
 
-    std::vector<size_t> times{};
+    torch::Tensor last_output;
 
     for (int i = 0; i < 10; i++)
     {
         auto input = torch::randn({32, 10000}, torch::TensorOptions{}.device(torch::kCUDA));
-        auto tic = std::chrono::high_resolution_clock::now();
-        auto output = x({input})[0];
-        auto toc = std::chrono::high_resolution_clock::now();
+        auto output = x({input}).tensors[0];
 
-        times.push_back((toc-tic).count());
-    }
+        if (i > 0) {
+            ASSERT_TRUE(
+                (output != last_output).any().item().toBool()
+            );
+        }
 
-    for (auto ns : times) {
-        std::cout << ns << "\n";
+        last_output = output;
     }
 }

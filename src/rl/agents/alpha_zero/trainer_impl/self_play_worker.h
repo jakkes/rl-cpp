@@ -18,6 +18,7 @@
 #include <rl/logging/client/base.h>
 #include <rl/agents/alpha_zero/alpha_zero.h>
 #include <rl/agents/alpha_zero/self_play_episode.h>
+#include <rl/torchutils/execution_unit.h>
 
 
 using namespace rl::agents::alpha_zero;
@@ -58,9 +59,8 @@ namespace trainer_impl
             std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             const SelfPlayWorkerOptions options;
 
-            c10::cuda::CUDAStream inference_cuda_stream{c10::cuda::getStreamFromPool()};
-            std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
-            torch::Tensor inference_input, inference_policy_output, inference_value_output;
+            std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
+            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&SelfPlayWorker::inference_fn, this, std::placeholders::_1);
 
             std::atomic<bool> running{false};
             std::thread working_thread;
@@ -72,8 +72,6 @@ namespace trainer_impl
             torch::Tensor reward_history;
             torch::Tensor steps;
 
-            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn;
-
         private:
             void worker();
             void step();
@@ -83,18 +81,9 @@ namespace trainer_impl
             void reset_histories(const torch::Tensor &terminal_mask);
             void process_terminals(const torch::Tensor &terminal_mask);
             void enqueue_episode(const SelfPlayEpisode &episode);
-            
-            MCTSInferenceResult cuda_graph_inference_fn(const torch::Tensor &states);
-            void cuda_graph_inference_setup();
 
-            inline
-            MCTSInferenceResult cpu_inference_fn(const torch::Tensor &states) {
-                torch::InferenceMode guard{};
-                auto module_output = module->forward(states);
-                return MCTSInferenceResult{module_output->policy(), module_output->value_estimates()};
-            }
-
-            void inference_fn_setup();
+            void setup_inference_unit();
+            MCTSInferenceResult inference_fn(const torch::Tensor &states);
     };
 }
 

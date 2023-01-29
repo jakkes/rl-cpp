@@ -10,25 +10,36 @@
 
 namespace rl::torchutils
 {
+    struct ExecutionUnitOutput
+    {
+        std::vector<torch::Tensor> tensors;
+        std::vector<torch::Tensor> scalars;
+
+        ExecutionUnitOutput() = default;
+        ExecutionUnitOutput(size_t tensors, size_t scalars);
+
+        ExecutionUnitOutput clone(int batchsize);
+    };
+
     class ExecutionUnit
     {
         public:
             ExecutionUnit(bool use_cuda_graph, int max_batchsize);
 
-            std::vector<torch::Tensor> operator()(const std::vector<torch::Tensor> &inputs);
+            ExecutionUnitOutput operator()(const std::vector<torch::Tensor> &inputs);
 
         private:
             const bool use_cuda_graph;
             const int max_batchsize;
             c10::cuda::CUDAStream stream{c10::cuda::getStreamFromPool()};
             std::unique_ptr<at::cuda::CUDAGraph> cuda_graph = nullptr;
-
+     
             std::vector<torch::Tensor> inputs;
-            std::vector<torch::Tensor> outputs;
-
+            ExecutionUnitOutput outputs;
+    
         private:
             virtual
-            std::vector<torch::Tensor> forward(const std::vector<torch::Tensor> &inputs) = 0;
+            ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs) = 0;
 
             void init_graph(const std::vector<torch::Tensor> &inputs);
     };

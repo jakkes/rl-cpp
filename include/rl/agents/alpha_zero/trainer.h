@@ -25,6 +25,8 @@ namespace rl::agents::alpha_zero
         RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, self_play_temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
 
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
+        RL_OPTION(bool, enable_inference_cuda_graph) = true;
+        RL_OPTION(bool, enable_training_cuda_graph) = true;
 
         RL_OPTION(float, discount) = 1.0f;
         RL_OPTION(float, c1) = 1.25f;

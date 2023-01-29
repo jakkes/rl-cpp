@@ -8,6 +8,81 @@
 
 using namespace torch::indexing;
 
+
+namespace
+{
+    class InferenceUnit : public rl::torchutils::ExecutionUnit
+    {
+        public:
+            InferenceUnit(
+                bool use_cuda_graph,
+                int max_batchsize,
+                std::shared_ptr<modules::Base> module
+            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}
+            {}
+        
+        private:
+            std::shared_ptr<modules::Base> module;
+
+        private:
+            rl::torchutils::ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs)
+            {
+                torch::NoGradGuard no_grad_guard{};
+                auto module_output = module->forward(inputs[0]);
+                auto policy_output = module_output->policy().get_probabilities();
+                auto value_output = module_output->value_estimates();
+
+                rl::torchutils::ExecutionUnitOutput out{2, 0};
+                out.tensors[0] = policy_output;
+                out.tensors[1] = value_output;
+
+                return out;
+            }
+    };
+
+    class TrainingUnit : public rl::torchutils::ExecutionUnit
+    {
+        public:
+            TrainingUnit(
+                bool use_cuda_graph,
+                int max_batchsize,
+                std::shared_ptr<modules::Base> module,
+                std::shared_ptr<torch::optim::Optimizer> optimizer
+            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}, optimizer{optimizer}
+            {}
+
+        private:
+            std::shared_ptr<modules::Base> module;
+            std::shared_ptr<torch::optim::Optimizer> optimizer;
+
+        private:
+            rl::torchutils::ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs)
+            {
+                auto &states = inputs[0];
+                auto &posteriors = inputs[1];
+                auto &rewards = inputs[2];
+                auto module_output = module->forward(states);
+                auto policy_loss = module_output->policy_loss(posteriors).mean();
+                auto value_loss = module_output->value_loss(rewards).mean();
+                auto loss = policy_loss + value_loss;
+
+                optimizer->zero_grad();
+                loss.backward();
+
+                auto gradient_norm = rl::torchutils::compute_gradient_norm(optimizer);
+
+                optimizer->step();
+
+                rl::torchutils::ExecutionUnitOutput out{0, 3};
+                out.scalars[0] = policy_loss;
+                out.scalars[1] = value_loss;
+                out.scalars[2] = gradient_norm;
+
+                return out;
+            }
+    };
+}
+
 namespace trainer_impl
 {
     Trainer::Trainer(
@@ -22,7 +97,8 @@ namespace trainer_impl
         optimizer{optimizer}, optimizer_step_mtx{optimizer_step_mtx}, options{options}
     {
         init_buffer();
-        inference_fn_setup();
+        setup_inference_unit();
+        setup_training_unit();
     }
 
     void Trainer::start() {
@@ -66,7 +142,7 @@ namespace trainer_impl
 
     void Trainer::worker()
     {
-        torch::StreamGuard stream_guard{cuda_stream};
+        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
 
         while (running && buffer->size() < options.min_replay_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -96,7 +172,7 @@ namespace trainer_impl
             );
         }
 
-        mcts(&nodes, inference_fn, simulator, options.mcts_options);
+        mcts(&nodes, inference_fn_var, simulator, options.mcts_options);
         auto policy = mcts_nodes_to_policy(nodes, options.temperature_control->get());
         return policy.get_probabilities();
     }
@@ -109,29 +185,17 @@ namespace trainer_impl
         auto &masks = sample[1];
         auto &rewards = sample[2];
 
-        auto posteriors = get_target_policy(states, masks).to(options.module_device);
+        auto posteriors = get_target_policy(states, masks);
 
         std::unique_lock optimizer_step_guard{*optimizer_step_mtx};
-        auto module_output = module->forward(states.to(options.module_device));
-        auto policy_loss = module_output->policy_loss(posteriors).mean();
-        auto value_loss = module_output->value_loss(rewards.to(options.module_device)).mean();
-        auto loss = policy_loss + value_loss;
-
-        optimizer->zero_grad();
-        loss.backward();
-
-        auto gradient_norm = rl::torchutils::compute_gradient_norm(optimizer).item().toFloat();
-        if (gradient_norm > options.gradient_norm) {
-            rl::torchutils::scale_gradients(optimizer, options.gradient_norm / gradient_norm);
-        }
-
-        optimizer->step();
+        auto training_outputs = training_unit->operator()({states.to(options.module_device), posteriors.to(options.module_device), rewards.to(options.module_device)});
         optimizer_step_guard.unlock();
 
         if (options.logger)
         {
-            options.logger->log_scalar("AlphaZero/Value loss", value_loss.item().toFloat());
-            options.logger->log_scalar("AlphaZero/Policy loss", policy_loss.item().toFloat());
+            options.logger->log_scalar("AlphaZero/Policy loss", training_outputs.scalars[0].item().toFloat());
+            options.logger->log_scalar("AlphaZero/Value loss", training_outputs.scalars[1].item().toFloat());
+            options.logger->log_scalar("AlphaZero/Gradient norm", training_outputs.scalars[2].item().toFloat());
             options.logger->log_frequency("AlphaZero/Training rate", 1);
         }
     }
@@ -150,43 +214,28 @@ namespace trainer_impl
         }
     }
 
-    void Trainer::inference_fn_setup()
+    void Trainer::setup_inference_unit()
     {
-        if (options.module_device.is_cuda()) {
-            cuda_graph_inference_setup();
-            inference_fn = std::bind(&Trainer::cuda_graph_inference_fn, this, std::placeholders::_1);
-        }
-        else {
-            inference_fn = std::bind(&Trainer::cpu_inference_fn, this, std::placeholders::_1);
-        }
+        inference_unit = std::make_unique<InferenceUnit>(options.module_device.is_cuda(), options.batchsize, module);
+        inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 
-    void Trainer::cuda_graph_inference_setup()
-    {
-        torch::StreamGuard stream_guard{cuda_stream};
-        torch::NoGradGuard no_grad_guard{};
-
-        inference_graph = std::make_unique<at::cuda::CUDAGraph>();
-        inference_input = simulator->reset(options.batchsize).states.to(options.module_device);
-        auto intermediate_output_1 = module->forward(inference_input);
-        inference_policy_output = intermediate_output_1->policy().get_probabilities();
-        inference_value_output = intermediate_output_1->value_estimates();
-
-        inference_graph->capture_begin();
-        auto intermediate_output_2 = module->forward(inference_input);
-        inference_policy_output = intermediate_output_2->policy().get_probabilities();
-        inference_value_output = intermediate_output_2->value_estimates();
-        inference_graph->capture_end();
-    }
-
-    MCTSInferenceResult Trainer::cuda_graph_inference_fn(const torch::Tensor &states)
-    {
-        auto N = states.size(0);
-        inference_input.index_put_({Slice(None, N)}, states);
-        inference_graph->replay();
+    MCTSInferenceResult Trainer::inference_fn(const torch::Tensor &states) {
+        auto outputs = inference_unit->operator()({states});
         return MCTSInferenceResult{
-            inference_policy_output.index({Slice(None, N)}).clone(),
-            inference_value_output.index({Slice(None, N)}).clone()
+            outputs.tensors[0],
+            outputs.tensors[1]
         };
+    }
+
+    void Trainer::setup_training_unit()
+    {
+        training_unit = std::make_unique<TrainingUnit>(options.module_device.is_cuda(), options.batchsize, module, optimizer);
+        auto states = simulator->reset(options.batchsize);
+        auto masks = states.action_constraints->as_type<rl::policies::constraints::CategoricalMask>().mask();
+        auto posteriors = torch::ones(masks.sizes());
+        auto rewards = torch::randn({options.batchsize});
+
+        training_unit->operator()({states.states.to(options.module_device), posteriors.to(options.module_device), rewards.to(options.module_device)});
     }
 }

@@ -16,6 +16,7 @@
 #include <rl/utils/float_control/fixed.h>
 #include <rl/agents/alpha_zero/alpha_zero.h>
 #include <rl/buffers/buffers.h>
+#include <rl/torchutils/execution_unit.h>
 
 
 using namespace rl::agents::alpha_zero;
@@ -62,16 +63,14 @@ namespace trainer_impl
             std::shared_ptr<rl::buffers::Tensor> buffer;
             std::unique_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
 
-            c10::cuda::CUDAStream cuda_stream{c10::cuda::getStreamFromPool()};
-            std::unique_ptr<at::cuda::CUDAGraph> inference_graph = nullptr;
-            torch::Tensor inference_input, inference_policy_output, inference_value_output;
-
             std::atomic<bool> running{false};
             std::thread working_thread;
             std::thread queue_consuming_thread;
 
-            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn;
-        
+            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&Trainer::inference_fn, this, std::placeholders::_1);
+            std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
+            std::unique_ptr<rl::torchutils::ExecutionUnit> training_unit;
+
         private:
             void init_buffer();
             void worker();
@@ -79,17 +78,9 @@ namespace trainer_impl
             void step();
             torch::Tensor get_target_policy(const torch::Tensor &states, const torch::Tensor &masks);
 
-            MCTSInferenceResult cuda_graph_inference_fn(const torch::Tensor &states);
-            void cuda_graph_inference_setup();
-
-            inline
-            MCTSInferenceResult cpu_inference_fn(const torch::Tensor &states) {
-                torch::InferenceMode guard{};
-                auto module_output = module->forward(states);
-                return MCTSInferenceResult{module_output->policy(), module_output->value_estimates()};
-            }
-
-            void inference_fn_setup();
+            void setup_inference_unit();
+            MCTSInferenceResult inference_fn(const torch::Tensor &states);
+            void setup_training_unit();
     };
 }
 

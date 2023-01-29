@@ -5,10 +5,44 @@
 #include "helpers.h"
 
 
+
 using namespace torch::indexing;
+
+namespace
+{
+    class InferenceUnit : public rl::torchutils::ExecutionUnit
+    {
+        public:
+            InferenceUnit(
+                bool use_cuda_graph,
+                int max_batchsize,
+                std::shared_ptr<modules::Base> module
+            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}
+            {}
+        
+        private:
+            std::shared_ptr<modules::Base> module;
+
+        private:
+            rl::torchutils::ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs)
+            {
+                torch::NoGradGuard no_grad_guard{};
+                auto module_output = module->forward(inputs[0]);
+                auto policy_output = module_output->policy().get_probabilities();
+                auto value_output = module_output->value_estimates();
+
+                rl::torchutils::ExecutionUnitOutput out{2, 0};
+                out.tensors[0] = policy_output;
+                out.tensors[1] = value_output;
+
+                return out;
+            }
+    };
+}
 
 namespace trainer_impl
 {
+
     SelfPlayWorker::SelfPlayWorker(
         std::shared_ptr<rl::simulators::Base> simulator,
         std::shared_ptr<modules::Base> module,
@@ -17,7 +51,7 @@ namespace trainer_impl
     ) : simulator{simulator}, module{module}, episode_queue{episode_queue}, options{options}
     {
         batchvec = torch::arange(options.batchsize);
-        inference_fn_setup();
+        setup_inference_unit();
     }
 
     void SelfPlayWorker::start()
@@ -162,7 +196,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::step()
     {
-        mcts(&mcts_nodes, inference_fn, simulator, options.mcts_options);
+        mcts(&mcts_nodes, inference_fn_var, simulator, options.mcts_options);
         auto policy = mcts_nodes_to_policy(mcts_nodes, options.temperature_control->get());
         auto actions = policy.sample();
         auto terminals = step_mcts_nodes(actions);
@@ -176,7 +210,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::worker()
     {
-        torch::StreamGuard stream_guard{inference_cuda_stream};
+        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
 
         set_initial_state();
         while (running) {
@@ -247,43 +281,17 @@ namespace trainer_impl
         }
     }
 
-    void SelfPlayWorker::inference_fn_setup()
+    void SelfPlayWorker::setup_inference_unit()
     {
-        if (options.module_device.is_cuda()) {
-            cuda_graph_inference_setup();
-            inference_fn = std::bind(&SelfPlayWorker::cuda_graph_inference_fn, this, std::placeholders::_1);
-        }
-        else {
-            inference_fn = std::bind(&SelfPlayWorker::cpu_inference_fn, this, std::placeholders::_1);
-        }
+        inference_unit = std::make_unique<InferenceUnit>(options.module_device.is_cuda(), options.batchsize, module);
+        inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 
-    void SelfPlayWorker::cuda_graph_inference_setup()
-    {
-        torch::StreamGuard stream_guard{inference_cuda_stream};
-        torch::NoGradGuard no_grad_guard{};
-
-        inference_graph = std::make_unique<at::cuda::CUDAGraph>();
-        inference_input = simulator->reset(options.batchsize).states.to(options.module_device);
-        auto intermediate_output_1 = module->forward(inference_input);
-        inference_policy_output = intermediate_output_1->policy().get_probabilities();
-        inference_value_output = intermediate_output_1->value_estimates();
-
-        inference_graph->capture_begin();
-        auto intermediate_output_2 = module->forward(inference_input);
-        inference_policy_output = intermediate_output_2->policy().get_probabilities();
-        inference_value_output = intermediate_output_2->value_estimates();
-        inference_graph->capture_end();
-    }
-
-    MCTSInferenceResult SelfPlayWorker::cuda_graph_inference_fn(const torch::Tensor &states)
-    {
-        auto N = states.size(0);
-        inference_input.index_put_({Slice(None, N)}, states);
-        inference_graph->replay();
+    MCTSInferenceResult SelfPlayWorker::inference_fn(const torch::Tensor &states) {
+        auto outputs = inference_unit->operator()({states});
         return MCTSInferenceResult{
-            inference_policy_output.index({Slice(None, N)}).clone(),
-            inference_value_output.index({Slice(None, N)}).clone()
+            outputs.tensors[0],
+            outputs.tensors[1]
         };
     }
 }

@@ -42,6 +42,7 @@ rl_add_test_target(agents test_agents.cc)
 rl_append_test(agents agents/alpha_zero/test_mcts.cc)
 rl_append_test(agents agents/dqn/modules/test_dqn.cc)
 rl_append_test(agents agents/dqn/modules/test_distributional.cc)
+rl_append_test(agents agents/utils/test_distributional_loss.cc)
 
 rl_add_test_target(simulators test_simulators.cc)
 rl_append_test(simulators simulators/test_cart_pole.cc)

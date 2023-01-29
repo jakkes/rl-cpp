@@ -38,7 +38,8 @@ namespace rl::agents::alpha_zero::modules
             atoms,
             1.0,
             v_min,
-            v_max
+            v_max,
+            true
         );
     }
 }

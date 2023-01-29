@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <set>
 
-#include "rl/torchutils.h"
+#include <rl/torchutils/torchutils.h>
 #include "rl/cpputils/concat_vector.h"
 
 

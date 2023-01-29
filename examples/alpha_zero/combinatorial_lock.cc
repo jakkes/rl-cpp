@@ -1,7 +1,7 @@
 #include <rl/rl.h>
 #include <torch/torch.h>
 #include <argparse/argparse.hpp>
-#include <rl/torchutils.h>
+#include <rl/torchutils/torchutils.h>
 
 #include "torchdebug.h"
 

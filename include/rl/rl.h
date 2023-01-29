@@ -10,6 +10,7 @@
 #include "cpputils/cpputils.h"
 #include "utils/utils.h"
 #include "simulators/simulators.h"
+#include "torchutils/torchutils.h"
 
 #include "option.h"
 

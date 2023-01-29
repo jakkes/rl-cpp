@@ -3,7 +3,7 @@
 #include <torchdebug.h>
 #include <torch_test.h>
 
-#include <rl/torchutils.h>
+#include <rl/torchutils/torchutils.h>
 
 
 int main(int argc, char **argv) {

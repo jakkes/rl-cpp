@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "rl/torchutils.h"
+#include <rl/torchutils/torchutils.h>
 #include "rl/policies/constraints/categorical_mask.h"
 #include "rl/policies/unsupported_constraint_exception.h"
 #include "rl/cpputils/slice_vector.h"

@@ -1,6 +1,6 @@
 #include "rl/agents/sac/trainers/basic.h"
 
-#include <rl/torchutils.h>
+#include <rl/torchutils/torchutils.h>
 
 
 namespace F = torch::nn::functional;

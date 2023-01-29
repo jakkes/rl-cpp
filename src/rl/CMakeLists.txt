@@ -30,7 +30,7 @@ target_sources(
         utils/reward/n_step_collector.cc
         utils/reward/backpropagate.cc
 
-        torchutils.cc
+        torchutils/execution_unit.cc
 )
 
 add_subdirectory(agents)

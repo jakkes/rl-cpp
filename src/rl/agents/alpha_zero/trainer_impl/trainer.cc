@@ -1,7 +1,7 @@
 #include "trainer.h"
 
 #include <c10/cuda/CUDAStream.h>
-#include <rl/torchutils.h>
+#include <rl/torchutils/torchutils.h>
 
 #include "helpers.h"
 

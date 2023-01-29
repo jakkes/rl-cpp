@@ -160,7 +160,7 @@ namespace rl::agents::alpha_zero
         const MCTSOptions &options={}
     ) {
         auto fn = [&] (const torch::Tensor &states) {
-            torch::InferenceMode inference_guard{};
+            torch::NoGradGuard no_grad_guard{};
             auto module_output = module->forward(states);
             return MCTSInferenceResult{module_output->policy(), module_output->value_estimates()};
         };

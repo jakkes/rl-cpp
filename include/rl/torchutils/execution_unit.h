@@ -3,6 +3,7 @@
 
 
 #include <vector>
+#include <mutex>
 
 #include <c10/cuda/CUDAStream.h>
 #include <ATen/cuda/CUDAGraph.h>
@@ -31,6 +32,8 @@ namespace rl::torchutils
         private:
             const bool use_cuda_graph;
             const int max_batchsize;
+            std::mutex mtx{};
+
             c10::cuda::CUDAStream stream{c10::cuda::getStreamFromPool()};
             std::unique_ptr<at::cuda::CUDAGraph> cuda_graph = nullptr;
      

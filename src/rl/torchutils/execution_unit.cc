@@ -68,6 +68,8 @@ namespace rl::torchutils
             return forward(inputs);
         }
 
+        std::lock_guard lock{mtx};
+
         // Synchronize current stream as we are about to enter another one.
         c10::cuda::getCurrentCUDAStream().synchronize();
         auto batchsize = inputs.size() == 0 ? max_batchsize : inputs[0].size(0);

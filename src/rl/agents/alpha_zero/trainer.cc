@@ -42,6 +42,7 @@ namespace rl::agents::alpha_zero
                         .discount_(options.discount)
                         .logger_(options.logger)
                         .module_device_(options.module_device)
+                        .enable_cuda_graph_inference_(options.enable_inference_cuda_graph)
                         .max_episode_length_(options.max_episode_length)
                         .temperature_control_(options.self_play_temperature_control)
                         .hindsight_callback_(options.hindsight_callback)
@@ -78,6 +79,8 @@ namespace rl::agents::alpha_zero
                         .min_replay_size_(options.min_replay_size)
                         .module_device_(options.module_device)
                         .replay_size_(options.replay_size)
+                        .enable_cuda_graph_training_(options.enable_training_cuda_graph)
+                        .enable_cuda_graph_inference_(options.enable_inference_cuda_graph)
                         .temperature_control_(options.training_temperature_control)
                         .mcts_options_(
                             MCTSOptions{}

@@ -216,7 +216,11 @@ namespace trainer_impl
 
     void Trainer::setup_inference_unit()
     {
-        inference_unit = std::make_unique<InferenceUnit>(options.module_device.is_cuda(), options.batchsize, module);
+        inference_unit = std::make_unique<InferenceUnit>(
+            options.module_device.is_cuda() && options.enable_cuda_graph_inference,
+            options.batchsize,
+            module
+        );
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 
@@ -230,7 +234,12 @@ namespace trainer_impl
 
     void Trainer::setup_training_unit()
     {
-        training_unit = std::make_unique<TrainingUnit>(options.module_device.is_cuda(), options.batchsize, module, optimizer);
+        training_unit = std::make_unique<TrainingUnit>(
+            options.module_device.is_cuda() && options.enable_cuda_graph_training,
+            options.batchsize,
+            module,
+            optimizer
+        );
         auto states = simulator->reset(options.batchsize);
         auto masks = states.action_constraints->as_type<rl::policies::constraints::CategoricalMask>().mask();
         auto posteriors = torch::ones(masks.sizes());

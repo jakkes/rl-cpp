@@ -39,7 +39,7 @@ namespace rl::agents::alpha_zero::modules
             1.0,
             v_min,
             v_max,
-            true
+            false
         );
     }
 }

@@ -283,7 +283,11 @@ namespace trainer_impl
 
     void SelfPlayWorker::setup_inference_unit()
     {
-        inference_unit = std::make_unique<InferenceUnit>(options.module_device.is_cuda(), options.batchsize, module);
+        inference_unit = std::make_unique<InferenceUnit>(
+            options.module_device.is_cuda() && options.enable_cuda_graph_inference, 
+            options.batchsize,
+            module
+        );
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 

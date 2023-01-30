@@ -34,6 +34,7 @@ namespace trainer_impl
         RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
 
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
+        RL_OPTION(bool, enable_cuda_graph_inference) = true;
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
         RL_OPTION(std::function<bool(SelfPlayEpisode*)>, hindsight_callback) = nullptr;

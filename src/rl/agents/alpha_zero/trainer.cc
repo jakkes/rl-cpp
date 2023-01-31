@@ -6,10 +6,12 @@
 
 #include "trainer_impl/self_play_worker.h"
 #include "trainer_impl/trainer.h"
+#include "trainer_impl/helpers.h"
 
 
 using namespace std;
 using namespace trainer_impl;
+
 
 namespace rl::agents::alpha_zero
 {
@@ -22,12 +24,36 @@ namespace rl::agents::alpha_zero
         module{module}, optimizer{optimizer},
         simulator{simulator}, options{options}
     {
+        init_buffer();
+    }
+
+    void Trainer::init_buffer()
+    {
+        auto states = simulator->reset(1);
+        auto state = states.states.squeeze(0);
+        auto mask = get_mask(*states.action_constraints).squeeze(0);
         
+        buffer = std::make_shared<rl::buffers::Tensor>(
+            options.replay_size,
+            std::vector{
+                state.sizes().vec(),
+                mask.sizes().vec(),
+                std::vector<int64_t>{}
+            },
+            std::vector{
+                torch::TensorOptions{}.dtype(state.dtype()).device(options.replay_device),
+                torch::TensorOptions{}.dtype(mask.dtype()).device(options.replay_device),
+                torch::TensorOptions{}.dtype(torch::kFloat32).device(options.replay_device)
+            }
+        );
+
+        sampler = std::make_shared<rl::buffers::samplers::Uniform<rl::buffers::Tensor>>(buffer);
     }
 
     void Trainer::run(size_t duration_seconds)
     {
-        auto episode_queue = make_shared<thread_safe::Queue<SelfPlayEpisode>>(1000);
+        running = true;
+        episode_queue = make_shared<thread_safe::Queue<SelfPlayEpisode>>(1000);
 
         vector<unique_ptr<SelfPlayWorker>> self_play_workers{};
         self_play_workers.reserve(options.self_play_workers);
@@ -54,6 +80,7 @@ namespace rl::agents::alpha_zero
                                 .c1_(options.c1)
                                 .c2_(options.c2)
                                 .module_device_(options.module_device)
+                                .sim_device_(options.sim_device)
                                 .steps_(options.self_play_mcts_steps)
                         )
                 )
@@ -70,7 +97,7 @@ namespace rl::agents::alpha_zero
                 make_unique<trainer_impl::Trainer>(
                     simulator,
                     module,
-                    episode_queue,
+                    sampler,
                     optimizer,
                     optimizer_step_mtx,
                     trainer_impl::TrainerOptions{}
@@ -90,14 +117,19 @@ namespace rl::agents::alpha_zero
                                 .dirchlet_noise_epsilon_(options.training_dirchlet_noise_epsilon)
                                 .discount_(options.discount)
                                 .module_device_(options.module_device)
+                                .sim_device_(options.sim_device)
                                 .steps_(options.training_mcts_steps)
                         )
                 )
             );
         }
+
+        queue_consuming_thread = std::thread(&Trainer::queue_consumer, this);
+
         for (auto &worker : self_play_workers) {
             worker->start();
         }
+
         for (auto &trainer : trainers) {
             trainer->start();
         }
@@ -112,6 +144,23 @@ namespace rl::agents::alpha_zero
         }
         for (auto &self_play_worker : self_play_workers) {
             self_play_worker->stop();
+        }
+        if (queue_consuming_thread.joinable()) {
+            queue_consuming_thread.join();
+        }
+    }
+
+    void Trainer::queue_consumer()
+    {
+        while (running)
+        {
+            auto episode_ptr = episode_queue->dequeue(std::chrono::seconds(5));
+            if (!episode_ptr) {
+                continue;
+            }
+
+            auto episode = *episode_ptr;
+            buffer->add({episode.states.to(options.replay_device), episode.masks.to(options.replay_device), episode.collected_rewards.to(options.replay_device)});
         }
     }
 }

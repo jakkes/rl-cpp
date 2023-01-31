@@ -5,6 +5,10 @@
 #include <memory>
 #include <functional>
 
+#include <thread_safe/collections/queue.h>
+
+#include <rl/buffers/tensor.h>
+#include <rl/buffers/samplers/uniform.h>
 #include <rl/option.h>
 #include <rl/utils/float_control/fixed.h>
 
@@ -25,6 +29,8 @@ namespace rl::agents::alpha_zero
         RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, self_play_temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
 
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
+        RL_OPTION(torch::Device, sim_device) = torch::kCPU;
+        RL_OPTION(torch::Device, replay_device) = torch::kCPU;
         RL_OPTION(bool, enable_inference_cuda_graph) = true;
         RL_OPTION(bool, enable_training_cuda_graph) = true;
 
@@ -62,6 +68,17 @@ namespace rl::agents::alpha_zero
             std::shared_ptr<rl::agents::alpha_zero::modules::Base> module;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::simulators::Base> simulator;
+
+            std::shared_ptr<rl::buffers::Tensor> buffer;
+            std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
+            std::shared_ptr<thread_safe::Queue<rl::agents::alpha_zero::SelfPlayEpisode>> episode_queue;
+
+            std::thread queue_consuming_thread;
+            std::atomic<bool> running{false};
+
+        private:
+            void init_buffer();
+            void queue_consumer();
     };
 }
 

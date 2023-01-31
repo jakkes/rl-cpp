@@ -45,14 +45,22 @@ Net::Net()
 
 int main()
 {
+    auto module_device = torch::Device(torch::kCUDA, 0);
+    auto sim_device = torch::Device(torch::kCPU);
+
     auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
     auto net = std::make_shared<Net>();
-    net->to(torch::kCUDA);
+    net->to(module_device);
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());
     auto temperature_control = std::make_shared<rl::utils::float_control::TimedExponentialDecay>(1.0, 0.5, 600);
 
     auto sim = std::make_shared<simulators::DiscreteCartPole>(
-        200, 2, simulators::CartPoleOptions{}.reward_scaling_factor_(1.0f / 200).sparse_reward_(true)
+        200,
+        2,
+        simulators::CartPoleOptions{}
+            .reward_scaling_factor_(1.0f / 200)
+            .sparse_reward_(true)
+            .device_(sim_device)
     );
 
     agents::alpha_zero::Trainer trainer {
@@ -62,9 +70,10 @@ int main()
         agents::alpha_zero::TrainerOptions{}
             .logger_(logger)
             .max_episode_length_(200)
-            .min_replay_size_(1000)
+            .min_replay_size_(10000)
             .replay_size_(100000)
-            .module_device_(torch::kCUDA)
+            .module_device_(module_device)
+            .sim_device_(sim_device)
             .enable_training_cuda_graph_(false)
             .self_play_batchsize_(32)
             .self_play_mcts_steps_(80)

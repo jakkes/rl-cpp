@@ -14,6 +14,7 @@ namespace rl::simulators
     {
         RL_OPTION(bool, sparse_reward) = false;
         RL_OPTION(float, reward_scaling_factor) = 1.0f;
+        RL_OPTION(torch::Device, device) = torch::kCPU;
     };
 
     class ContinuousCartPole : public Base
@@ -39,6 +40,7 @@ namespace rl::simulators
         
         private:
             const int n_actions;
+            const CartPoleOptions options;
             torch::Tensor forces;
             ContinuousCartPole sim;
     };

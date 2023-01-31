@@ -88,15 +88,14 @@ namespace trainer_impl
     Trainer::Trainer(
         std::shared_ptr<rl::simulators::Base> simulator,
         std::shared_ptr<modules::Base> module,
-        std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
+        std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<std::mutex> optimizer_step_mtx,
         const TrainerOptions &options
     )
-    :   simulator{simulator}, module{module}, episode_queue{episode_queue},
+    :   simulator{simulator}, module{module}, sampler{sampler},
         optimizer{optimizer}, optimizer_step_mtx{optimizer_step_mtx}, options{options}
     {
-        init_buffer();
         setup_inference_unit();
         setup_training_unit();
     }
@@ -104,7 +103,6 @@ namespace trainer_impl
     void Trainer::start() {
         running = true;
         working_thread = std::thread(&Trainer::worker, this);
-        queue_consuming_thread = std::thread(&Trainer::queue_consumer, this);
     }
 
     void Trainer::stop() {
@@ -112,39 +110,13 @@ namespace trainer_impl
         if (working_thread.joinable()) {
             working_thread.join();
         }
-        if (queue_consuming_thread.joinable()) {
-            queue_consuming_thread.join();
-        }
-    }
-
-    void Trainer::init_buffer()
-    {
-        auto states = simulator->reset(1);
-        auto state = states.states.squeeze(0);
-        auto mask = get_mask(*states.action_constraints).squeeze(0);
-        
-        buffer = std::make_shared<rl::buffers::Tensor>(
-            options.replay_size,
-            std::vector{
-                state.sizes().vec(),
-                mask.sizes().vec(),
-                std::vector<int64_t>{}
-            },
-            std::vector{
-                state.options(),
-                mask.options(),
-                torch::TensorOptions{}.dtype(torch::kFloat32).device(state.device())
-            }
-        );
-
-        sampler = std::make_unique<rl::buffers::samplers::Uniform<rl::buffers::Tensor>>(buffer);
     }
 
     void Trainer::worker()
     {
         torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
 
-        while (running && buffer->size() < options.min_replay_size) {
+        while (running && sampler->buffer_size() < options.min_replay_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
@@ -197,20 +169,6 @@ namespace trainer_impl
             options.logger->log_scalar("AlphaZero/Value loss", training_outputs.scalars[1].item().toFloat());
             options.logger->log_scalar("AlphaZero/Gradient norm", training_outputs.scalars[2].item().toFloat());
             options.logger->log_frequency("AlphaZero/Training rate", 1);
-        }
-    }
-
-    void Trainer::queue_consumer()
-    {
-        while (running)
-        {
-            auto episode_ptr = episode_queue->dequeue(std::chrono::seconds(5));
-            if (!episode_ptr) {
-                continue;
-            }
-
-            auto episode = *episode_ptr;
-            buffer->add({episode.states, episode.masks, episode.collected_rewards});
         }
     }
 

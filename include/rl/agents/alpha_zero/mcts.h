@@ -32,6 +32,7 @@ namespace rl::agents::alpha_zero
     struct MCTSOptions
     {
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
+        RL_OPTION(torch::Device, sim_device) = torch::kCPU;
 
         RL_OPTION(float, c1) = 1.25f;
         RL_OPTION(float, c2) = 19652;

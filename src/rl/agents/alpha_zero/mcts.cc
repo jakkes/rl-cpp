@@ -15,7 +15,7 @@ namespace rl::agents::alpha_zero
     ) 
         :
         state_{state},
-        mask_{mask},
+        mask_{mask.to(torch::kCPU)},
         value{value},
         P{prior.to(torch::kCPU)},
         Q{torch::zeros_like(P)},
@@ -160,13 +160,13 @@ namespace rl::agents::alpha_zero
             std::vector<torch::Tensor> states{}; states.reserve(root_nodes.size());
             std::vector<int64_t> actions{}; actions.reserve(root_nodes.size());
             for (int i = 0; i < root_nodes.size(); i++) {
-                states.push_back(select_results[i].node->state());
+                states.push_back(select_results[i].node->state().to(options.sim_device));
                 actions.push_back(select_results[i].action);
             }
 
             auto observation = simulator->step(
                 torch::stack(states, 0),
-                torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong))
+                torch::tensor(actions, torch::TensorOptions{}.dtype(torch::kLong).device(options.sim_device))
             );
 
             auto next_masks = std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(observation.next_states.action_constraints)->mask();

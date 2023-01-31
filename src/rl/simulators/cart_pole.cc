@@ -22,11 +22,13 @@ namespace rl::simulators
     static constexpr float DT{0.02};
 
     static inline
-    std::shared_ptr<rl::policies::constraints::Box> get_continuous_constraint(int n)
+    std::shared_ptr<rl::policies::constraints::Box> get_continuous_constraint(int n, torch::Device device)
     {
+        auto float_options = torch::TensorOptions{}.device(device);
+
         return std::make_shared<rl::policies::constraints::Box>(
-            -torch::ones({n}),
-            torch::ones({n}),
+            -torch::ones({n}, float_options),
+            torch::ones({n}, float_options),
             rl::policies::constraints::BoxOptions{}
                 .inclusive_lower_(true)
                 .inclusive_upper_(true)
@@ -34,9 +36,9 @@ namespace rl::simulators
     }
 
     static inline
-    std::shared_ptr<rl::policies::constraints::CategoricalMask> get_discrete_constraint(int n, int n_actions)
+    std::shared_ptr<rl::policies::constraints::CategoricalMask> get_discrete_constraint(int n, int n_actions, torch::Device device)
     {
-        static auto tensor_options = torch::TensorOptions{}.dtype(torch::kBool);
+        auto tensor_options = torch::TensorOptions{}.dtype(torch::kBool).device(device);
 
         return std::make_shared<rl::policies::constraints::CategoricalMask>(
             torch::ones({n, n_actions}, tensor_options)
@@ -44,9 +46,13 @@ namespace rl::simulators
     }
 
     static inline
-    torch::Tensor fresh_states(int n) {
+    torch::Tensor fresh_states(int n, torch::Device device) {
+        auto float_options = torch::TensorOptions{}.device(device);
         return torch::concat(
-            {0.1f * torch::rand({n, 4}) - 0.05f, torch::zeros({n, 1})},
+            {
+                0.1f * torch::rand({n, 4}, float_options) - 0.05f,
+                torch::zeros({n, 1}, float_options)
+            },
             1
         );
     }
@@ -58,8 +64,8 @@ namespace rl::simulators
     States ContinuousCartPole::reset(int64_t n) const
     {
         States out{};
-        out.states = fresh_states(n);
-        out.action_constraints = get_continuous_constraint(n);
+        out.states = fresh_states(n, options.device);
+        out.action_constraints = get_continuous_constraint(n, options.device);
         return out;
     }
 
@@ -106,7 +112,7 @@ namespace rl::simulators
 
         Observations out{};
         out.next_states.states = torch::stack({x, v, theta, omega, steps + 1}, 1);
-        out.next_states.action_constraints = get_continuous_constraint(n);
+        out.next_states.action_constraints = get_continuous_constraint(n, options.device);
 
         out.terminals = (
             (x.abs() > POSITION_LIMIT)
@@ -118,7 +124,7 @@ namespace rl::simulators
             out.rewards = torch::where(out.terminals, steps + 1, torch::zeros_like(steps));
         }
         else {
-            out.rewards = torch::ones({n});
+            out.rewards = torch::ones({n}, torch::TensorOptions{}.device(options.device));
         }
         out.rewards *= options.reward_scaling_factor;
 
@@ -127,20 +133,20 @@ namespace rl::simulators
 
     DiscreteCartPole::DiscreteCartPole(
         int steps, int n_actions, const CartPoleOptions &options
-    ) : sim{steps, options}, n_actions{n_actions}
+    ) : sim{steps, options}, n_actions{n_actions}, options{options}
     {
         if (n_actions < 2) {
             throw std::invalid_argument{"Must use at least two actions."};
         }
 
-        forces = torch::linspace(-1.0f, 1.0f, n_actions);
+        forces = torch::linspace(-1.0f, 1.0f, n_actions, torch::TensorOptions{}.device(options.device));
     }
 
     States DiscreteCartPole::reset(int64_t n) const
     {
         States out{};
-        out.states = fresh_states(n);
-        out.action_constraints = get_discrete_constraint(n, n_actions);
+        out.states = fresh_states(n, options.device);
+        out.action_constraints = get_discrete_constraint(n, n_actions, options.device);
         return out;
     }
 
@@ -150,7 +156,7 @@ namespace rl::simulators
         auto forces = this->forces.index({actions});
         auto observations = sim.step(states, forces);
         observations.next_states.action_constraints = get_discrete_constraint(
-            states.size(0), n_actions
+            states.size(0), n_actions, options.device
         );
         return observations;
     }

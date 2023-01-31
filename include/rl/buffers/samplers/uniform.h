@@ -20,6 +20,10 @@ namespace rl::buffers::samplers
                     torch::randint(buffer->size(), {n}, torch::TensorOptions{}.dtype(torch::kLong))
                 );
             }
+
+            inline auto buffer_size() const {
+                return buffer->size();
+            }
         
         private:
             std::shared_ptr<T> buffer;

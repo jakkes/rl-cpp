@@ -6,7 +6,6 @@
 #include <mutex>
 #include <thread>
 
-#include <thread_safe/collections/queue.h>
 #include <torch/torch.h>
 #include <ATen/cuda/CUDAGraph.h>
 #include <c10/cuda/CUDAStream.h>
@@ -45,7 +44,7 @@ namespace trainer_impl
             Trainer(
                 std::shared_ptr<rl::simulators::Base> simulator,
                 std::shared_ptr<modules::Base> module,
-                std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
+                std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<std::mutex> optimizer_step_mtx,
                 const TrainerOptions &options={}
@@ -57,17 +56,14 @@ namespace trainer_impl
         private:
             std::shared_ptr<rl::simulators::Base> simulator;
             std::shared_ptr<modules::Base> module;
-            std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<std::mutex> optimizer_step_mtx;
             const TrainerOptions options;
 
-            std::shared_ptr<rl::buffers::Tensor> buffer;
-            std::unique_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
+            std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;
 
             std::atomic<bool> running{false};
             std::thread working_thread;
-            std::thread queue_consuming_thread;
 
             std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&Trainer::inference_fn, this, std::placeholders::_1);
             std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
@@ -76,7 +72,6 @@ namespace trainer_impl
         private:
             void init_buffer();
             void worker();
-            void queue_consumer();
             void step();
             torch::Tensor get_target_policy(const torch::Tensor &states, const torch::Tensor &masks);
 

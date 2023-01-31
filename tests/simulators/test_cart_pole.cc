@@ -3,6 +3,8 @@
 #include <rl/env/cart_pole.h>
 #include <rl/simulators/cart_pole.h>
 
+#include <torch_test.h>
+
 using namespace rl;
 using namespace torch::indexing;
 
@@ -31,16 +33,16 @@ TEST(cart_pole, match_env)
 }
 
 
-TEST(cart_pole, sparse_reward)
+TORCH_TEST(cart_pole, sparse_reward, device)
 {
-    simulators::DiscreteCartPole sim{200, 5, simulators::CartPoleOptions{}.sparse_reward_(true)};
+    simulators::DiscreteCartPole sim{200, 5, simulators::CartPoleOptions{}.sparse_reward_(true).device_(device)};
 
     bool terminal{false};
     auto state = sim.reset(1);
     int i = 0;
     while (!terminal)
     {
-        auto action = torch::tensor(i++ % 5, torch::TensorOptions{}.dtype(torch::kLong));
+        auto action = torch::tensor(i++ % 5, torch::TensorOptions{}.dtype(torch::kLong).device(device));
         auto sim_obs = sim.step(state.states, action.unsqueeze(0));
         state = sim_obs.next_states;
         terminal = sim_obs.terminals.item().toBool();

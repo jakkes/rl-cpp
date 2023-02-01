@@ -125,6 +125,7 @@ namespace rl::agents::alpha_zero
         }
 
         queue_consuming_thread = std::thread(&Trainer::queue_consumer, this);
+        checkpoint_callback_thread = std::thread(&Trainer::checkpoint_callback_worker, this, optimizer_step_mtx);
 
         for (auto &worker : self_play_workers) {
             worker->start();
@@ -139,6 +140,7 @@ namespace rl::agents::alpha_zero
             std::this_thread::sleep_for(std::chrono::seconds(5));
         }
 
+        running = false;
         for (auto &trainer_worker : trainers) {
             trainer_worker->stop();
         }
@@ -147,6 +149,9 @@ namespace rl::agents::alpha_zero
         }
         if (queue_consuming_thread.joinable()) {
             queue_consuming_thread.join();
+        }
+        if (checkpoint_callback_thread.joinable()) {
+            checkpoint_callback_thread.join();
         }
     }
 
@@ -161,6 +166,26 @@ namespace rl::agents::alpha_zero
 
             auto episode = *episode_ptr;
             buffer->add({episode.states.to(options.replay_device), episode.masks.to(options.replay_device), episode.collected_rewards.to(options.replay_device)});
+        }
+    }
+
+    void Trainer::checkpoint_callback_worker(std::shared_ptr<std::mutex> optimizer_step_mtx)
+    {
+        if (!options.checkpoint_callback) {
+            return;
+        }
+
+        auto last_call_point = std::chrono::high_resolution_clock::now();
+        while (running)
+        {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto duration = (now - last_call_point).count() / 1000000000;
+            if (duration > options.checkpoint_callback_period_seconds) {
+                std::lock_guard lock{*optimizer_step_mtx};
+                options.checkpoint_callback(duration);
+            }
+
+            std::this_thread::sleep_for(std::chrono::seconds(5));
         }
     }
 }

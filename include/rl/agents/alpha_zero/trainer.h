@@ -49,6 +49,11 @@ namespace rl::agents::alpha_zero
 
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
         RL_OPTION(std::function<bool(SelfPlayEpisode*)>, hindsight_callback) = nullptr;
+
+        // Checkpoint callback, called with number of seconds trained so far.
+        RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
+        // Checkpoint callback period, in seconds.
+        RL_OPTION(size_t, checkpoint_callback_period_seconds) = 3600;
     };
 
     class Trainer
@@ -74,11 +79,13 @@ namespace rl::agents::alpha_zero
             std::shared_ptr<thread_safe::Queue<rl::agents::alpha_zero::SelfPlayEpisode>> episode_queue;
 
             std::thread queue_consuming_thread;
+            std::thread checkpoint_callback_thread;
             std::atomic<bool> running{false};
 
         private:
             void init_buffer();
             void queue_consumer();
+            void checkpoint_callback_worker(std::shared_ptr<std::mutex> optimizer_step_mtx);
     };
 }
 

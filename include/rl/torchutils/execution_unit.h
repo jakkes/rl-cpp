@@ -25,16 +25,17 @@ namespace rl::torchutils
     class ExecutionUnit
     {
         public:
-            ExecutionUnit(bool use_cuda_graph, int max_batchsize);
+            ExecutionUnit(bool use_cuda_graph, int max_batchsize, c10::DeviceIndex device=-1);
 
             ExecutionUnitOutput operator()(const std::vector<torch::Tensor> &inputs);
 
         private:
             const bool use_cuda_graph;
             const int max_batchsize;
+            const c10::DeviceIndex device;
             std::mutex mtx{};
 
-            c10::cuda::CUDAStream stream{c10::cuda::getStreamFromPool()};
+            c10::cuda::CUDAStream stream;
             std::unique_ptr<at::cuda::CUDAGraph> cuda_graph = nullptr;
      
             std::vector<torch::Tensor> inputs;
@@ -45,6 +46,42 @@ namespace rl::torchutils
             ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs) = 0;
 
             void init_graph(const std::vector<torch::Tensor> &inputs);
+    };
+
+    class ExecutionUnitLoadBalancer
+    {
+        public:
+            ExecutionUnitLoadBalancer(
+                const std::vector<std::shared_ptr<ExecutionUnit>> &execution_units
+            );
+
+            inline
+            ExecutionUnitOutput operator()(const std::vector<torch::Tensor> &inputs) {
+                return get_next_execution_unit()(inputs);
+            }
+
+            inline 
+            void run_all(const std::vector<torch::Tensor> &inputs) {
+                for (auto &unit : execution_units) {
+                    unit->operator()(inputs);
+                }
+            }
+
+        private:
+            std::vector<std::shared_ptr<ExecutionUnit>> execution_units;
+            size_t current_index{0};
+            std::mutex mtx{};
+
+        private:
+            inline
+            ExecutionUnit &get_next_execution_unit() {
+                std::lock_guard lock{mtx};
+                auto &out = *execution_units[current_index++];
+                if (current_index >= execution_units.size()) {
+                    current_index = 0;
+                }
+                return out;
+            }
     };
 }
 

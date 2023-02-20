@@ -1,5 +1,7 @@
 #include "rl/torchutils/execution_unit.h"
 
+#include <unordered_set>
+
 
 using namespace torch::indexing;
 
@@ -39,8 +41,12 @@ namespace rl::torchutils
         return out;
     }
 
-    ExecutionUnit::ExecutionUnit(bool use_graph, int max_batchsize)
-    : use_cuda_graph{use_graph}, max_batchsize{max_batchsize}
+    ExecutionUnit::ExecutionUnit(bool use_graph, int max_batchsize, c10::DeviceIndex device)
+    : 
+        use_cuda_graph{use_graph},
+        max_batchsize{max_batchsize},
+        device{device},
+        stream{c10::cuda::getStreamFromPool(false, device)}
     {}
 
     void ExecutionUnit::init_graph(const std::vector<torch::Tensor> &inputs)
@@ -70,8 +76,8 @@ namespace rl::torchutils
 
         std::lock_guard lock{mtx};
 
-        // Synchronize current stream as we are about to enter another one.
-        c10::cuda::getCurrentCUDAStream().synchronize();
+        // Synchronize input streams as we are about to enter another one.
+        c10::cuda::getCurrentCUDAStream(device).synchronize();
         auto batchsize = inputs.size() == 0 ? max_batchsize : inputs[0].size(0);
         if (batchsize > max_batchsize) {
             throw std::invalid_argument{
@@ -90,14 +96,17 @@ namespace rl::torchutils
             this->inputs[i].index_put_({Slice(None, batchsize)}, inputs[i]);
         }
 
-        // TODO: Do we need to synchronize here?
+        // TODO: Do we need to synchronize here? Probably not.
         stream_guard.current_stream().synchronize();
-
         cuda_graph->replay();
-
         auto out = outputs.clone(batchsize);
         stream_guard.current_stream().synchronize();
 
         return out;
     }
+
+    ExecutionUnitLoadBalancer::ExecutionUnitLoadBalancer(
+        const std::vector<std::shared_ptr<ExecutionUnit>> &execution_units
+    ) : execution_units{execution_units}
+    {}
 }

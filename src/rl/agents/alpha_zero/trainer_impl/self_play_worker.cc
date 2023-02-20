@@ -210,7 +210,7 @@ namespace trainer_impl
 
     void SelfPlayWorker::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
+        torch::MultiStreamGuard stream_guard{get_cuda_streams()};
 
         set_initial_state();
         while (running) {

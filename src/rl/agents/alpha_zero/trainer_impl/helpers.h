@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <torch/torch.h>
+#include <c10/cuda/CUDAStream.h>
 
 #include <rl/policies/constraints/categorical_mask.h>
 
@@ -32,6 +33,16 @@ namespace trainer_impl
         visit_counts.pow_(1.0f / temperature);
 
         return rl::policies::Categorical{visit_counts};
+    }
+
+    inline
+    std::vector<c10::Stream> get_cuda_streams()
+    {
+        std::vector<c10::Stream> out{};
+        for (int i = 0; i < c10::cuda::device_count(); i++) {
+            out.push_back(c10::cuda::getStreamFromPool(false, i));
+        }
+        return out;
     }
 }
 

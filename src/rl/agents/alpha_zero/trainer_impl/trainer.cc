@@ -49,7 +49,11 @@ namespace
                 std::shared_ptr<modules::Base> module,
                 std::shared_ptr<torch::optim::Optimizer> optimizer
             ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}, optimizer{optimizer}
-            {}
+            {
+                if (use_cuda_graph) {
+                    throw std::runtime_error{"CUDAGraph for training not yet supported."};
+                }
+            }
 
         private:
             std::shared_ptr<modules::Base> module;
@@ -114,7 +118,7 @@ namespace trainer_impl
 
     void Trainer::worker()
     {
-        torch::StreamGuard stream_guard{c10::cuda::getStreamFromPool()};
+        torch::MultiStreamGuard stream_guard{get_cuda_streams()};
 
         while (running && sampler->buffer_size() < options.min_replay_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));

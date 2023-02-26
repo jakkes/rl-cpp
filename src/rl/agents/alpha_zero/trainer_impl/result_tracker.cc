@@ -30,7 +30,7 @@ namespace trainer_impl
 
         best_reward = max_reward;
 
-        auto i = rewards.argmax().item().toLong();
+        auto i = total_rewards.argmax().item().toLong();
         auto best_actions = actions.index({
             i,
             Slice(None, episode_lengths.index({i}).item().toLong())

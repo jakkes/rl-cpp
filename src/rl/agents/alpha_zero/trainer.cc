@@ -6,6 +6,7 @@
 
 #include "trainer_impl/self_play_worker.h"
 #include "trainer_impl/trainer.h"
+#include "trainer_impl/result_tracker.h"
 #include "trainer_impl/helpers.h"
 
 
@@ -54,6 +55,7 @@ namespace rl::agents::alpha_zero
     {
         running = true;
         episode_queue = make_shared<thread_safe::Queue<SelfPlayEpisode>>(1000);
+        auto result_tracker = make_shared<ResultTracker>(options.logger);
 
         vector<unique_ptr<SelfPlayWorker>> self_play_workers{};
         self_play_workers.reserve(options.self_play_workers);
@@ -63,6 +65,7 @@ namespace rl::agents::alpha_zero
                     simulator,
                     module,
                     episode_queue,
+                    result_tracker,
                     SelfPlayWorkerOptions{}
                         .batchsize_(options.self_play_batchsize)
                         .discount_(options.discount)

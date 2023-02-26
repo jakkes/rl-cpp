@@ -47,8 +47,14 @@ namespace trainer_impl
         std::shared_ptr<rl::simulators::Base> simulator,
         std::shared_ptr<modules::Base> module,
         std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
+        std::shared_ptr<ResultTracker> result_tracker,
         const SelfPlayWorkerOptions &options
-    ) : simulator{simulator}, module{module}, episode_queue{episode_queue}, options{options}
+    ) : 
+        simulator{simulator},
+        module{module},
+        episode_queue{episode_queue},
+        result_tracker{result_tracker},
+        options{options}
     {
         batchvec = torch::arange(options.batchsize);
         setup_inference_unit();
@@ -81,6 +87,7 @@ namespace trainer_impl
         state_history.index_put_({terminal_indices, Slice(1, None)}, 0.0f);
         mask_history.index_put_({terminal_indices, 0}, masks);
         mask_history.index_put_({terminal_indices, Slice(1, None)}, false);
+        action_history.index_put_({terminal_indices}, 0l);
         reward_history.index_put_({terminal_mask}, torch::zeros_like(reward_history.index({terminal_mask})));
         steps.index_put_({terminal_mask}, 0);
     }
@@ -149,6 +156,7 @@ namespace trainer_impl
         }
 
         reward_history = torch::zeros({options.batchsize, options.max_episode_length});
+        action_history = torch::zeros({options.batchsize, options.max_episode_length}, torch::TensorOptions{}.dtype(torch::kLong));
         steps = torch::zeros({options.batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
 
         reset_mcts_nodes(torch::ones({options.batchsize}, torch::TensorOptions{}.dtype(torch::kBool)));
@@ -170,6 +178,7 @@ namespace trainer_impl
 
             auto &step = step_accessor[i];
             reward_history.index_put_({i, step}, next_node->reward());
+            action_history.index_put_({i, step}, action_accessor[i]);
 
             step += 1;
             if (step >= options.max_episode_length || next_node->terminal()) {
@@ -223,6 +232,7 @@ namespace trainer_impl
         auto steps = this->steps.index({terminal_mask});
         auto states = this->state_history.index({terminal_mask});
         auto masks = this->mask_history.index({terminal_mask});
+        auto actions = this->action_history.index({terminal_mask});
         auto rewards = this->reward_history.index({terminal_mask});
 
         auto max_length = steps.max().item().toLong();
@@ -268,6 +278,7 @@ namespace trainer_impl
         }
 
         if (options.logger) {
+            result_tracker->report(steps, actions, rewards);
             options.logger->log_scalar("AlphaZero/Reward", G.index({Slice(), 0}).mean().item().toFloat());
             options.logger->log_frequency("AlphaZero/Episode rate", batchsize);
         }

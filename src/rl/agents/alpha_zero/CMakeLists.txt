@@ -9,4 +9,5 @@ target_sources(
         ./trainer.cc
         ./trainer_impl/self_play_worker.cc
         ./trainer_impl/trainer.cc
+        ./trainer_impl/result_tracker.cc
 )

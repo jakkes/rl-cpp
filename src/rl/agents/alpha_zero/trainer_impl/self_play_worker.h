@@ -20,6 +20,8 @@
 #include <rl/agents/alpha_zero/self_play_episode.h>
 #include <rl/torchutils/execution_unit.h>
 
+#include "result_tracker.h"
+
 
 using namespace rl::agents::alpha_zero;
 
@@ -48,6 +50,7 @@ namespace trainer_impl
                 std::shared_ptr<rl::simulators::Base> simulator,
                 std::shared_ptr<modules::Base> module,
                 std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue,
+                std::shared_ptr<ResultTracker> result_tracker,
                 const SelfPlayWorkerOptions &options={}
             );
 
@@ -58,6 +61,7 @@ namespace trainer_impl
             std::shared_ptr<rl::simulators::Base> simulator;
             std::shared_ptr<modules::Base> module;
             std::shared_ptr<thread_safe::Queue<SelfPlayEpisode>> episode_queue;
+            std::shared_ptr<ResultTracker> result_tracker;
             const SelfPlayWorkerOptions options;
 
             std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
@@ -70,6 +74,7 @@ namespace trainer_impl
             torch::Tensor batchvec;
             torch::Tensor state_history;
             torch::Tensor mask_history;
+            torch::Tensor action_history;
             torch::Tensor reward_history;
             torch::Tensor steps;
 

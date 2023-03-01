@@ -9,6 +9,7 @@
 #include <c10/cuda/CUDAStream.h>
 
 #include <rl/policies/constraints/categorical_mask.h>
+#include <rl/agents/alpha_zero/mcts.h>
 
 
 namespace trainer_impl
@@ -21,7 +22,7 @@ namespace trainer_impl
 
     inline
     rl::policies::Categorical mcts_nodes_to_policy(
-        const std::vector<std::shared_ptr<MCTSNode>> &nodes,
+        const std::vector<std::shared_ptr<rl::agents::alpha_zero::MCTSNode>> &nodes,
         float temperature
     )
     {

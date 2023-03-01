@@ -14,6 +14,7 @@ namespace rl::simulators
     struct CombinatorialLockOptions
     {
         RL_OPTION(bool, intermediate_rewards) = false;
+        RL_OPTION(torch::Device, device) = torch::kCPU;
     };
 
     class CombinatorialLock : public Base

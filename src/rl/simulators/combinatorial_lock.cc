@@ -7,8 +7,6 @@
 
 namespace rl::simulators
 {
-    static auto long_dtype = torch::TensorOptions{}.dtype(torch::kLong);
-    static auto bool_dtype = torch::TensorOptions{}.dtype(torch::kBool);
 
     CombinatorialLock::CombinatorialLock(
         int dim,
@@ -27,15 +25,21 @@ namespace rl::simulators
             throw std::invalid_argument{"Sequence values must be less than the given dim."};
         }
 
-        this->correct_sequence = torch::tensor(correct_sequence, long_dtype);
+        this->correct_sequence = torch::tensor(
+            correct_sequence,
+            torch::TensorOptions{}.dtype(torch::kLong).device(options.device)
+        );
     }
 
     States CombinatorialLock::reset(int64_t n) const
     {
         States out{};
-        out.states = torch::zeros({n, correct_sequence.size(0)}, long_dtype) - 1;
+        out.states = -1 + torch::zeros(
+            {n, correct_sequence.size(0)},
+            torch::TensorOptions{}.dtype(torch::kLong).device(options.device)
+        );
         out.action_constraints = std::make_shared<rl::policies::constraints::CategoricalMask>(
-            torch::ones({n, dim}, bool_dtype)
+            torch::ones({n, dim}, torch::TensorOptions{}.dtype(torch::kBool).device(options.device))
         );
         return out;
     }
@@ -60,7 +64,7 @@ namespace rl::simulators
         Observations out{};
         out.next_states.states = states.index_put({batchvec, sequence_lengths}, actions);
         out.next_states.action_constraints = std::make_shared<rl::policies::constraints::CategoricalMask>(
-            torch::ones({states.size(0), dim}, bool_dtype)
+            torch::ones({states.size(0), dim}, torch::TensorOptions{}.dtype(torch::kBool).device(options.device))
         );
 
         if (options.intermediate_rewards) {

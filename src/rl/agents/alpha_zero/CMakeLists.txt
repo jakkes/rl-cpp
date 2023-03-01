@@ -2,6 +2,7 @@ target_sources(
     rl
     PRIVATE
         ./mcts.cc
+        ./fast_mcts.cc
         ./modules/base.cc
         ./modules/mean_value.cc
         ./modules/fixed_value_support.cc

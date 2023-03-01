@@ -3,6 +3,7 @@
 
 
 #include "mcts.h"
+#include "fast_mcts.h"
 #include "trainer.h"
 #include "self_play_episode.h"
 

@@ -41,22 +41,29 @@ namespace rl::torchutils
         return out;
     }
 
-    ExecutionUnit::ExecutionUnit(bool use_graph, int max_batchsize, c10::DeviceIndex device)
+    ExecutionUnit::ExecutionUnit(bool use_graph, int max_batchsize, torch::Device device)
     : 
         use_cuda_graph{use_graph},
-        max_batchsize{max_batchsize},
-        device{device},
-        stream{c10::cuda::getStreamFromPool(false, device)}
-    {}
+        batchsize{max_batchsize},
+        device{device}
+    {
+        if (!device.is_cuda()) {
+            use_cuda_graph = false;
+        }
+
+        if (use_cuda_graph) {
+            stream = std::make_unique<c10::cuda::CUDAStream>(c10::cuda::getStreamFromPool(false, device.index()));
+        }
+    }
 
     void ExecutionUnit::init_graph(const std::vector<torch::Tensor> &inputs)
     {
-        torch::StreamGuard stream_guard{stream};
+        torch::StreamGuard stream_guard{*stream};
         cuda_graph = std::make_unique<at::cuda::CUDAGraph>();
 
         this->inputs.reserve(inputs.size());
         for (auto &input : inputs) {
-            this->inputs.push_back(expand_to_batchsize(input, max_batchsize));
+            this->inputs.push_back(expand_to_batchsize(input, batchsize));
         }
 
         outputs = forward(this->inputs);
@@ -77,13 +84,13 @@ namespace rl::torchutils
         std::lock_guard lock{mtx};
 
         // Synchronize input streams as we are about to enter another one.
-        c10::cuda::getCurrentCUDAStream(device).synchronize();
-        auto batchsize = inputs.size() == 0 ? max_batchsize : inputs[0].size(0);
-        if (batchsize > max_batchsize) {
+        c10::cuda::getCurrentCUDAStream(device.index()).synchronize();
+        auto batchsize = inputs.size() == 0 ? this->batchsize : inputs[0].size(0);
+        if (batchsize > batchsize) {
             throw std::invalid_argument{
                 "Cannot execute a batch larger than the given batchsize. Received "
                 "batch of size " + std::to_string(batchsize) + ", configured max "
-                "batchsize is " + std::to_string(max_batchsize) + "."
+                "batchsize is " + std::to_string(this->batchsize) + "."
             };
         }
 
@@ -91,7 +98,7 @@ namespace rl::torchutils
             init_graph(inputs);
         }
 
-        torch::StreamGuard stream_guard{stream};
+        torch::StreamGuard stream_guard{*stream};
         for (int i = 0; i < inputs.size(); i++) {
             this->inputs[i].index_put_({Slice(None, batchsize)}, inputs[i]);
         }

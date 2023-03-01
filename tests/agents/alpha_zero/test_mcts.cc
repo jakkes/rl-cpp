@@ -46,11 +46,12 @@ class Module : public modules::Base
 
 TEST(mcts, single_step)
 {
-    int sims{1000};
+    int sims{10000};
     int n{5};
 
     auto module = std::make_shared<Module>(5);
-    auto sim = std::make_shared<rl::simulators::CombinatorialLock>(5, std::vector{0, 1, 2, 3, 4});
+    auto combination = std::vector{3, 1, 2, 4, 0};
+    auto sim = std::make_shared<rl::simulators::CombinatorialLock>(5, combination);
 
     auto states = sim->reset(n);
     auto nodes = mcts(
@@ -66,6 +67,6 @@ TEST(mcts, single_step)
     for (const auto &node : nodes) {
         auto visit_count = node->visit_count();
         ASSERT_EQ(visit_count.sum().item().toLong(), sims);
-        ASSERT_EQ(visit_count.argmax().item().toLong(), 0);
+        ASSERT_EQ(visit_count.argmax().item().toLong(), 3);
     }
 }

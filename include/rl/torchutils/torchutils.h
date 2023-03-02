@@ -7,5 +7,6 @@
 #include "is_int_dtype.h"
 #include "scale_gradients.h"
 #include "execution_unit.h"
+#include "repeat.h"
 
 #endif /* RL_TORCHUTILS_TORCHUTILS_H_ */

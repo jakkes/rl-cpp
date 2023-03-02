@@ -1,6 +1,7 @@
 #include "rl/agents/alpha_zero/fast_mcts.h"
 
 #include <rl/cpputils/cpputils.h>
+#include <rl/torchutils/repeat.h>
 
 #include "trainer_impl/helpers.h"
 
@@ -19,7 +20,7 @@ namespace rl::agents::alpha_zero
         inference_fn{inference_fn},
         simulator{simulator},
         dirchlet_noise_generator{
-            options.dirchlet_noise_alpha + torch::zeros({states.size(0), action_masks.size(1)}).to(options.device)
+            options.dirchlet_noise_alpha + torch::zeros({states.size(0), action_masks.size(1)})
         }
     {
         batchsize = states.size(0);
@@ -30,7 +31,6 @@ namespace rl::agents::alpha_zero
             action_dim,
             torch::TensorOptions{}
                 .dtype(torch::kLong)
-                .device(options.device)
         );
 
         init_tensors(states, action_masks);
@@ -62,25 +62,25 @@ namespace rl::agents::alpha_zero
         const torch::Tensor &masks
     )
     {
-        this->states = states.to(options.device).clone();
-        this->masks = masks.to(options.device).clone();
-        actions = - torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
-        rewards = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32).device(options.device));
-        terminals = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kBool).device(options.device));
-        children = - torch::ones({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
-        parents = - torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
-        root_indices = torch::arange(batchsize, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
+        this->states = states.to(options.module_device).clone();
+        this->masks = masks.to(options.module_device).clone();
+        actions = - torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
+        rewards = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32));
+        terminals = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kBool));
+        children = - torch::ones({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kLong));
+        parents = - torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
+        root_indices = torch::arange(batchsize, torch::TensorOptions{}.dtype(torch::kLong));
 
         auto infer_result = infer(this->states, this->masks);
-        P = ((1 - options.dirchlet_noise_epsilon) * infer_result.probabilities + options.dirchlet_noise_epsilon * dirchlet_noise_generator.sample()).view({-1});
-        Q = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32).device(options.device));
-        N = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kLong).device(options.device));
-        V = infer_result.values.clone();
+        P = ((1 - options.dirchlet_noise_epsilon) * infer_result.probabilities.to(torch::kCPU) + options.dirchlet_noise_epsilon * dirchlet_noise_generator.sample()).view({-1});
+        Q = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32));
+        N = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kLong));
+        V = infer_result.values.clone().to(torch::kCPU);
     }
 
     void FastMCTSExecutor::expand_node_capacity()
     {
-        auto state_expand_size = batchsize * options.steps - (capacity - current_i);
+        auto state_expand_size = root_indices.size(0) * options.steps - (capacity - current_i);
         if (state_expand_size <= 0) {
             return;
         }
@@ -96,7 +96,7 @@ namespace rl::agents::alpha_zero
 
         states = torch::concat({
             states,
-            torch::zeros_like(states.index({0})).unsqueeze_(0).repeat(state_repeat_vector)
+            rl::torchutils::repeat(torch::zeros_like(states.index({0})).unsqueeze_(0), {state_expand_size})
         });
         masks = torch::concat({
             masks,
@@ -157,15 +157,27 @@ namespace rl::agents::alpha_zero
 
     void FastMCTSExecutor::step(const torch::Tensor &actions)
     {
-        root_indices = children.index({node_actions_to_action_indices(root_indices, actions)});
+        if (actions.size(0) != root_indices.size(0)) {
+            throw std::invalid_argument{"Expecting one action per non-terminal episode."};
+        }
+        if (root_indices.size(0) == 0) {
+            throw std::runtime_error{"All episodes are terminal."};
+        }
+
+        auto action_indices = node_actions_to_action_indices(root_indices, actions);
+        root_indices = children.index({action_indices});
+        auto terminals = this->terminals.index({action_indices});
+        root_indices = root_indices.index({~terminals});
         parents.index_put_({root_indices}, -1);
         
-        auto action_indices = node_indices_to_action_indices(root_indices);
+        auto next_action_indices = node_indices_to_action_indices(root_indices);
         P.index_put_(
-            {action_indices},
-            (1 - options.dirchlet_noise_epsilon) * P.index({action_indices})
-            + options.dirchlet_noise_epsilon * dirchlet_noise_generator.sample().view({-1})
+            {next_action_indices},
+            (1 - options.dirchlet_noise_epsilon) * P.index({next_action_indices})
+            + options.dirchlet_noise_epsilon * dirchlet_noise_generator.sample().index({Slice(None, root_indices.size(0))}).view({-1})
         );
+
+        steps++;
     }
 
     void FastMCTSExecutor::run()
@@ -281,5 +293,22 @@ namespace rl::agents::alpha_zero
             nodes = this->parents.index({nodes});
             is_node = nodes != -1;
         }
+    }
+
+    FastMCTSEpisodes FastMCTSExecutor::get_episodes()
+    {
+        if (!all_terminals()) {
+            throw std::runtime_error{"Cannot get episodes until all episodes are terminal."};
+        }
+
+        FastMCTSEpisodes out{};
+
+        out.states = rl::torchutils::repeat(torch::zeros_like(states.index({0})).unsqueeze(0).unsqueeze(1), {batchsize, steps});
+        out.masks = torch::zeros({batchsize, steps, action_dim}, torch::TensorOptions{}.dtype(torch::kBool).device(options.sim_device));
+        out.actions = torch::zeros({batchsize, steps}, torch::TensorOptions{}.dtype(torch::kLong).device(options.sim_device));
+        out.rewards = torch::zeros({batchsize, steps}, torch::TensorOptions{}.dtype(torch::kFloat32).device(options.sim_device));
+        out.lengths = torch::zeros({batchsize}, torch::TensorOptions{}.dtype(torch::kLong).device(options.sim_device));
+
+        
     }
 }

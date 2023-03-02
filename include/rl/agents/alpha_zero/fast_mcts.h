@@ -15,7 +15,8 @@ namespace rl::agents::alpha_zero
 {
     struct FastMCTSExecutorOptions
     {
-        RL_OPTION(torch::Device, device) = torch::kCPU;
+        RL_OPTION(torch::Device, module_device) = torch::kCPU;
+        RL_OPTION(torch::Device, sim_device) = torch::kCPU;
 
         RL_OPTION(float, c1) = 1.25f;
         RL_OPTION(float, c2) = 19652;
@@ -31,6 +32,15 @@ namespace rl::agents::alpha_zero
     {
         torch::Tensor probabilities;
         torch::Tensor values;
+    };
+
+    struct FastMCTSEpisodes
+    {
+        torch::Tensor states;
+        torch::Tensor masks;
+        torch::Tensor actions;
+        torch::Tensor rewards;
+        torch::Tensor lengths;
     };
 
     class FastMCTSExecutor
@@ -54,12 +64,19 @@ namespace rl::agents::alpha_zero
 
             inline
             const torch::Tensor current_visit_counts() const {
-                return N.index({node_indices_to_action_indices(root_indices)}).view({batchsize, action_dim});
+                return N.index({node_indices_to_action_indices(root_indices)}).view({root_indices.size(0), action_dim});
+            }
+
+            inline
+            bool all_terminals() const {
+                return root_indices.size(0) == 0;
             }
 
             void step(const torch::Tensor &actions);
 
             void run();
+
+            FastMCTSEpisodes get_episodes();
 
         private:
             struct SelectResult
@@ -93,6 +110,7 @@ namespace rl::agents::alpha_zero
             torch::Tensor action_dim_vec;
             int64_t current_i;
             int64_t capacity;
+            int64_t steps{0};
 
         private:
             void init_tensors(

@@ -1,6 +1,7 @@
 #include "self_play_worker.h"
 
 #include <rl/utils/reward/backpropagate.h>
+#include <rl/torchutils/repeat.h>
 
 #include "helpers.h"
 
@@ -82,14 +83,6 @@ namespace trainer_impl
         auto initial_states = simulator->reset(batchsize);
         auto states = initial_states.states;
         auto masks = get_mask(*initial_states.action_constraints);
-
-        state_history.index_put_({terminal_indices, 0}, states);
-        state_history.index_put_({terminal_indices, Slice(1, None)}, 0.0f);
-        mask_history.index_put_({terminal_indices, 0}, masks);
-        mask_history.index_put_({terminal_indices, Slice(1, None)}, false);
-        action_history.index_put_({terminal_indices}, 0l);
-        reward_history.index_put_({terminal_mask}, torch::zeros_like(reward_history.index({terminal_mask})));
-        steps.index_put_({terminal_mask}, 0);
     }
 
     void SelfPlayWorker::reset_mcts_nodes(const torch::Tensor &terminal_mask)
@@ -128,38 +121,14 @@ namespace trainer_impl
     void SelfPlayWorker::set_initial_state()
     {
         auto initial_states = simulator->reset(options.batchsize);
-        auto states = initial_states.states;
-        auto masks = get_mask(*initial_states.action_constraints);
 
-        mcts_nodes.resize(options.batchsize);
-
-        state_history = states.unsqueeze(1);
-        mask_history = masks.unsqueeze(1);
-
-        for (int i = 0; i < options.max_episode_length - 1; i++)
-        {
-            state_history = torch::concat(
-                {
-                    state_history,
-                    torch::zeros_like(states).unsqueeze(1)
-                },
-                1
-            );
-
-            mask_history = torch::concat(
-                {
-                    mask_history,
-                    torch::zeros_like(masks).unsqueeze(1)
-                },
-                1
-            );
-        }
-
-        reward_history = torch::zeros({options.batchsize, options.max_episode_length});
-        action_history = torch::zeros({options.batchsize, options.max_episode_length}, torch::TensorOptions{}.dtype(torch::kLong));
-        steps = torch::zeros({options.batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
-
-        reset_mcts_nodes(torch::ones({options.batchsize}, torch::TensorOptions{}.dtype(torch::kBool)));
+        mcts_executor = std::make_unique<FastMCTSExecutor>(
+            initial_states.states,
+            get_mask(*initial_states.action_constraints),
+            inference_fn_var,
+            simulator,
+            options.mcts_options
+        );
     }
 
     torch::Tensor SelfPlayWorker::step_mcts_nodes(const torch::Tensor &actions)
@@ -205,25 +174,27 @@ namespace trainer_impl
 
     void SelfPlayWorker::step()
     {
-        mcts(&mcts_nodes, inference_fn_var, simulator, options.mcts_options);
-        auto policy = mcts_nodes_to_policy(mcts_nodes, options.temperature_control->get());
+        mcts_executor->run();
+        auto visit_counts = mcts_executor->current_visit_counts();
+        auto temperature = options.temperature_control->get();
+        auto probabilities = visit_counts.pow(temperature);
+        
+        rl::policies::Categorical policy{probabilities};
         auto actions = policy.sample();
-        auto terminals = step_mcts_nodes(actions);
-
-        if (terminals.any().item().toBool()) {
-            process_terminals(terminals);
-            reset_histories(terminals);
-            reset_mcts_nodes(terminals);
-        }
+        mcts_executor->step(actions);
     }
 
     void SelfPlayWorker::worker()
     {
         torch::MultiStreamGuard stream_guard{get_cuda_streams()};
 
-        set_initial_state();
-        while (running) {
-            step();
+        while (running)
+        {
+            set_initial_state();
+            while (!mcts_executor->all_terminals()) {
+                step();
+            }
+            process_episodes();
         }
     }
 

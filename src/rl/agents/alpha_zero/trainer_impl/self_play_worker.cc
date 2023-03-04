@@ -57,7 +57,6 @@ namespace trainer_impl
         result_tracker{result_tracker},
         options{options}
     {
-        batchvec = torch::arange(options.batchsize);
         setup_inference_unit();
     }
 
@@ -75,49 +74,6 @@ namespace trainer_impl
         }
     }
 
-    void SelfPlayWorker::reset_histories(const torch::Tensor &terminal_mask)
-    {
-        auto batchsize = terminal_mask.sum().item().toLong();
-        auto terminal_indices = torch::arange(options.batchsize).index({terminal_mask});
-
-        auto initial_states = simulator->reset(batchsize);
-        auto states = initial_states.states;
-        auto masks = get_mask(*initial_states.action_constraints);
-    }
-
-    void SelfPlayWorker::reset_mcts_nodes(const torch::Tensor &terminal_mask)
-    {
-        auto terminal_mask_accessor{terminal_mask.accessor<bool, 1>()};
-
-        auto states = this->state_history.index({terminal_mask}).index({Slice(), 0});
-        auto masks = this->mask_history.index({terminal_mask}).index({Slice(), 0});
-
-        auto output = inference_fn(states.to(options.module_device));
-        auto priors = output.policies.get_probabilities().to(torch::kCPU);
-        auto values = output.values.to(torch::kCPU);
-        
-        int j{-1};
-        for (int i = 0; i < options.batchsize; i++)
-        {
-            if (!terminal_mask_accessor[i]) {
-                continue;
-            }
-            j++;
-
-            mcts_nodes[i] = std::make_shared<MCTSNode>(
-                states.index({j}),
-                masks.index({j}),
-                priors.index({j}),
-                values.index({j}).item().toFloat()
-            );
-        }
-
-        if (options.logger) {
-            options.logger->log_scalar("AlphaZero/Start value", values.mean().item().toFloat());
-            options.logger->log_scalar("AlphaZero/Start entropy", output.policies.entropy().mean().item().toFloat());
-        }
-    }
-
     void SelfPlayWorker::set_initial_state()
     {
         auto initial_states = simulator->reset(options.batchsize);
@@ -129,47 +85,6 @@ namespace trainer_impl
             simulator,
             options.mcts_options
         );
-    }
-
-    torch::Tensor SelfPlayWorker::step_mcts_nodes(const torch::Tensor &actions)
-    {
-        auto terminals = torch::zeros({options.batchsize}, torch::TensorOptions{}.dtype(torch::kBool));
-
-        auto action_accessor{actions.accessor<int64_t, 1>()};
-        auto step_accessor{steps.accessor<int64_t, 1>()};
-        auto terminals_accessor{terminals.accessor<bool, 1>()};
-
-        float end_value{0.0f};
-        int n_terminals{0};
-
-        for (int64_t i = 0; i < options.batchsize; i++) {
-            auto next_node = mcts_nodes[i]->get_child(action_accessor[i]);
-
-            auto &step = step_accessor[i];
-            reward_history.index_put_({i, step}, next_node->reward());
-            action_history.index_put_({i, step}, action_accessor[i]);
-
-            step += 1;
-            if (step >= options.max_episode_length || next_node->terminal()) {
-                terminals_accessor[i] = true;
-                end_value += mcts_nodes[i]->v();
-                n_terminals++;
-            }
-            // State and mask are added to the start of next step, if state is not
-            // terminal.
-            else {
-                state_history.index_put_({i, step}, next_node->state());
-                mask_history.index_put_({i, step}, next_node->mask());
-            }
-
-            mcts_nodes[i] = next_node;
-        }
-
-        if (options.logger && n_terminals > 0) {
-            options.logger->log_scalar("AlphaZero/End value", end_value / n_terminals);
-        }
-
-        return terminals;
     }
 
     void SelfPlayWorker::step()
@@ -198,60 +113,69 @@ namespace trainer_impl
         }
     }
 
-    void SelfPlayWorker::process_terminals(const torch::Tensor &terminal_mask)
+    void SelfPlayWorker::process_episodes()
     {
-        auto steps = this->steps.index({terminal_mask});
-        auto states = this->state_history.index({terminal_mask});
-        auto masks = this->mask_history.index({terminal_mask});
-        auto actions = this->action_history.index({terminal_mask});
-        auto rewards = this->reward_history.index({terminal_mask});
-
-        auto max_length = steps.max().item().toLong();
-
-        auto G = rl::utils::reward::backpropagate(
-            rewards.index({Slice(), Slice(None, max_length)}),
-            options.discount
-        );
-
-        auto batchsize = steps.size(0);
+        auto episodes = mcts_executor->get_episodes();
+        auto batchsize = episodes.states.size(0);
+        auto G = rl::utils::reward::backpropagate(episodes.rewards, options.discount);
 
         for (int i = 0; i < batchsize; i++)
         {
-            auto episode_length = steps.index({i}).item().toLong();
             SelfPlayEpisode episode{};
-            episode.states = states.index({i, Slice(None, episode_length)});
-            episode.masks = masks.index({i, Slice(None, episode_length)});
-            episode.collected_rewards = G.index({i, Slice(None, episode_length)});
+            auto length = episodes.lengths.index({i}).item().toBool();
+            episode.states = episodes.states.index({i, Slice(None, length)});
+            episode.masks = episodes.masks.index({i, Slice(None, length)});
+            episode.collected_rewards = G.index({i, Slice(None, length)});
 
             enqueue_episode(episode);
 
             if (options.hindsight_callback) {
-                SelfPlayEpisode hindsight_episode{};
-                hindsight_episode.states = episode.states.clone();
-                hindsight_episode.masks = episode.masks.clone();
-                hindsight_episode.collected_rewards = episode.collected_rewards.clone();
-                auto should_enqueue = options.hindsight_callback(&hindsight_episode);
+                process_hindsight_callback(episode);
+            }
 
-                if (should_enqueue) {
-                    enqueue_episode(hindsight_episode);
-
-                    if (options.logger) {
-                        options.logger->log_scalar(
-                            "AlphaZero/Hindsight reward",
-                            hindsight_episode.collected_rewards.index({0}).item().toFloat()
-                        );
-                        options.logger->log_frequency(
-                            "AlphaZero/Hindsight episode rate", 1
-                        );
-                    }
-                }
+            if (options.logger) {
+                options.logger->log_scalar("AlphaZero/Reward", episode.collected_rewards.index({0}).item().toFloat());
             }
         }
 
         if (options.logger) {
-            result_tracker->report(steps, actions, rewards);
-            options.logger->log_scalar("AlphaZero/Reward", G.index({Slice(), 0}).mean().item().toFloat());
-            options.logger->log_frequency("AlphaZero/Episode rate", batchsize);
+            options.logger->log_frequency("AlphaZero/Episode frequency", batchsize);
+            result_tracker->report(episodes.lengths, episodes.actions, episodes.rewards);
+
+            auto batchvec = torch::arange(batchsize);
+            auto start_output = inference_fn(episodes.states.index({batchvec, 0}).to(options.module_device));
+            auto end_output = inference_fn(episodes.states.index({batchvec, episodes.lengths - 1}));
+
+            auto start_values = start_output.values.cpu();
+            auto end_values = end_output.values.cpu();
+
+            for (int i = 0; i < batchsize; i++) {
+                options.logger->log_scalar("AlphaZero/Start value", start_values.index({i}).item().toFloat());
+                options.logger->log_scalar("AlphaZero/End value", end_values.index({i}).item().toFloat());
+            }
+        }
+    }
+
+    void SelfPlayWorker::process_hindsight_callback(const SelfPlayEpisode &episode)
+    {
+        SelfPlayEpisode hindsight_episode{};
+        hindsight_episode.states = episode.states.clone();
+        hindsight_episode.masks = episode.masks.clone();
+        hindsight_episode.collected_rewards = episode.collected_rewards.clone();
+        auto should_enqueue = options.hindsight_callback(&hindsight_episode);
+
+        if (should_enqueue) {
+            enqueue_episode(hindsight_episode);
+
+            if (options.logger) {
+                options.logger->log_scalar(
+                    "AlphaZero/Hindsight reward",
+                    hindsight_episode.collected_rewards.index({0}).item().toFloat()
+                );
+                options.logger->log_frequency(
+                    "AlphaZero/Hindsight episode rate", 1
+                );
+            }
         }
     }
 
@@ -273,9 +197,9 @@ namespace trainer_impl
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 
-    MCTSInferenceResult SelfPlayWorker::inference_fn(const torch::Tensor &states) {
+    FastMCTSInferenceResult SelfPlayWorker::inference_fn(const torch::Tensor &states) {
         auto outputs = inference_unit->operator()({states});
-        return MCTSInferenceResult{
+        return FastMCTSInferenceResult{
             outputs.tensors[0],
             outputs.tensors[1]
         };

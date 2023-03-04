@@ -76,7 +76,7 @@ namespace rl::agents::alpha_zero
                         .temperature_control_(options.self_play_temperature_control)
                         .hindsight_callback_(options.hindsight_callback)
                         .mcts_options_(
-                            MCTSOptions{}
+                            FastMCTSExecutorOptions{}
                                 .dirchlet_noise_alpha_(options.self_play_dirchlet_noise_alpha)
                                 .dirchlet_noise_epsilon_(options.self_play_dirchlet_noise_epsilon)
                                 .discount_(options.discount)
@@ -113,7 +113,7 @@ namespace rl::agents::alpha_zero
                         .enable_cuda_graph_inference_(options.enable_inference_cuda_graph)
                         .temperature_control_(options.training_temperature_control)
                         .mcts_options_(
-                            MCTSOptions{}
+                            FastMCTSExecutorOptions{}
                                 .c1_(options.c1)
                                 .c2_(options.c2)
                                 .dirchlet_noise_alpha_(options.training_dirchlet_noise_alpha)
@@ -121,7 +121,6 @@ namespace rl::agents::alpha_zero
                                 .discount_(options.discount)
                                 .module_device_(options.module_device)
                                 .sim_device_(options.sim_device)
-                                .steps_(options.training_mcts_steps)
                         )
                 )
             );

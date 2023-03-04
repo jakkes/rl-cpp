@@ -65,7 +65,7 @@ namespace trainer_impl
             const SelfPlayWorkerOptions options;
 
             std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
-            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&SelfPlayWorker::inference_fn, this, std::placeholders::_1);
+            std::function<FastMCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&SelfPlayWorker::inference_fn, this, std::placeholders::_1);
 
             std::atomic<bool> running{false};
             std::thread working_thread;
@@ -78,9 +78,10 @@ namespace trainer_impl
             void set_initial_state();
             void process_episodes();
             void enqueue_episode(const SelfPlayEpisode &episode);
+            void process_hindsight_callback(const SelfPlayEpisode &episode);
 
             void setup_inference_unit();
-            MCTSInferenceResult inference_fn(const torch::Tensor &states);
+            FastMCTSInferenceResult inference_fn(const torch::Tensor &states);
     };
 }
 

@@ -62,8 +62,8 @@ namespace rl::agents::alpha_zero
         const torch::Tensor &masks
     )
     {
-        this->states = states.to(options.module_device).clone();
-        this->masks = masks.to(options.module_device).clone();
+        this->states = states.to(options.sim_device);
+        this->masks = masks.to(options.sim_device);
         actions = - torch::ones({batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
         rewards = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32));
         terminals = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kBool));
@@ -75,7 +75,9 @@ namespace rl::agents::alpha_zero
         P = ((1 - options.dirchlet_noise_epsilon) * infer_result.probabilities.to(torch::kCPU) + options.dirchlet_noise_epsilon * dirchlet_noise_generator.sample()).view({-1});
         Q = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kFloat32));
         N = torch::zeros({batchsize * action_dim}, torch::TensorOptions{}.dtype(torch::kLong));
-        V = infer_result.values.clone().to(torch::kCPU);
+        V = infer_result.values.to(torch::kCPU);
+        
+        step_actions = - torch::ones({0}, torch::TensorOptions{}.dtype(torch::kLong));
     }
 
     void FastMCTSExecutor::expand_node_capacity()
@@ -107,7 +109,7 @@ namespace rl::agents::alpha_zero
             - torch::ones({state_expand_size}, actions.options())
         });
         V = torch::concat({
-            N,
+            V,
             torch::zeros({state_expand_size}, V.options())
         });
         parents = torch::concat({
@@ -144,6 +146,7 @@ namespace rl::agents::alpha_zero
         const torch::Tensor &states, const torch::Tensor &masks
     )
     {
+        torch::NoGradGuard no_grad_guard{};
         auto out = inference_fn(states);
         out.probabilities = torch::where(
             masks,
@@ -164,11 +167,12 @@ namespace rl::agents::alpha_zero
             throw std::runtime_error{"All episodes are terminal."};
         }
 
+        step_actions = torch::concat({step_actions, actions}, 0);
+
         auto action_indices = node_actions_to_action_indices(root_indices, actions);
         root_indices = children.index({action_indices});
         auto terminals = this->terminals.index({action_indices});
         root_indices = root_indices.index({~terminals});
-        parents.index_put_({root_indices}, -1);
         
         auto next_action_indices = node_indices_to_action_indices(root_indices);
         P.index_put_(
@@ -264,17 +268,15 @@ namespace rl::agents::alpha_zero
     {
         auto nodes = nodes_;
         auto actions = actions_;
-        auto action_indices = node_actions_to_action_indices(nodes, actions);
-        auto values = (~this->terminals.index({action_indices})) * this->V.index({this->children.index({action_indices})});
+        auto child_indices = this->children.index({node_actions_to_action_indices(nodes, actions)});
+        auto values = this->V.index({child_indices});
+        auto root_indices = this->root_indices;
+        
 
-        auto is_node = nodes != -1;
-
-        while (is_node.any().item().toBool())
+        while (true)
         {
-            nodes = nodes.index({is_node});
-            actions = actions.index({is_node});
-            action_indices = node_actions_to_action_indices(nodes, actions);
-            values = this->rewards.index({action_indices}) + options.discount * values.index({is_node});
+            auto action_indices = node_actions_to_action_indices(nodes, actions);
+            values = this->rewards.index({action_indices}) + options.discount * (~this->terminals.index({action_indices})) * values;
 
             auto n = N.index({action_indices});
 
@@ -287,11 +289,16 @@ namespace rl::agents::alpha_zero
                 n + 1
             );
 
+            // Prepare for next round of backup
+            auto nodes_to_backup = nodes != root_indices;
+            if (!nodes_to_backup.any().item().toBool()) {
+                break;
+            }
+
             // Set actions of next iteration to whatever action led to the current node.
-            actions = this->actions.index({nodes});
-            // Set parents.
-            nodes = this->parents.index({nodes});
-            is_node = nodes != -1;
+            actions = this->actions.index({nodes}).index({nodes_to_backup});
+            nodes = this->parents.index({nodes}).index({nodes_to_backup});
+            root_indices = root_indices.index({nodes_to_backup});
         }
     }
 
@@ -309,6 +316,30 @@ namespace rl::agents::alpha_zero
         out.rewards = torch::zeros({batchsize, steps}, torch::TensorOptions{}.dtype(torch::kFloat32).device(options.sim_device));
         out.lengths = torch::zeros({batchsize}, torch::TensorOptions{}.dtype(torch::kLong).device(options.sim_device));
 
-        
+        auto nodes = torch::arange(batchsize);
+        auto batchvec = nodes;
+        auto step_vec = torch::zeros({batchsize}, torch::TensorOptions{}.dtype(torch::kLong));
+
+        for (int i = 0; i < steps; i++) {
+            out.states.index_put_({batchvec, step_vec}, this->states.index({nodes}));
+            out.masks.index_put_({batchvec, step_vec}, this->masks.index({nodes}));
+
+            auto actions = this->step_actions.index({nodes});
+            auto action_indices = node_actions_to_action_indices(nodes, actions);
+            out.actions.index_put_({batchvec, step_vec}, actions);
+            out.rewards.index_put_({batchvec, step_vec}, this->rewards.index({action_indices}));
+
+            auto terminals = this->terminals.index({action_indices});
+            auto non_terminals = ~terminals;
+            if (terminals.any().item().toBool()) {
+                out.lengths.index_put_({terminals}, i + 1);
+            }
+
+            nodes = this->children.index({action_indices.index({non_terminals})});
+            batchvec = batchvec.index({non_terminals});
+            step_vec = step_vec.index({non_terminals}) + 1;
+        }
+
+        return out;
     }
 }

@@ -132,25 +132,22 @@ namespace trainer_impl
     torch::Tensor Trainer::get_target_policy(const torch::Tensor &states, const torch::Tensor &masks)
     {
         torch::NoGradGuard no_grad_guard{};
-        auto inference_output = inference_fn(states.to(options.module_device));
-        auto priors = inference_output.policies.get_probabilities().to(torch::kCPU);
-        auto values = inference_output.values.to(torch::kCPU);
 
-        std::vector<std::shared_ptr<MCTSNode>> nodes{}; nodes.reserve(options.batchsize);
-        for (int i = 0; i < options.batchsize; i++) {
-            nodes.push_back(
-                std::make_shared<MCTSNode>(
-                    states.index({i}),
-                    masks.index({i}),
-                    priors.index({i}),
-                    values.index({i}).item().toFloat()
-                )
-            );
-        }
+        FastMCTSExecutor mcts_executor{
+            states,
+            masks,
+            inference_fn_var,
+            simulator,
+            options.mcts_options
+        };
 
-        mcts(&nodes, inference_fn_var, simulator, options.mcts_options);
-        auto policy = mcts_nodes_to_policy(nodes, options.temperature_control->get());
-        return policy.get_probabilities();
+        mcts_executor.run();
+        auto visit_counts = mcts_executor.current_visit_counts();
+        auto temperature = options.temperature_control->get();
+        auto probabilities = visit_counts.pow(temperature);
+        probabilities /= probabilities.sum(1, true);
+
+        return probabilities;
     }
 
     void Trainer::step()
@@ -186,9 +183,9 @@ namespace trainer_impl
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
 
-    MCTSInferenceResult Trainer::inference_fn(const torch::Tensor &states) {
+    FastMCTSInferenceResult Trainer::inference_fn(const torch::Tensor &states) {
         auto outputs = inference_unit->operator()({states});
-        return MCTSInferenceResult{
+        return FastMCTSInferenceResult{
             outputs.tensors[0],
             outputs.tensors[1]
         };

@@ -111,6 +111,7 @@ namespace rl::agents::alpha_zero
             int64_t current_i;
             int64_t capacity;
             int64_t steps{0};
+            torch::Tensor step_actions;
 
         private:
             void init_tensors(

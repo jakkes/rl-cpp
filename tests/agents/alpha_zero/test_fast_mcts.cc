@@ -68,7 +68,8 @@ TEST(fast_mcts, simple_sim)
     FastMCTSExecutorOptions options{};
     options.steps_(sims);
     options.dirchlet_noise_epsilon_(0.0f);
-    options.device_(device);
+    options.sim_device_(device);
+    options.module_device_(device);
 
     FastMCTSExecutor mcts{
         states.states,

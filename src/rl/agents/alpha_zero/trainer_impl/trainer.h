@@ -29,7 +29,7 @@ namespace trainer_impl
         RL_OPTION(std::shared_ptr<rl::utils::float_control::Base>, temperature_control) = std::make_shared<rl::utils::float_control::Fixed>(1.0f);
         RL_OPTION(float, gradient_norm) = 40.0f;
         RL_OPTION(size_t, min_replay_size) = 1000;
-        RL_OPTION(MCTSOptions, mcts_options) = MCTSOptions{};
+        RL_OPTION(FastMCTSExecutorOptions, mcts_options) = FastMCTSExecutorOptions{};
 
         RL_OPTION(torch::Device, module_device) = torch::kCPU;
         RL_OPTION(bool, enable_cuda_graph_training) = true;
@@ -65,7 +65,7 @@ namespace trainer_impl
             std::atomic<bool> running{false};
             std::thread working_thread;
 
-            std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&Trainer::inference_fn, this, std::placeholders::_1);
+            std::function<FastMCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&Trainer::inference_fn, this, std::placeholders::_1);
             std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
             std::unique_ptr<rl::torchutils::ExecutionUnit> training_unit;
 
@@ -76,7 +76,7 @@ namespace trainer_impl
             torch::Tensor get_target_policy(const torch::Tensor &states, const torch::Tensor &masks);
 
             void setup_inference_unit();
-            MCTSInferenceResult inference_fn(const torch::Tensor &states);
+            FastMCTSInferenceResult inference_fn(const torch::Tensor &states);
             void setup_training_unit();
     };
 }

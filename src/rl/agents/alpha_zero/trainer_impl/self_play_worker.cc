@@ -250,6 +250,7 @@ namespace trainer_impl
             SelfPlayEpisode episode{};
             episode.states = states.index({i, Slice(None, episode_length)});
             episode.masks = masks.index({i, Slice(None, episode_length)});
+            episode.actions = actions.index({i, Slice(None, episode_length)});
             episode.collected_rewards = G.index({i, Slice(None, episode_length)});
 
             enqueue_episode(episode);
@@ -258,6 +259,7 @@ namespace trainer_impl
                 SelfPlayEpisode hindsight_episode{};
                 hindsight_episode.states = episode.states.clone();
                 hindsight_episode.masks = episode.masks.clone();
+                hindsight_episode.actions = episode.actions.clone();
                 hindsight_episode.collected_rewards = episode.collected_rewards.clone();
                 auto should_enqueue = options.hindsight_callback(&hindsight_episode);
 

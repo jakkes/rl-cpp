@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <rl/agents/alpha_zero/alpha_zero.h>
+#include <rl/simulators/cart_pole.h>
 #include <rl/simulators/combinatorial_lock.h>
 
 
@@ -80,7 +81,6 @@ TEST(fast_mcts, simple_sim)
     };
 
     for (int j = 0; j < 5; j++) {
-
         mcts.run();
         auto visit_counts = mcts.current_visit_counts();
         for (int i = 0; i < visit_counts.size(0); i++) {
@@ -96,4 +96,55 @@ TEST(fast_mcts, simple_sim)
             ASSERT_TRUE( (mcts.current_visit_counts().sum(1) > 0).all().item().toBool() );
         }
     }
+
+    auto episodes = mcts.get_episodes();
+    ASSERT_EQ(episodes.states.size(0), 5);
+    ASSERT_TRUE((episodes.lengths == 5).all().item().toBool());
+}
+
+
+TEST(fast_mcts, cart_pole)
+{
+    int sims{1000};
+    int n{2};
+
+    auto module = std::make_shared<FastMCTSTestModule>(2);
+    auto sim = std::make_shared<rl::simulators::DiscreteCartPole>(200, 2, rl::simulators::CartPoleOptions{});
+    auto states = sim->reset(n);
+
+    auto inference_fn = [&] (const torch::Tensor &states) {
+        FastMCTSInferenceResult out{};
+        auto module_output = module->forward(states);
+        out.probabilities = module_output->policy().get_probabilities();
+        out.values = module_output->value_estimates();
+        return out;
+    };
+
+    FastMCTSExecutorOptions options{};
+    options.steps_(sims);
+    options.dirchlet_noise_epsilon_(0.0f);
+
+    FastMCTSExecutor mcts{
+        states.states,
+        std::dynamic_pointer_cast<rl::policies::constraints::CategoricalMask>(states.action_constraints)->mask(),
+        inference_fn,
+        sim,
+        options
+    };
+
+    while (!mcts.all_terminals()) {
+        mcts.run();
+        auto visit_counts = mcts.current_visit_counts();
+        for (int i = 0; i < visit_counts.size(0); i++) {
+            auto visit_count = visit_counts.index({i});
+            ASSERT_GE(visit_count.sum().item().toLong(), sims);
+        }
+
+        auto actions = visit_counts.argmax(1);
+        mcts.step(actions);
+    }
+
+    auto episodes = mcts.get_episodes();
+    ASSERT_EQ(episodes.states.size(0), n);
+    ASSERT_TRUE((episodes.lengths > 5).all().item().toBool());
 }

@@ -144,7 +144,7 @@ namespace trainer_impl
 
             auto batchvec = torch::arange(batchsize);
             auto start_output = inference_fn(episodes.states.index({batchvec, 0}).to(options.module_device));
-            auto end_output = inference_fn(episodes.states.index({batchvec, episodes.lengths - 1}));
+            auto end_output = inference_fn(episodes.states.index({batchvec, episodes.lengths - 1}).to(options.module_device));
 
             auto start_values = start_output.values.cpu();
             auto end_values = end_output.values.cpu();

@@ -4,6 +4,7 @@
 
 #include "seed.h"
 #include "basic.h"
+#include "apex.h"
 
 /**
  * @brief Training modules for DQN

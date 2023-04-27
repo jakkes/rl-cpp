@@ -79,8 +79,8 @@ namespace rl::agents::dqn::trainers::apex_impl
             masks[i] = get_mask(*this->states[i]->action_constraint);
         }
 
-        auto tstates = torch::concat(states, 0);
-        auto tmasks = torch::concat(masks, 0);
+        auto tstates = torch::stack(states, 0);
+        auto tmasks = torch::stack(masks, 0);
 
         auto output = module->forward(tstates.to(options.network_device));
         output->apply_mask(tmasks.to(options.network_device));
@@ -104,24 +104,30 @@ namespace rl::agents::dqn::trainers::apex_impl
                 parse_transition(transition);
             }
 
-            this->states[i] = observation->state;
+            if (observation->terminal) {
+                this->states[i] = envs[i]->reset();
+                options.logger->log_frequency("ApexDQN/Episode rate", 1);
+            }
+            else {
+                this->states[i] = observation->state;
+            }
         }
 
         if (options.logger) {
-            options.logger->log_frequency("ApexDQN/Inference steps", options.batch_size);
+            options.logger->log_frequency("ApexDQN/Inference step rate", options.batch_size);
         }
     }
 
     void Worker::parse_transition(const rl::utils::reward::NStepCollectorTransition &transition)
     {
         local_buffer->add({
-            transition.state->state.to(options.replay_device),
-            get_mask(*transition.state->action_constraint).to(options.replay_device),
-            transition.action.to(options.replay_device),
-            torch::tensor(transition.reward).to(options.replay_device),
-            torch::tensor(!transition.terminal).to(options.replay_device),
-            transition.next_state->state.to(options.replay_device),
-            get_mask(*transition.next_state->action_constraint).to(options.replay_device)
+            transition.state->state.to(options.replay_device).unsqueeze(0),
+            get_mask(*transition.state->action_constraint).to(options.replay_device).unsqueeze(0),
+            transition.action.to(options.replay_device).unsqueeze(0),
+            torch::tensor(transition.reward).to(options.replay_device).unsqueeze(0),
+            torch::tensor(!transition.terminal).to(options.replay_device).unsqueeze(0),
+            transition.next_state->state.to(options.replay_device).unsqueeze(0),
+            get_mask(*transition.next_state->action_constraint).to(options.replay_device).unsqueeze(0)
         });
 
         if (local_buffer->size() >= options.inference_replay_size) {

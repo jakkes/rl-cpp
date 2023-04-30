@@ -3,6 +3,8 @@
 
 
 #include "base.h"
+#include <rl/utils/float_control/base.h>
+#include <rl/utils/float_control/fixed.h>
 
 namespace rl::agents::dqn::policies
 {
@@ -10,18 +12,20 @@ namespace rl::agents::dqn::policies
     {
         public:
 
-            EpsilonGreedy(float epsilon) : epsilon{epsilon} {}
+            EpsilonGreedy(std::shared_ptr<rl::utils::float_control::Base> epsilon)
+            : epsilon{epsilon} {}
+
+            EpsilonGreedy(float epsilon)
+            : EpsilonGreedy(std::make_shared<rl::utils::float_control::Fixed>(epsilon))
+            {}
 
             ~EpsilonGreedy() = default;
 
             std::unique_ptr<rl::policies::Categorical> policy(
                     const rl::agents::dqn::modules::BaseOutput &output) override;
 
-            inline
-            void update_epsilon(float epsilon) { this->epsilon = epsilon; }
-
         private:
-            float epsilon;
+            std::shared_ptr<rl::utils::float_control::Base> epsilon;
     };
 }
 

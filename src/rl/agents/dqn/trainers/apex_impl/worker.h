@@ -45,6 +45,7 @@ namespace rl::agents::dqn::trainers::apex_impl
             std::thread working_thread;
 
             std::vector<std::shared_ptr<rl::env::Base>> envs;
+            std::vector<uint8_t> is_start_state;
             std::vector<rl::utils::reward::NStepCollector> n_step_collectors;
             std::vector<std::shared_ptr<rl::env::State>> states;
 

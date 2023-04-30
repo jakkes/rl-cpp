@@ -60,6 +60,8 @@ namespace rl::agents::dqn::trainers::apex_impl
             states[i] = envs[i]->reset();
         }
 
+        is_start_state.resize(options.worker_batchsize, 1);
+
         LOGGER->info("Starting worker");
         while (running) {
             step();
@@ -89,9 +91,17 @@ namespace rl::agents::dqn::trainers::apex_impl
         policy->include(std::make_shared<rl::policies::constraints::CategoricalMask>(tmasks));
 
         auto actions = policy->sample().to(options.environment_device);
+        auto values = std::get<0>(output->value().max(1));
 
         for (int i = 0; i < options.worker_batchsize; i++)
         {
+            if (is_start_state[i]) {
+                is_start_state[i] = 0;
+                if (options.logger) {
+                    options.logger->log_scalar("ApexDQN/Start value", values.index({i}).item().toFloat());
+                }
+            }
+
             auto observation = envs[i]->step(actions.index({i}));
             auto transitions = n_step_collectors[i].step(
                 this->states[i],
@@ -106,7 +116,12 @@ namespace rl::agents::dqn::trainers::apex_impl
 
             if (observation->terminal) {
                 this->states[i] = envs[i]->reset();
-                options.logger->log_frequency("ApexDQN/Episode rate", 1);
+                this->is_start_state[i] = 1;
+
+                if (options.logger) {
+                    options.logger->log_frequency("ApexDQN/Episode rate", 1);
+                    options.logger->log_scalar("ApexDQN/End value", values.index({i}).item().toFloat());
+                }
             }
             else {
                 this->states[i] = observation->state;

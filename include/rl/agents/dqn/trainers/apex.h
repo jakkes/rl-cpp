@@ -52,15 +52,15 @@ namespace rl::agents::dqn::trainers
         // RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
         // // Checkpoint callback period, in seconds.
         // RL_OPTION(size_t, checkpoint_callback_period_seconds) = 3600;
-        // // If set, this method is called whenever an episode terminates. The argument
-        // // is a pointer to (a copy of) the episode. If the callback returns true, then
-        // // the (possibly modified sequence) is added to the replay buffer. If false is
-        // // returned, then the sequence is not added to the buffer.
-        // // 
-        // // NOTE: Any tensors modified in place will also modify the actually observed
-        // // tensor. Therefore, if states or masks are to be modified, first clone
-        // // the tensors.
-        // RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
+        // If set, this method is called whenever an episode terminates. The argument
+        // is a pointer to (a copy of) the episode. If the callback returns true, then
+        // the (possibly modified sequence) is added to the replay buffer. If false is
+        // returned, then the sequence is not added to the buffer.
+        // 
+        // NOTE: Any tensors modified in place will also modify the actually observed
+        // tensor. Therefore, if states or masks are to be modified, first clone
+        // the tensors.
+        RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
     };
 
     class Apex

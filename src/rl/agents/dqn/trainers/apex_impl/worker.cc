@@ -56,8 +56,10 @@ namespace rl::agents::dqn::trainers::apex_impl
         }
 
         states.resize(options.worker_batchsize);
+        episodes.resize(options.worker_batchsize);
         for (int i = 0; i < options.worker_batchsize; i++) {
             states[i] = envs[i]->reset();
+            episodes[i].states.push_back(states[i]);
         }
 
         is_start_state.resize(options.worker_batchsize, 1);
@@ -102,7 +104,10 @@ namespace rl::agents::dqn::trainers::apex_impl
                 }
             }
 
-            auto observation = envs[i]->step(actions.index({i}));
+            auto action = actions.index({i});
+
+            auto observation = envs[i]->step(action);
+
             auto transitions = n_step_collectors[i].step(
                 this->states[i],
                 actions.index({i}),
@@ -125,6 +130,21 @@ namespace rl::agents::dqn::trainers::apex_impl
             }
             else {
                 this->states[i] = observation->state;
+            }
+
+            episodes[i].rewards.push_back(observation->reward);
+            episodes[i].actions.push_back(action);
+            episodes[i].states.push_back(observation->state);
+
+            if (observation->terminal) {
+                if (options.hindsight_replay_callback) {
+                    auto add_to_buffer = options.hindsight_replay_callback(&episodes[i]);
+                    if (add_to_buffer) {
+                        throw std::runtime_error{"Adding to replay not yet supported."};
+                    }
+                }
+                episodes[i] = rl::agents::dqn::utils::HindsightReplayEpisode{};
+                episodes[i].states.push_back(this->states[i]);
             }
         }
 

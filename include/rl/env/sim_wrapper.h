@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <rl/simulators/base.h>
+#include <rl/option.h>
 #include "base.h"
 
 namespace rl::env

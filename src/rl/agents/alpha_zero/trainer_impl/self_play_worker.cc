@@ -14,10 +14,11 @@ namespace
     {
         public:
             InferenceUnit(
-                bool use_cuda_graph,
                 int max_batchsize,
-                std::shared_ptr<modules::Base> module
-            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}
+                torch::Device device,
+                std::shared_ptr<modules::Base> module,
+                bool use_cuda_graph
+            ) : rl::torchutils::ExecutionUnit(max_batchsize, device, use_cuda_graph), module{module}
             {}
         
         private:
@@ -297,9 +298,10 @@ namespace trainer_impl
     void SelfPlayWorker::setup_inference_unit()
     {
         inference_unit = std::make_unique<InferenceUnit>(
-            options.module_device.is_cuda() && options.enable_cuda_graph_inference, 
             options.batchsize,
-            module
+            options.module_device,
+            module,
+            options.enable_cuda_graph_inference
         );
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }

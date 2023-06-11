@@ -146,7 +146,7 @@ namespace trainer_impl
         mcts_executor.run();
         auto visit_counts = mcts_executor.current_visit_counts();
         auto temperature = options.temperature_control->get();
-        auto probabilities = visit_counts.pow(temperature);
+        auto probabilities = (visit_counts / std::get<0>(visit_counts.max(1, true))).pow(temperature);
         probabilities /= probabilities.sum(1, true);
 
         return probabilities;

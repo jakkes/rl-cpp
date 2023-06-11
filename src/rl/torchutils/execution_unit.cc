@@ -66,7 +66,7 @@ namespace rl::torchutils
 
         this->inputs.reserve(inputs.size());
         for (auto &input : inputs) {
-            this->inputs.push_back(expand_to_batchsize(input, batchsize));
+            this->inputs.push_back(expand_to_batchsize(input, max_batchsize));
         }
 
         outputs = forward(this->inputs);
@@ -93,7 +93,7 @@ namespace rl::torchutils
             throw std::invalid_argument{
                 "Cannot execute a batch larger than the given batchsize. Received "
                 "batch of size " + std::to_string(batchsize) + ", configured max "
-                "batchsize is " + std::to_string(this->batchsize) + "."
+                "batchsize is " + std::to_string(this->max_batchsize) + "."
             };
         }
 

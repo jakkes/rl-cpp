@@ -93,7 +93,7 @@ namespace trainer_impl
         mcts_executor->run();
         auto visit_counts = mcts_executor->current_visit_counts();
         auto temperature = options.temperature_control->get();
-        auto probabilities = visit_counts.pow(temperature);
+        auto probabilities = (visit_counts / std::get<0>(visit_counts.max(1, true))).pow(temperature);
         
         rl::policies::Categorical policy{probabilities};
         auto actions = policy.sample();
@@ -122,58 +122,49 @@ namespace trainer_impl
 
         for (int i = 0; i < batchsize; i++)
         {
-            SelfPlayEpisode episode{};
-            episode.states = states.index({i, Slice(None, episode_length)});
-            episode.masks = masks.index({i, Slice(None, episode_length)});
-            episode.actions = actions.index({i, Slice(None, episode_length)});
-            episode.collected_rewards = G.index({i, Slice(None, episode_length)});
+            SelfPlayEpisode out_episode{};
+            auto length = episodes.lengths.index({i}).item().toLong();
 
-            enqueue_episode(episode);
+            out_episode.states = episodes.states.index({i, Slice(None, length)});
+            out_episode.masks = episodes.masks.index({i, Slice(None, length)});
+            out_episode.actions = episodes.actions.index({i, Slice(None, length)});
+            out_episode.collected_rewards = G.index({i, Slice(None, length)});
 
-            if (options.hindsight_callback) {
-                SelfPlayEpisode hindsight_episode{};
-                hindsight_episode.states = episode.states.clone();
-                hindsight_episode.masks = episode.masks.clone();
-                hindsight_episode.actions = episode.actions.clone();
-                hindsight_episode.collected_rewards = episode.collected_rewards.clone();
-                auto should_enqueue = options.hindsight_callback(&hindsight_episode);
-
-                if (should_enqueue) {
-                    enqueue_episode(hindsight_episode);
-
-                    if (options.logger) {
-                        options.logger->log_scalar(
-                            "AlphaZero/Hindsight reward",
-                            hindsight_episode.collected_rewards.index({0}).item().toFloat()
-                        );
-                        options.logger->log_frequency(
-                            "AlphaZero/Hindsight episode rate", 1
-                        );
-                    }
-                }
-            }
+            enqueue_episode(out_episode);
+            process_hindsight_callback(out_episode);
         }
 
         if (options.logger) {
+            options.logger->log_scalar("AlphaZero/Reward", episodes.rewards.sum(1).mean().item().toFloat());
             options.logger->log_frequency("AlphaZero/Episode frequency", batchsize);
             result_tracker->report(episodes.lengths, episodes.actions, episodes.rewards);
 
             auto batchvec = torch::arange(batchsize);
-            auto start_output = inference_fn(episodes.states.index({batchvec, 0}).to(options.module_device));
-            auto end_output = inference_fn(episodes.states.index({batchvec, episodes.lengths - 1}).to(options.module_device));
+            auto start_values = (
+                inference_fn(
+                    episodes.states.index({batchvec, 0}).to(options.module_device)
+                )
+                .values
+            );
+            auto end_values = (
+                inference_fn(
+                    episodes.states.index({batchvec, episodes.lengths - 1}
+                )
+                .to(options.module_device))
+                .values
+            );
 
-            auto start_values = start_output.values.cpu();
-            auto end_values = end_output.values.cpu();
-
-            for (int i = 0; i < batchsize; i++) {
-                options.logger->log_scalar("AlphaZero/Start value", start_values.index({i}).item().toFloat());
-                options.logger->log_scalar("AlphaZero/End value", end_values.index({i}).item().toFloat());
-            }
+            options.logger->log_scalar("AlphaZero/Start value", start_values.mean().item().toFloat());
+            options.logger->log_scalar("AlphaZero/End value", end_values.mean().item().toFloat());
         }
     }
 
     void SelfPlayWorker::process_hindsight_callback(const SelfPlayEpisode &episode)
     {
+        if (!options.hindsight_callback) {
+            return;
+        }
+
         SelfPlayEpisode hindsight_episode{};
         hindsight_episode.states = episode.states.clone();
         hindsight_episode.masks = episode.masks.clone();
@@ -189,7 +180,7 @@ namespace trainer_impl
                     hindsight_episode.collected_rewards.index({0}).item().toFloat()
                 );
                 options.logger->log_frequency(
-                    "AlphaZero/Hindsight episode rate", 1
+                    "AlphaZero/Hindsight episode frequency", 1
                 );
             }
         }

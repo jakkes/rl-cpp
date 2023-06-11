@@ -167,7 +167,11 @@ namespace rl::agents::alpha_zero
             }
 
             auto episode = *episode_ptr;
-            buffer->add({episode.states.to(options.replay_device), episode.masks.to(options.replay_device), episode.collected_rewards.to(options.replay_device)});
+            buffer->add({
+                episode.states.to(options.replay_device),
+                episode.masks.to(options.replay_device),
+                episode.collected_rewards.to(options.replay_device)
+            });
         }
     }
 

@@ -45,7 +45,7 @@ Net::Net()
 
 int main()
 {
-    auto module_device = torch::Device(torch::kCUDA, 0);
+    auto module_device = torch::Device(torch::kCPU);
     auto sim_device = torch::Device(torch::kCPU);
 
     // auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
@@ -76,18 +76,19 @@ int main()
             .module_device_(module_device)
             .sim_device_(sim_device)
             .enable_training_cuda_graph_(false)
-            .self_play_batchsize_(2)
+            .enable_inference_cuda_graph_(false)
+            .self_play_batchsize_(64)
             .self_play_mcts_steps_(80)
             .self_play_dirchlet_noise_alpha_(0.5)
             .self_play_dirchlet_noise_epsilon_(0.25)
             .self_play_temperature_control_(temperature_control)
             .self_play_workers_(1)
             .training_batchsize_(64)
-            .training_mcts_steps_(80)
+            .training_mcts_steps_(160)
             .training_dirchlet_noise_alpha_(0.5)
-            .training_dirchlet_noise_epsilon_(0.25)
+            .training_dirchlet_noise_epsilon_(0.5)
             .training_temperature_control_(temperature_control)
-            .training_workers_(1)
+            .training_workers_(15)
             .discount_(1.0)
     };
 

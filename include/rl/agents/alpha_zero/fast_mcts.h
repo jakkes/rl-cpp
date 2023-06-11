@@ -109,7 +109,7 @@ namespace rl::agents::alpha_zero
              * of still running episodes, and M the action dim size.
              */
             inline const torch::Tensor current_visit_counts() const {
-                return N.index({node_indices_to_action_indices(root_indices)}).view({root_indices.size(0), action_dim});
+                return N.index({root_indices});
             }
 
             /**
@@ -169,7 +169,7 @@ namespace rl::agents::alpha_zero
             torch::Tensor children;
             // Index of parent state
             torch::Tensor parents;
-            // Action from parent that resulted in state
+            // Action chosen from state
             torch::Tensor step_actions;
 
             // Current node indices
@@ -211,16 +211,6 @@ namespace rl::agents::alpha_zero
 
             // Run inference
             FastMCTSInferenceResult infer(const torch::Tensor &states, const torch::Tensor &masks);
-
-            // Get all action indices for the given node indices
-            inline torch::Tensor node_indices_to_action_indices(const torch::Tensor &node_indices) const {
-                return (action_dim * node_indices.view({-1, 1}) + action_dim_vec.view({1, -1})).view({-1});
-            }
-
-            // Get action indices of actions for given nodes.
-            inline torch::Tensor node_actions_to_action_indices(const torch::Tensor &node_indices, const torch::Tensor &actions) const {
-                return action_dim * node_indices + actions;
-            }
 
             // Run MCTS select step
             SelectResult select(const torch::Tensor &current_nodes);

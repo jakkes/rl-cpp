@@ -19,6 +19,8 @@ class Service(lunar_lander.LunarLanderServiceBase):
         state, _ = env.reset()
         state = state_to_proto(state)
 
+        print("New connection")
+
         yield lunar_lander.Observation(0.0, False, state)
 
         async for action in action_iterator:

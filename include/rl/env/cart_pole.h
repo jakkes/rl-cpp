@@ -126,15 +126,12 @@ namespace rl::env
              * 
              * @param max_steps Maximum number of steps per episode.
              * @param action_space_dim Size of (discrete) action space.
-             * @param logger Logger instance to be used by the spawn environment
-             * instances.
              */
-            CartPoleDiscreteFactory(int max_steps, int action_space_dim, std::shared_ptr<rl::logging::client::Base> logger={});
+            CartPoleDiscreteFactory(int max_steps, int action_space_dim);
 
         private:
             std::unique_ptr<Base> get_impl() const override;
             const int max_steps, action_space_dim;
-            std::shared_ptr<rl::logging::client::Base> logger;
     };
 }
 

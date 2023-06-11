@@ -3,6 +3,8 @@
 
 
 #include <memory>
+#include <vector>
+#include <mutex>
 
 #include <torch/torch.h>
 
@@ -14,7 +16,6 @@
 
 namespace rl::env
 {
-
     /**
      * @brief Environment base class.
      * 

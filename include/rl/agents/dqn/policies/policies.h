@@ -4,7 +4,6 @@
 
 #include "base.h"
 #include "epsilon_greedy.h"
-#include "decaying_epsilon_greedy.h"
 
 
 /**

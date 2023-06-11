@@ -15,10 +15,11 @@ namespace
     {
         public:
             InferenceUnit(
-                bool use_cuda_graph,
                 int max_batchsize,
-                std::shared_ptr<modules::Base> module
-            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}
+                torch::Device device,
+                std::shared_ptr<modules::Base> module,
+                bool use_cuda_graph
+            ) : rl::torchutils::ExecutionUnit(max_batchsize, device, use_cuda_graph), module{module}
             {}
         
         private:
@@ -44,11 +45,12 @@ namespace
     {
         public:
             TrainingUnit(
-                bool use_cuda_graph,
                 int max_batchsize,
+                torch::Device device,
                 std::shared_ptr<modules::Base> module,
-                std::shared_ptr<torch::optim::Optimizer> optimizer
-            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}, optimizer{optimizer}
+                std::shared_ptr<torch::optim::Optimizer> optimizer,
+                bool use_cuda_graph
+            ) : rl::torchutils::ExecutionUnit(max_batchsize, device, use_cuda_graph), module{module}, optimizer{optimizer}
             {
                 if (use_cuda_graph) {
                     throw std::runtime_error{"CUDAGraph for training not yet supported."};
@@ -176,9 +178,10 @@ namespace trainer_impl
     void Trainer::setup_inference_unit()
     {
         inference_unit = std::make_unique<InferenceUnit>(
-            options.module_device.is_cuda() && options.enable_cuda_graph_inference,
             options.batchsize,
-            module
+            options.module_device,
+            module,
+            options.enable_cuda_graph_inference
         );
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }
@@ -194,10 +197,11 @@ namespace trainer_impl
     void Trainer::setup_training_unit()
     {
         training_unit = std::make_unique<TrainingUnit>(
-            options.module_device.is_cuda() && options.enable_cuda_graph_training,
             options.batchsize,
+            options.module_device,
             module,
-            optimizer
+            optimizer,
+            options.enable_cuda_graph_training
         );
         auto states = simulator->reset(options.batchsize);
         auto masks = states.action_constraints->as_type<rl::policies::constraints::CategoricalMask>().mask();

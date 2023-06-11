@@ -15,10 +15,11 @@ namespace
     {
         public:
             InferenceUnit(
-                bool use_cuda_graph,
                 int max_batchsize,
-                std::shared_ptr<modules::Base> module
-            ) : rl::torchutils::ExecutionUnit(use_cuda_graph, max_batchsize), module{module}
+                torch::Device device,
+                std::shared_ptr<modules::Base> module,
+                bool use_cuda_graph
+            ) : rl::torchutils::ExecutionUnit(max_batchsize, device, use_cuda_graph), module{module}
             {}
         
         private:
@@ -122,19 +123,34 @@ namespace trainer_impl
         for (int i = 0; i < batchsize; i++)
         {
             SelfPlayEpisode episode{};
-            auto length = episodes.lengths.index({i}).item().toBool();
-            episode.states = episodes.states.index({i, Slice(None, length)});
-            episode.masks = episodes.masks.index({i, Slice(None, length)});
-            episode.collected_rewards = G.index({i, Slice(None, length)});
+            episode.states = states.index({i, Slice(None, episode_length)});
+            episode.masks = masks.index({i, Slice(None, episode_length)});
+            episode.actions = actions.index({i, Slice(None, episode_length)});
+            episode.collected_rewards = G.index({i, Slice(None, episode_length)});
 
             enqueue_episode(episode);
 
             if (options.hindsight_callback) {
-                process_hindsight_callback(episode);
-            }
+                SelfPlayEpisode hindsight_episode{};
+                hindsight_episode.states = episode.states.clone();
+                hindsight_episode.masks = episode.masks.clone();
+                hindsight_episode.actions = episode.actions.clone();
+                hindsight_episode.collected_rewards = episode.collected_rewards.clone();
+                auto should_enqueue = options.hindsight_callback(&hindsight_episode);
 
-            if (options.logger) {
-                options.logger->log_scalar("AlphaZero/Reward", episode.collected_rewards.index({0}).item().toFloat());
+                if (should_enqueue) {
+                    enqueue_episode(hindsight_episode);
+
+                    if (options.logger) {
+                        options.logger->log_scalar(
+                            "AlphaZero/Hindsight reward",
+                            hindsight_episode.collected_rewards.index({0}).item().toFloat()
+                        );
+                        options.logger->log_frequency(
+                            "AlphaZero/Hindsight episode rate", 1
+                        );
+                    }
+                }
             }
         }
 
@@ -190,9 +206,10 @@ namespace trainer_impl
     void SelfPlayWorker::setup_inference_unit()
     {
         inference_unit = std::make_unique<InferenceUnit>(
-            options.module_device.is_cuda() && options.enable_cuda_graph_inference, 
             options.batchsize,
-            module
+            options.module_device,
+            module,
+            options.enable_cuda_graph_inference
         );
         inference_unit->operator()({simulator->reset(options.batchsize).states.to(options.module_device)});
     }

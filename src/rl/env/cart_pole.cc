@@ -98,7 +98,9 @@ namespace rl::env
 
         total_reward += observation->reward;
 
-        if (terminal) log_terminal();
+        if (terminal) {
+            log_terminal();
+        }
 
         return observation;
     }
@@ -106,9 +108,11 @@ namespace rl::env
     bool CartPoleContinuous::is_terminal() const { return terminal; }
 
     void CartPoleContinuous::log_terminal() {
-        if (!logger) return;
+        if (!logger) {
+            return;
+        }
         logger->log_scalar("CartPole/Reward", total_reward);
-        logger->log_frequency("CartPole/Episode frequency", 1);
+        logger->log_frequency("CartPole/Episode rate", 1);
     }
 
 
@@ -152,14 +156,11 @@ namespace rl::env
     }
 
 
-    CartPoleDiscreteFactory::CartPoleDiscreteFactory(int max_steps,
-                int action_space_dim, std::shared_ptr<rl::logging::client::Base> logger)
-    : max_steps{max_steps}, action_space_dim{action_space_dim}, logger{logger} {}
+    CartPoleDiscreteFactory::CartPoleDiscreteFactory(int max_steps, int action_space_dim)
+    : max_steps{max_steps}, action_space_dim{action_space_dim} {}
 
     std::unique_ptr<Base> CartPoleDiscreteFactory::get_impl() const 
     {
-        auto env = std::make_unique<CartPoleDiscrete>(max_steps, action_space_dim);
-        env->set_logger(logger);
-        return env;
+        return std::make_unique<CartPoleDiscrete>(max_steps, action_space_dim);
     }
 }

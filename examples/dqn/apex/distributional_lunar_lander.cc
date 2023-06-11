@@ -1,4 +1,5 @@
 #include <rl/rl.h>
+#include <rl/remote_env/remote_env.h>
 #include <torchdebug.h>
 
 
@@ -15,37 +16,40 @@ class Module : public agents::dqn::modules::Distributional
     private:
         torch::nn::Sequential net;
         torch::Tensor atoms;
-        float v_max{200.0f};
-        float v_min{0.0f};
+        float v_max{100.0f};
+        float v_min{-100.0f};
 };
 
 
 int main()
 {
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.6, 0.9, 0.99, 0.999}, 1);
-    auto env_factory = std::make_shared<rl::env::CartPoleDiscreteFactory>(200, 2);
+    auto env_factory = std::make_shared<rl::remote_env::LunarLanderFactory>("localhost:50051");
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
-    auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters());
-    auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.1);
+    auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));
+    auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.01);
 
-    auto trainer = agents::dqn::trainers::Basic{
+    auto trainer = agents::dqn::trainers::Apex{
         model,
-        policy,
         optimizer,
+        policy,
         env_factory,
-        agents::dqn::trainers::BasicOptions{}
+        agents::dqn::trainers::ApexOptions{}
             .batch_size_(64)
             .discount_(0.99)
-            .environment_device_(torch::kCPU)
-            .environment_steps_per_training_step_(1.0f)
+            .double_dqn_(true)
+            .workers_(1)
+            .worker_batchsize_(32)
+            .inference_replay_size_(10000)
             .logger_(logger)
-            .minimum_replay_buffer_size_(1000)
-            .network_device_(torch::kCPU)
-            .replay_buffer_size_(10000)
-            .network_device_(torch::kCPU)
-            .target_network_lr_(1e-3)
+            .minimum_replay_buffer_size_(10000)
             .n_step_(3)
+            .target_network_lr_(5e-3)
+            .training_buffer_size_(1000000)
+            .network_device_(torch::kCPU)
+            .replay_device_(torch::kCPU)
+            .environment_device_(torch::kCPU)
     };
 
     trainer.run(3600);
@@ -56,11 +60,11 @@ Module::Module()
     net = register_module(
         "net",
         torch::nn::Sequential{
-            torch::nn::Linear{5, 64},
+            torch::nn::Linear{8, 128},
             torch::nn::ReLU{true},
-            torch::nn::Linear{64, 64},
+            torch::nn::Linear{128, 128},
             torch::nn::ReLU{true},
-            torch::nn::Linear{64, 2 * 51},
+            torch::nn::Linear{128, 4 * 51},
         }
     );
 
@@ -69,7 +73,7 @@ Module::Module()
 
 std::unique_ptr<agents::dqn::modules::DistributionalOutput> Module::forward_impl(const torch::Tensor &states)
 {
-    auto logits = net->forward(states).view({-1, 2, 51});
+    auto logits = net->forward(states).view({-1, 4, 51});
     return std::make_unique<agents::dqn::modules::DistributionalOutput>(logits, atoms, v_min, v_max);
 }
 

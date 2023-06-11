@@ -13,6 +13,8 @@ namespace rl::agents::alpha_zero
         torch::Tensor states;
         // Sequence of masks in an episode.
         torch::Tensor masks;
+        // Sequence of actions taken.
+        torch::Tensor actions;
         // Sequence of (future, discounted) rewards collected during an episode, G.
         torch::Tensor collected_rewards;
     };

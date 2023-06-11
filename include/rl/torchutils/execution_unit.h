@@ -25,16 +25,16 @@ namespace rl::torchutils
     class ExecutionUnit
     {
         public:
-            ExecutionUnit(bool use_cuda_graph, int max_batchsize, torch::Device device=torch::kCPU);
+            ExecutionUnit(int max_batchsize, c10::Device device, bool enable_cuda_graph=true, bool use_high_priority_stream=false);
 
             ExecutionUnitOutput operator()(const std::vector<torch::Tensor> &inputs);
 
         protected:
-            const int batchsize;
-            torch::Device device;
+            const c10::Device device;
 
         private:
-            bool use_cuda_graph;
+            const bool enable_cuda_graph;
+            const int max_batchsize;
             std::mutex mtx{};
 
             std::unique_ptr<c10::cuda::CUDAStream> stream;

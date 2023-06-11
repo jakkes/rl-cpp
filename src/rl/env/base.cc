@@ -1,9 +1,10 @@
 #include "rl/env/base.h"
 
+#include <algorithm>
+#include <sstream>
 
 namespace rl::env
 {
-
     void Base::cuda() { is_cuda_ = true; }
     void Base::cpu() { is_cuda_ = false; }
 

@@ -67,30 +67,9 @@ namespace rl::env
              * @param logger 
              */
             void set_logger(std::shared_ptr<rl::logging::client::Base> logger);
-
-            /**
-             * @brief Indicate that the environment should interface using CUDA tensors.
-             * 
-             */
-            void cuda();
-
-            /**
-             * @brief Indicate that the environment should interface using CPU tensors.
-             * 
-             */
-            void cpu();
-
-            /**
-             * @brief Whether or not the environment is interfacing CUDA or CPU tensors.
-             * 
-             * @return true CUDA tensors are used.
-             * @return false CPU tensors are used.
-             */
-            inline bool is_cuda() const { return is_cuda_; }
         
         protected:
             std::shared_ptr<rl::logging::client::Base> logger;
-            bool is_cuda_{false};
     };
 
     /**
@@ -117,22 +96,7 @@ namespace rl::env
              */
             void set_logger(std::shared_ptr<rl::logging::client::Base> logger);
 
-            /**
-             * @brief Future environment instances spawned will interface using CUDA
-             * backed tensors.
-             * 
-             */
-            void cuda();
-
-            /**
-             * @brief Future environment instances spawned will interface using CPU
-             * backed tensors.
-             * 
-             */
-            void cpu();
-
         private:
-            bool is_cuda{false};
             std::shared_ptr<rl::logging::client::Base> logger;
             virtual std::unique_ptr<Base> get_impl() const = 0;
     };

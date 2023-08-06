@@ -48,7 +48,7 @@ int main()
     auto module_device = torch::Device(torch::kCUDA, 0);
     auto sim_device = torch::Device(torch::kCPU);
 
-    auto logger = std::make_shared<logging::client::Tensorboard>(logging::client::TensorboardOptions{}.frequency_window_(10));
+    auto logger = std::make_shared<logging::client::EMA>(std::vector{0.6, 0.9, 0.99}, 5);
     auto net = std::make_shared<Net>();
     net->to(module_device);
     auto optimizer = std::make_shared<optim::Adam>(net->parameters());

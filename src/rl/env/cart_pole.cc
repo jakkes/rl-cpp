@@ -31,17 +31,15 @@ namespace rl::env
 
     torch::Tensor CartPoleContinuous::state_vector() const {
         float progress = (steps * 1.0 / max_steps - 0.5) * 2;
-        return torch::tensor({x, v, theta, omega, progress}, torch::TensorOptions{}.device(is_cuda() ? torch::kCUDA : torch::kCPU));
+        return torch::tensor({x, v, theta, omega, progress});
     }
 
     std::unique_ptr<State> CartPoleContinuous::state() const {
         auto re = std::make_unique<State>();
         re->state = state_vector();
-        auto constraint_options = torch::TensorOptions{}
-                                    .device(is_cuda() ? torch::kCUDA : torch::kCPU);
         re->action_constraint = std::make_shared<rl::policies::constraints::Box>(
-            torch::tensor(-1.0, constraint_options),
-            torch::tensor(1.0, constraint_options)
+            torch::tensor(-1.0),
+            torch::tensor(1.0)
         );
         return re;
     }
@@ -144,7 +142,7 @@ namespace rl::env
             torch::ones(
                 {action_space_dim},
                 torch::TensorOptions{}
-                    .dtype(torch::kBool).device(is_cuda() ? torch::kCUDA : torch::kCPU)
+                    .dtype(torch::kBool)
             )
         );
         return re;

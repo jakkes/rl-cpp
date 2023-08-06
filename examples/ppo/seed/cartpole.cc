@@ -88,11 +88,6 @@ int main(int argc, char **argv)
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99}, 5);
     auto env_factory = std::make_shared<env::CartPoleDiscreteFactory>(200, args.get<int>("--actions"));
     env_factory->set_logger(logger);
-    
-    if (args.get<bool>("--cuda")) {
-        env_factory->cuda();
-        model->to(torch::kCUDA);
-    }
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters());
 
     agents::ppo::trainers::SEED trainer{
@@ -109,7 +104,7 @@ int main(int argc, char **argv)
             .inference_batchsize_(32)
             .min_replay_size_(500)
             .replay_size_(500)
-            .replay_device_(args.get<bool>("--cuda") ? torch::kCUDA : torch::kCPU)
+            .replay_device_(torch::kCPU)
             .sequence_length_(64)
             .max_update_frequency_(50)
             .logger_(logger)

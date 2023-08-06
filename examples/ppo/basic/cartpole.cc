@@ -82,11 +82,6 @@ int main(int argc, char **argv)
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.0, 0.6, 0.9, 0.99, 0.999, 0.9999}, 5);
     auto env_factory = std::make_shared<env::CartPoleDiscreteFactory>(200, args.get<int>("--actions"));
     env_factory->set_logger(logger);
-    
-    if (torch::cuda::is_available()) {
-        env_factory->cuda();
-        model->to(torch::kCUDA);
-    }
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters());
 
     agents::ppo::trainers::Basic trainer{
@@ -94,7 +89,7 @@ int main(int argc, char **argv)
         optimizer,
         env_factory,
         agents::ppo::trainers::BasicOptions{}
-            .cuda_(torch::cuda::is_available())
+            .cuda_(false)
             .env_workers_(args.get<int>("--env-worker-threads"))
             .envs_(args.get<int>("--envs"))
             .logger_(logger)

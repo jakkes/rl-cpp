@@ -16,7 +16,7 @@ include(cmake/submodule.cmake)
 
 option(RL_BUILD_TESTS "build tests" ${MAIN_FILE})
 option(RL_BUILD_EXAMPLES "build examples" ${MAIN_FILE})
-option(RL_BUILD_REMOTE_ENVS "remote envs, require gRPC" OFF)
+option(RL_BUILD_REMOTE_ENVS "remote envs, requires gRPC" ON)
 
 add_library(rl SHARED)
 add_library(rl::rl ALIAS rl)

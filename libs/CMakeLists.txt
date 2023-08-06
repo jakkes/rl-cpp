@@ -29,6 +29,7 @@ endif()
 target_link_libraries(rl PUBLIC spdlog::spdlog)
 
 if (NOT TARGET tensorboard_logger)
+    set(BUILD_SHARED_LIBS ON)
     add_subdirectory(tensorboard_logger)
 endif()
 target_link_libraries(rl PUBLIC tensorboard_logger)

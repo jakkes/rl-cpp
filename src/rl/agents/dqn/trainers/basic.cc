@@ -184,7 +184,11 @@ namespace rl::agents::dqn::trainers
             episode->states.push_back(state);
 
             if (options.logger && should_log_start_value) {
-                options.logger->log_scalar("DQN/StartValue", output->value().max().item().toFloat());
+                auto values = output->value();
+                auto max_value = values.max().item().toFloat();
+                auto min_value = values.where(~values.isneginf(), max_value).min().item().toFloat();
+                options.logger->log_scalar("DQN/StartValue", max_value);
+                options.logger->log_scalar("DQN/StartAdvantage", max_value - min_value);
             }
             
             auto policy = this->policy->policy(*output);
@@ -210,7 +214,11 @@ namespace rl::agents::dqn::trainers
                 add_hindsight_replay();
                 
                 if (options.logger) {
-                    options.logger->log_scalar("DQN/EndValue", output->value().max().item().toFloat());
+                    auto values = output->value();
+                    auto max_value = values.max().item().toFloat();
+                    auto min_value = values.where(~values.isneginf(), max_value).min().item().toFloat();
+                    options.logger->log_scalar("DQN/EndValue", max_value);
+                    options.logger->log_scalar("DQN/EndAdvantage", max_value - min_value);
                 }
             }
 
@@ -222,6 +230,9 @@ namespace rl::agents::dqn::trainers
                             && std::chrono::high_resolution_clock::now() < stop_time)
         {
             execute_env_step();
+            if (options.logger) {
+                options.logger->log_scalar("DQN/BufferSize", buffer->size());
+            }
         }
 
         env_steps = 0;
@@ -236,6 +247,9 @@ namespace rl::agents::dqn::trainers
             }
             else {
                 execute_env_step();
+                if (options.logger) {
+                    options.logger->log_scalar("DQN/BufferSize", buffer->size());
+                }
             }
         }
     }

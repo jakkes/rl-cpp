@@ -6,6 +6,10 @@ else()
     set(MAIN_FILE OFF)
 endif()
 
+if (NOT DEFINED CAFFE2_USE_CUDNN)
+    set(CAFFE2_USE_CUDNN ON)
+endif()
+
 cmake_minimum_required(VERSION 3.18)
 set(CMAKE_CUDA_ARCHITECTURES "75")
 

@@ -8,38 +8,6 @@
 
 using namespace torch::indexing;
 
-namespace
-{
-    class InferenceUnit : public rl::torchutils::ExecutionUnit
-    {
-        public:
-            InferenceUnit(
-                int max_batchsize,
-                torch::Device device,
-                std::shared_ptr<modules::Base> module,
-                bool use_cuda_graph
-            ) : rl::torchutils::ExecutionUnit(max_batchsize, device, use_cuda_graph), module{module}
-            {}
-        
-        private:
-            std::shared_ptr<modules::Base> module;
-
-        private:
-            rl::torchutils::ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs)
-            {
-                torch::NoGradGuard no_grad_guard{};
-                auto module_output = module->forward(inputs[0]);
-                auto policy_output = module_output->policy().get_probabilities();
-                auto value_output = module_output->value_estimates();
-
-                rl::torchutils::ExecutionUnitOutput out{2, 0};
-                out.tensors[0] = policy_output;
-                out.tensors[1] = value_output;
-
-                return out;
-            }
-    };
-}
 
 namespace trainer_impl
 {

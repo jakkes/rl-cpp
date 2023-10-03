@@ -21,6 +21,7 @@
 #include <rl/torchutils/execution_unit.h>
 
 #include "result_tracker.h"
+#include "execution_units.h"
 
 
 using namespace rl::agents::alpha_zero;
@@ -64,7 +65,7 @@ namespace trainer_impl
             std::shared_ptr<ResultTracker> result_tracker;
             const SelfPlayWorkerOptions options;
 
-            std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
+            std::unique_ptr<InferenceUnit> inference_unit;
             std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&SelfPlayWorker::inference_fn, this, std::placeholders::_1);
 
             std::atomic<bool> running{false};

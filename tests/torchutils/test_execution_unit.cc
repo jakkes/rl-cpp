@@ -92,6 +92,7 @@ TEST(execution_unit, rotate_90_degrees)
         GTEST_SKIP();
     }
     Rotate2DTransform rotation{M_PI_2, 32, torch::kCUDA};
+    rotation({torch::randn({2, 2}).cuda()});
 
     auto x = torch::tensor({{1.0, 0.0}, {0.0, 1.0}}).cuda();
     auto y = rotation({x}).tensors[0];

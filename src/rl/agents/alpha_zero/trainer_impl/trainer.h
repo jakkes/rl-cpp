@@ -17,6 +17,8 @@
 #include <rl/buffers/buffers.h>
 #include <rl/torchutils/execution_unit.h>
 
+#include "execution_units.h"
+
 
 using namespace rl::agents::alpha_zero;
 
@@ -66,8 +68,8 @@ namespace trainer_impl
             std::thread working_thread;
 
             std::function<MCTSInferenceResult(const torch::Tensor &)> inference_fn_var = std::bind(&Trainer::inference_fn, this, std::placeholders::_1);
-            std::unique_ptr<rl::torchutils::ExecutionUnit> inference_unit;
-            std::unique_ptr<rl::torchutils::ExecutionUnit> training_unit;
+            std::unique_ptr<InferenceUnit> inference_unit;
+            std::unique_ptr<TrainingUnit> training_unit;
 
         private:
             void init_buffer();

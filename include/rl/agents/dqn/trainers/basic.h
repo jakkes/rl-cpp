@@ -43,6 +43,8 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(bool, double_dqn) = true;
         // Reward n-step
         RL_OPTION(int, n_step) = 3;
+        // If gradient (L2) norm is larger, then normalize to this value.
+        RL_OPTION(float, max_gradient_norm) = 40.0f;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
         // Checkpoint callback, called with number of training steps executed.

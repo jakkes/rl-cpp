@@ -1,8 +1,8 @@
 target_sources(
     rl
     PRIVATE
-        modules/distributional.cc
-        modules/dqn.cc
+        value_parsers/estimated_mean.cc
+        value_parsers/distributional.cc
 
         policies/epsilon_greedy.cc
 

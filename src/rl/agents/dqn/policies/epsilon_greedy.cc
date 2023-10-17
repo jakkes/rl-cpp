@@ -3,15 +3,13 @@
 
 namespace rl::agents::dqn::policies
 {
-    std::unique_ptr<rl::policies::Categorical> EpsilonGreedy::policy(
-                            const rl::agents::dqn::modules::BaseOutput &output)
+    std::unique_ptr<rl::policies::Categorical> EpsilonGreedy::policy(const torch::Tensor &values)
     {
         auto epsilon = this->epsilon->get();
 
-        auto value = output.value().detach();
-        float base_prob = epsilon / value.size(-1);
-        auto probabilities = base_prob * torch::ones_like(value);
-        auto greedy_actions = value.argmax(-1);
+        float base_prob = epsilon / values.size(-1);
+        auto probabilities = base_prob * torch::ones_like(values);
+        auto greedy_actions = values.argmax(-1);
 
         auto batchvec = torch::arange(greedy_actions.size(0), greedy_actions.options());
         probabilities.index_put_({batchvec, greedy_actions}, 1.0f + base_prob - epsilon);

@@ -14,14 +14,15 @@
 namespace rl::agents::dqn::trainers
 {
     Apex::Apex(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         std::shared_ptr<rl::env::Factory> env_factory,
         const ApexOptions &options
     ) : 
-        module{module}, optimizer{optimizer}, policy{policy},
-        env_factory{env_factory}, options{options}
+        module{module}, value_parser{value_parser}, optimizer{optimizer},
+        policy{policy}, env_factory{env_factory}, options{options}
     {}
 
     void Apex::run(int64_t duration_seconds)
@@ -36,11 +37,11 @@ namespace rl::agents::dqn::trainers
         workers.reserve(options.workers);
         for (int i = 0; i < options.workers; i++) {
             workers.push_back(
-                std::make_shared<apex_impl::Worker>(module, policy, env_factory, replay, options)
+                std::make_shared<apex_impl::Worker>(module, value_parser, policy, env_factory, replay, options)
             );
         }
 
-        apex_impl::Trainer trainer{module, optimizer, replay, options};
+        apex_impl::Trainer trainer{module, value_parser, optimizer, replay, options};
 
         trainer.start();
         for (auto &worker : workers) {

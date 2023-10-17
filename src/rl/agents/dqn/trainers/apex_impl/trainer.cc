@@ -12,14 +12,16 @@ namespace rl::agents::dqn::trainers::apex_impl
     auto LOGGER = rl::cpputils::get_logger("ApexDQN-Trainer");
 
     Trainer::Trainer(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<rl::buffers::Tensor> replay_buffer,
         const ApexOptions &options
     ) : options{options}
     {
         this->module = module;
-        this->target_module = module->clone();
+        this->target_module = std::dynamic_pointer_cast<rl::agents::dqn::Module>(module->clone());
+        this->value_parser = value_parser;
         this->optimizer = optimizer;
         this->replay_buffer = std::make_shared<rl::buffers::samplers::Uniform<rl::buffers::Tensor>>(replay_buffer);
     }
@@ -57,35 +59,37 @@ namespace rl::agents::dqn::trainers::apex_impl
         auto sample_storage = replay_buffer->sample(options.batch_size);
         auto &samples = *sample_storage;
 
-        auto output = module->forward(samples[0].to(options.network_device));
-        output->apply_mask(samples[1].to(options.network_device));
+        auto outputs = module->forward(samples[0].to(options.network_device));
+        auto masks = samples[1].to(options.network_device);
 
-        std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
         torch::Tensor next_actions;
+        torch::Tensor next_outputs;
+        auto next_masks = samples[6].to(options.network_device);
+        auto next_states = samples[5].to(options.network_device);
         {
             torch::InferenceMode guard{};
-            auto next_state = samples[5].to(options.network_device);
-            auto next_mask = samples[6].to(options.network_device);
-            next_output = target_module->forward(next_state);
-            next_output->apply_mask(next_mask);
+            next_outputs = target_module->forward(next_states);
 
             if (options.double_dqn) {
-                auto tmp_output = module->forward(next_state);
-                tmp_output->apply_mask(next_mask);
-                next_actions = tmp_output->greedy_action();
+                auto tmp_output = module->forward(next_states);
+                next_actions = value_parser->values(tmp_output, next_masks).argmax(-1);
             } else {
-                next_actions = next_output->greedy_action();
+                next_actions = value_parser->values(next_outputs, next_masks).argmax(-1);
             }
         }
 
-        auto loss = output->loss(
+        auto loss = value_parser->loss(
+            outputs,
+            masks,
             samples[2].to(options.network_device),
             samples[3].to(options.network_device),
             samples[4].to(options.network_device),
-            *next_output,
+            next_outputs,
+            next_masks,
             next_actions,
             std::pow(options.discount, options.n_step)
         );
+
         loss = loss.mean();
         optimizer->zero_grad();
         loss.backward();

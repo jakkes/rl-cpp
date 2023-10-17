@@ -21,8 +21,7 @@ namespace rl::agents::dqn::policies
 
             ~EpsilonGreedy() = default;
 
-            std::unique_ptr<rl::policies::Categorical> policy(
-                    const rl::agents::dqn::modules::BaseOutput &output) override;
+            std::unique_ptr<rl::policies::Categorical> policy(const torch::Tensor &values) override;
 
         private:
             std::shared_ptr<rl::utils::float_control::Base> epsilon;

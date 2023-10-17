@@ -7,8 +7,9 @@
 #include <torch/torch.h>
 
 #include <rl/option.h>
-#include <rl/agents/dqn/modules/base.h>
 #include <rl/agents/dqn/policies/base.h>
+#include <rl/agents/dqn/value_parsers/base.h>
+#include <rl/agents/dqn/module.h>
 #include <rl/env/base.h>
 #include <rl/agents/dqn/utils/hindsight_replay.h>
 
@@ -71,7 +72,8 @@ namespace rl::agents::dqn::trainers
     {
         public:
             SEED(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::shared_ptr<rl::env::Factory> env_factory,
@@ -82,7 +84,8 @@ namespace rl::agents::dqn::trainers
 
         private:
             const SEEDOptions options;
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;

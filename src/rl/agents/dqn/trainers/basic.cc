@@ -14,14 +14,16 @@ namespace rl::agents::dqn::trainers
 {
 
     Basic::Basic(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<rl::env::Factory> env_factory,
         const BasicOptions &options
     ) :
         module{module},
-        target_module{module->clone()},
+        target_module{std::dynamic_pointer_cast<rl::agents::dqn::Module>(module->clone())},
+        value_parser{value_parser},
         policy{policy},
         optimizer{optimizer},
         env_factory{env_factory},
@@ -101,35 +103,38 @@ namespace rl::agents::dqn::trainers
             auto &sample = *sample_storage;
             
             auto output = module->forward(sample[0].to(options.network_device));
-            output->apply_mask(sample[1].to(options.network_device));
+            auto masks = sample[1].to(options.network_device);
 
-            std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
+            torch::Tensor next_outputs;
+            torch::Tensor next_masks;
             torch::Tensor next_actions;
             
             {
                 torch::InferenceMode guard{};
                 auto next_state = sample[5].to(options.network_device);
-                auto next_mask = sample[6].to(options.network_device);
-                next_output = target_module->forward(next_state);
-                next_output->apply_mask(next_mask);
+                next_masks = sample[6].to(options.network_device);
+                next_outputs = target_module->forward(next_state);
 
                 if (options.double_dqn) {
                     auto tmp_output = module->forward(next_state);
-                    tmp_output->apply_mask(next_mask);
-                    next_actions = tmp_output->greedy_action();
+                    next_actions = value_parser->values(tmp_output, next_masks).argmax(-1);
                 } else {
-                    next_actions = next_output->greedy_action();
+                    next_actions = this->value_parser->values(next_state, next_masks).argmax(-1);
                 }
             }
 
-            auto loss = output->loss(
+            auto loss = value_parser->loss(
+                output,
+                masks,
                 sample[2].to(options.network_device),
                 sample[3].to(options.network_device),
                 sample[4].to(options.network_device),
-                *next_output,
+                next_outputs,
+                next_masks,
                 next_actions,
                 std::pow(options.discount, options.n_step)
             );
+
             loss = loss.mean();
             optimizer->zero_grad();
             loss.backward();
@@ -169,21 +174,21 @@ namespace rl::agents::dqn::trainers
                 episode = std::make_unique<rl::agents::dqn::utils::HindsightReplayEpisode>();
             }
             std::shared_ptr<rl::env::State> state = env->state();
+
             auto output = module->forward(state->state.unsqueeze(0).to(options.network_device));
             auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
-            output->apply_mask(mask.unsqueeze(0).to(options.network_device));
-
+            
+            auto values = value_parser->values(output, mask.unsqueeze(0).to(options.network_device));
             episode->states.push_back(state);
 
             if (options.logger && should_log_start_value) {
-                auto values = output->value();
                 auto max_value = values.max().item().toFloat();
                 auto min_value = values.where(~values.isneginf(), max_value).min().item().toFloat();
                 options.logger->log_scalar("DQN/StartValue", max_value);
                 options.logger->log_scalar("DQN/StartAdvantage", max_value - min_value);
             }
             
-            auto policy = this->policy->policy(*output);
+            auto policy = this->policy->policy(values);
             policy->include(state->action_constraint);
 
             auto action = policy->sample().squeeze(0);
@@ -206,7 +211,6 @@ namespace rl::agents::dqn::trainers
                 add_hindsight_replay();
                 
                 if (options.logger) {
-                    auto values = output->value();
                     auto max_value = values.max().item().toFloat();
                     auto min_value = values.where(~values.isneginf(), max_value).min().item().toFloat();
                     options.logger->log_scalar("DQN/EndValue", max_value);

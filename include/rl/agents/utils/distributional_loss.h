@@ -13,8 +13,6 @@ namespace rl::agents::utils
         const torch::Tensor &next_logits,
         const torch::Tensor &atoms,
         float discount,
-        float v_min,
-        float v_max,
         bool allow_cuda_graph=false
     );
 }

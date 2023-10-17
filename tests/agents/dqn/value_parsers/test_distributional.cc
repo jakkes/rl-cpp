@@ -2,14 +2,15 @@
 
 #include <torch/torch.h>
 #include <gtest/gtest.h>
-#include <rl/rl.h>
+#include <rl/agents/dqn/value_parsers/distributional.h>
 
 
-using namespace rl::agents::dqn::modules;
+using namespace rl::agents::dqn::value_parsers;
 
-TORCH_TEST(distributional_module, distributional_output_value, device)
+TORCH_TEST(dqn_value_parsers, distributional_output_value, device)
 {
     auto atoms = torch::linspace(0.0, 1.0, 3).to(device);
+    Distributional value_parser(atoms);
 
     auto distributions = torch::tensor({
         {
@@ -29,12 +30,9 @@ TORCH_TEST(distributional_module, distributional_output_value, device)
     auto masks = torch::tensor({
         {true, true, false},
         {true, false, true}
-    });
+    }).to(device);
 
-    DistributionalOutput output{logits, atoms, 0.0f, 1.0f};
-    output.apply_mask(masks);
-
-    auto values = output.value();
+    auto values = value_parser.values(logits, masks);
     
     ASSERT_NEAR(
         values.index({0, 0}).item().toFloat(),

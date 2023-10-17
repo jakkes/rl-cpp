@@ -23,7 +23,8 @@ namespace rl::agents::dqn::trainers::apex_impl
     {
         public:
             Worker(
-                std::shared_ptr<modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 std::shared_ptr<rl::buffers::Tensor> replay_buffer,
@@ -35,7 +36,8 @@ namespace rl::agents::dqn::trainers::apex_impl
 
         private:
             const ApexOptions options;
-            std::shared_ptr<modules::Base> module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;
             std::shared_ptr<rl::buffers::Tensor> replay_buffer;

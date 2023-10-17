@@ -10,7 +10,8 @@
 #include <rl/option.h>
 #include <rl/env/base.h>
 #include <rl/logging/client/base.h>
-#include <rl/agents/dqn/modules/base.h>
+#include <rl/agents/dqn/module.h>
+#include <rl/agents/dqn/value_parsers/base.h>
 #include <rl/agents/dqn/policies/base.h>
 #include <rl/agents/dqn/utils/hindsight_replay.h>
 
@@ -56,6 +57,8 @@ namespace rl::agents::dqn::trainers
         // the (possibly modified sequence) is added to the replay buffer. If false is
         // returned, then the sequence is not added to the buffer.
         RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
+        // If true, and cuda is used, run in cuda graph mode.
+        RL_OPTION(bool, enable_cuda_graph) = true;
     };
 
     /**
@@ -67,7 +70,8 @@ namespace rl::agents::dqn::trainers
     {
         public:
             Basic(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::env::Factory> env_factory,
@@ -83,8 +87,9 @@ namespace rl::agents::dqn::trainers
 
         private:
             const BasicOptions options;
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
-            std::shared_ptr<rl::agents::dqn::modules::Base> target_module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::Module> target_module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::env::Factory> env_factory;

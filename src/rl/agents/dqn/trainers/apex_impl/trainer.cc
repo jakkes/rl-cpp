@@ -94,9 +94,12 @@ namespace rl::agents::dqn::trainers::apex_impl
         optimizer->zero_grad();
         loss.backward();
         auto grad_norm = rl::torchutils::compute_gradient_norm(optimizer);
-        if (grad_norm.item().toFloat() > options.max_gradient_norm) {
-            rl::torchutils::scale_gradients(optimizer, 1.0f / options.max_gradient_norm);
-        }
+        auto grad_norm_factor = torch::where(
+            grad_norm > options.max_gradient_norm,
+            options.max_gradient_norm / grad_norm,
+            torch::ones_like(grad_norm)
+        );
+        rl::torchutils::scale_gradients(optimizer, grad_norm_factor);
         optimizer->step();
 
         if (options.logger) {

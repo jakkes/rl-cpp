@@ -1,5 +1,6 @@
 #include "rl/agents/dqn/trainers/basic.h"
 
+#include <rl/torchutils/execution_unit.h>
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
 #include <rl/policies/constraints/categorical_mask.h>
@@ -9,9 +10,128 @@
 
 using rl::policies::constraints::CategoricalMask;
 using namespace torch::indexing;
+using namespace rl::torchutils;
+
 
 namespace rl::agents::dqn::trainers
 {
+    class TrainUnit : public ExecutionUnit
+    {
+        public:
+            TrainUnit(
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::Module> target_module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
+                std::shared_ptr<torch::optim::Optimizer> optimizer,
+                const BasicOptions &options
+            ) : ExecutionUnit(options.batch_size, options.network_device, options.enable_cuda_graph),
+                options{options}
+            {
+                this->module = module;
+                this->target_module = target_module;
+                this->value_parser = value_parser;
+                this->optimizer = optimizer;
+            }
+
+        private:
+            ExecutionUnitOutput forward(const std::vector<torch::Tensor> &sample)
+            {
+                auto output = module->forward(sample[0]);
+                auto masks = sample[1];
+
+                torch::Tensor next_outputs;
+                torch::Tensor next_masks;
+                torch::Tensor next_actions;
+                
+                {
+                    torch::InferenceMode guard{};
+                    auto next_state = sample[5];
+                    next_masks = sample[6];
+                    next_outputs = target_module->forward(next_state);
+
+                    if (options.double_dqn) {
+                        auto tmp_output = module->forward(next_state);
+                        next_actions = value_parser->values(tmp_output, next_masks).argmax(-1);
+                    } else {
+                        next_actions = this->value_parser->values(next_state, next_masks).argmax(-1);
+                    }
+                }
+
+                auto loss = value_parser->loss(
+                    output,
+                    masks,
+                    sample[2],
+                    sample[3],
+                    sample[4],
+                    next_outputs,
+                    next_masks,
+                    next_actions,
+                    std::pow(options.discount, options.n_step)
+                );
+
+                loss = loss.mean();
+                optimizer->zero_grad();
+                loss.backward();
+                auto grad_norm = rl::torchutils::compute_gradient_norm(optimizer);
+                auto grad_norm_factor = torch::where(
+                    grad_norm > options.max_gradient_norm,
+                    options.max_gradient_norm / grad_norm,
+                    torch::ones_like(grad_norm)
+                );
+                rl::torchutils::scale_gradients(optimizer, grad_norm_factor);
+                optimizer->step();
+
+                {
+                    torch::NoGradGuard guard{};
+                    auto target_parameters = target_module->parameters();
+                    auto parameters = module->parameters();
+
+                    for (int i = 0; i < parameters.size(); i++) {
+                        target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
+                    }
+                }
+
+                ExecutionUnitOutput out{0, 2};
+                out.scalars[0] = loss.detach();
+                out.scalars[1] = grad_norm;
+
+                return out;
+            }
+
+        private:
+            const BasicOptions options;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::Module> target_module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
+            std::shared_ptr<torch::optim::Optimizer> optimizer;
+    };
+
+
+    class InferenceUnit : public ExecutionUnit
+    {
+        public:
+            InferenceUnit(
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                const BasicOptions &options
+            ) : ExecutionUnit(1, options.network_device, options.enable_cuda_graph)
+            {
+                this->module = module;
+            }
+
+        private:
+            ExecutionUnitOutput forward(const std::vector<torch::Tensor> &inputs) override
+            {
+                torch::InferenceMode guard{};
+                ExecutionUnitOutput out{1, 0};
+                out.tensors[0] = module->forward(inputs[0]);
+                return out;
+            }
+
+        private:
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            const BasicOptions options;
+    };
+
 
     Basic::Basic(
         std::shared_ptr<rl::agents::dqn::Module> module,
@@ -67,6 +187,9 @@ namespace rl::agents::dqn::trainers
         rl::utils::reward::NStepCollector collector{options.n_step, options.discount};
         std::unique_ptr<rl::agents::dqn::utils::HindsightReplayEpisode> episode;
 
+        TrainUnit train_unit{module, target_module, value_parser, optimizer, options};
+        InferenceUnit inference_unit{module, options};
+
         size_t env_steps{0};
         size_t train_steps{0};
 
@@ -101,70 +224,27 @@ namespace rl::agents::dqn::trainers
         auto execute_train_step = [&] () {
             auto sample_storage = sampler.sample(options.batch_size);
             auto &sample = *sample_storage;
-            
-            auto output = module->forward(sample[0].to(options.network_device));
-            auto masks = sample[1].to(options.network_device);
 
-            torch::Tensor next_outputs;
-            torch::Tensor next_masks;
-            torch::Tensor next_actions;
-            
-            {
-                torch::InferenceMode guard{};
-                auto next_state = sample[5].to(options.network_device);
-                next_masks = sample[6].to(options.network_device);
-                next_outputs = target_module->forward(next_state);
-
-                if (options.double_dqn) {
-                    auto tmp_output = module->forward(next_state);
-                    next_actions = value_parser->values(tmp_output, next_masks).argmax(-1);
-                } else {
-                    next_actions = this->value_parser->values(next_state, next_masks).argmax(-1);
-                }
-            }
-
-            auto loss = value_parser->loss(
-                output,
-                masks,
+            auto output = train_unit({
+                sample[0].to(options.network_device),
+                sample[1].to(options.network_device),
                 sample[2].to(options.network_device),
                 sample[3].to(options.network_device),
                 sample[4].to(options.network_device),
-                next_outputs,
-                next_masks,
-                next_actions,
-                std::pow(options.discount, options.n_step)
-            );
-
-            loss = loss.mean();
-            optimizer->zero_grad();
-            loss.backward();
-            auto grad_norm = rl::torchutils::compute_gradient_norm(optimizer).item().toFloat();
-            if (grad_norm > options.max_gradient_norm) {
-                rl::torchutils::scale_gradients(optimizer, options.max_gradient_norm / grad_norm);
-            }
-            optimizer->step();
+                sample[5].to(options.network_device),
+                sample[6].to(options.network_device),
+            });
 
             if (options.logger) {
-                options.logger->log_scalar("DQN/Loss", loss.item().toFloat());
-                options.logger->log_scalar("DQN/Gradient norm", grad_norm);
+                options.logger->log_scalar("DQN/Loss", output.scalars[0].item().toFloat());
+                options.logger->log_scalar("DQN/Gradient norm", output.scalars[1].item().toFloat());
                 options.logger->log_frequency("DQN/Update frequency", 1);
-            }
-
-            {
-                torch::NoGradGuard guard{};
-                auto target_parameters = target_module->parameters();
-                auto parameters = module->parameters();
-
-                for (int i = 0; i < parameters.size(); i++) {
-                    target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
-                }
             }
 
             train_steps++;
         };
 
         auto execute_env_step = [&] () {
-            torch::InferenceMode guard{};
             bool should_log_start_value{false};
 
             // If environment is in terminal state, or this is the first step.
@@ -175,10 +255,13 @@ namespace rl::agents::dqn::trainers
             }
             std::shared_ptr<rl::env::State> state = env->state();
 
-            auto output = module->forward(state->state.unsqueeze(0).to(options.network_device));
-            auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask();
+            auto inference_unit_output = inference_unit({state->state.unsqueeze(0).to(options.network_device)});
+            auto &output = inference_unit_output.tensors[0];
+            auto mask = dynamic_cast<const CategoricalMask&>(*state->action_constraint).mask().unsqueeze(0).to(options.network_device);
+
+            assert(!output.requires_grad());
             
-            auto values = value_parser->values(output, mask.unsqueeze(0).to(options.network_device));
+            auto values = value_parser->values(output, mask);
             episode->states.push_back(state);
 
             if (options.logger && should_log_start_value) {
@@ -187,7 +270,7 @@ namespace rl::agents::dqn::trainers
                 options.logger->log_scalar("DQN/StartValue", max_value);
                 options.logger->log_scalar("DQN/StartAdvantage", max_value - min_value);
             }
-            
+
             auto policy = this->policy->policy(values, mask);
             policy->include(state->action_constraint);
 

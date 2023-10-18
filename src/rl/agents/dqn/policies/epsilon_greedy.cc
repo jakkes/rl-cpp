@@ -13,13 +13,13 @@ namespace rl::agents::dqn::policies
         auto masked_values = values.where(masks, torch::zeros_like(values) - INFINITY);
         auto greedy_actions = masked_values.argmax(-1);
 
-        auto base_prob = epsilon / masks.sum(-1).item().toLong();
+        auto base_prob = epsilon / masks.sum(-1, true).to(torch::kFloat32);
         auto probabilities = base_prob * torch::where(
             masks, torch::ones_like(values), torch::zeros_like(values)
         );
 
         auto batchvec = torch::arange(greedy_actions.size(0), greedy_actions.options());
-        probabilities.index_put_({batchvec, greedy_actions}, 1.0f - epsilon + base_prob);
+        probabilities.index_put_({batchvec, greedy_actions}, 1.0f - epsilon + base_prob.squeeze(1));
 
         return std::make_unique<rl::policies::Categorical>(probabilities);
     }

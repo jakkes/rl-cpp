@@ -8,7 +8,7 @@
 namespace rl::torchutils
 {
     inline
-    void scale_gradients(std::shared_ptr<torch::optim::Optimizer> optimizer, const torch::Scalar &factor)
+    void scale_gradients(std::shared_ptr<torch::optim::Optimizer> optimizer, const torch::Tensor &factor)
     {
         torch::NoGradGuard guard{};
         for (auto &param_group : optimizer->param_groups()) {

@@ -12,7 +12,7 @@ namespace rl::agents::dqn::value_parsers
     class Distributional : public Base
     {
         public:
-            Distributional(const torch::Tensor &atoms, bool cuda_graph_compatible = false);
+            Distributional(const torch::Tensor &atoms, bool cuda_graph_compatible = true);
             ~Distributional() = default;
 
             torch::Tensor values(

@@ -5,12 +5,27 @@
 using namespace rl;
 
 
-class Module : public agents::dqn::modules::DQN
+class Module : public agents::dqn::Module, public torch::nn::Cloneable<Module>
 {
     public:
-        Module();
-        std::unique_ptr<agents::dqn::modules::DQNOutput> forward_impl(const torch::Tensor &states) override;
-        std::unique_ptr<agents::dqn::modules::Base> clone() const override;
+        Module() {
+            reset();
+        }
+        void reset() override {
+            net = register_module(
+                "net",
+                torch::nn::Sequential{
+                    torch::nn::Linear{5, 64},
+                    torch::nn::ReLU{true},
+                    torch::nn::Linear{64, 64},
+                    torch::nn::ReLU{true},
+                    torch::nn::Linear{64, 2}
+                }
+            );
+        }
+        torch::Tensor forward(const torch::Tensor &states) override {
+            return net->forward(states);
+        }
     
     private:
         torch::nn::Sequential net;
@@ -25,9 +40,11 @@ int main()
     auto model = std::make_shared<Module>();
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters());
     auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.1);
+    auto value_parser = std::make_shared<agents::dqn::value_parsers::EstimatedMean>();
 
     auto trainer = agents::dqn::trainers::Basic{
         model,
+        value_parser,
         policy,
         optimizer,
         env_factory,
@@ -46,33 +63,4 @@ int main()
     };
 
     trainer.run(3600);
-}
-
-Module::Module()
-{
-    net = register_module(
-        "net",
-        torch::nn::Sequential{
-            torch::nn::Linear{5, 64},
-            torch::nn::ReLU{true},
-            torch::nn::Linear{64, 64},
-            torch::nn::ReLU{true},
-            torch::nn::Linear{64, 2}
-        }
-    );
-}
-
-std::unique_ptr<agents::dqn::modules::DQNOutput> Module::forward_impl(const torch::Tensor &states)
-{
-    auto values = net->forward(states);
-    return std::make_unique<agents::dqn::modules::DQNOutput>(values);
-}
-
-std::unique_ptr<agents::dqn::modules::Base> Module::clone() const
-{
-    auto out = std::make_unique<Module>();
-    auto copied_net = std::dynamic_pointer_cast<torch::nn::SequentialImpl>(net->clone());
-    assert(copied_net);
-    out->net = out->replace_module("net", copied_net);
-    return out;
 }

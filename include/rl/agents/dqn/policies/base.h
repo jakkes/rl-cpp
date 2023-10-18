@@ -23,10 +23,14 @@ namespace rl::agents::dqn::policies
              * module.
              * 
              * @param values DQN values
+             * @param masks Masks for valid actions
              * @return std::unique_ptr<rl::policies::Base> Action policy
              */
             virtual
-            std::unique_ptr<rl::policies::Categorical> policy(const torch::Tensor &values) = 0;
+            std::unique_ptr<rl::policies::Categorical> policy(
+                const torch::Tensor &values,
+                const torch::Tensor &masks
+            ) = 0;
     };
 }
 

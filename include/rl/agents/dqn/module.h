@@ -44,7 +44,7 @@ namespace rl::agents::dqn {
              * @param x Input tensor
              * @return torch::Tensor Output tensor
              */
-            virtual torch::Tensor forward(const torch::Tensor &x) const = 0;
+            virtual torch::Tensor forward(const torch::Tensor &x) = 0;
     };
 }
 

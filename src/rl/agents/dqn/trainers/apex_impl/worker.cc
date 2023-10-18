@@ -91,7 +91,7 @@ namespace rl::agents::dqn::trainers::apex_impl
         auto outputs = module->forward(tstates);
         auto values = value_parser->values(outputs, tmasks);
 
-        auto policy = this->policy->policy(values);
+        auto policy = this->policy->policy(values, tmasks);
         policy->include(std::make_shared<rl::policies::constraints::CategoricalMask>(tmasks));
 
         auto actions = policy->sample().to(options.environment_device);

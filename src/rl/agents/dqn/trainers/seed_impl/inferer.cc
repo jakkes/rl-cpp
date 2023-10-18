@@ -7,12 +7,14 @@ namespace seed_impl
 {
 
     Inferer::Inferer(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         const rl::agents::dqn::trainers::SEEDOptions &options
     ) : options{options}
     {
         this->module = module;
+        this->value_parser = value_parser;
         this->policy = policy;
     }
 
@@ -21,6 +23,7 @@ namespace seed_impl
         batches.push_back(
             std::make_shared<InferenceBatch>(
                 module,
+                value_parser,
                 policy,
                 std::bind(&Inferer::batch_stale_callback, this, std::placeholders::_1),
                 &options
@@ -84,11 +87,12 @@ namespace seed_impl
     }
 
     InferenceBatch::InferenceBatch(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         std::function<void(InferenceBatch*)> stale_callback,
         const rl::agents::dqn::trainers::SEEDOptions *options
-    ) : options{options}, module{module}, policy{policy}, stale_callback{stale_callback}
+    ) : options{options}, module{module}, value_parser{value_parser}, policy{policy}, stale_callback{stale_callback}
     {
         states.reserve(options->inference_batchsize);
         masks.reserve(options->inference_batchsize);
@@ -141,11 +145,11 @@ namespace seed_impl
         torch::InferenceMode guard{};
         std::lock_guard lock{add_mtx};
         assert(stale() && !executed());
-        auto output = module->forward(torch::stack(states).to(options->network_device));
-        output->apply_mask(torch::stack(masks).to(options->network_device));
 
-        value = output->value();
-        actions = policy->policy(*output)->sample();
+        auto outputs = module->forward(torch::stack(states).to(options->network_device));
+        auto masks = torch::stack(this->masks).to(options->network_device);
+        value = value_parser->values(outputs, masks);
+        actions = policy->policy(value, masks)->sample();
         advantage = std::get<0>(value.max(-1, true)) - value;
 
         executed_ = true;

@@ -188,7 +188,7 @@ namespace rl::agents::dqn::trainers
                 options.logger->log_scalar("DQN/StartAdvantage", max_value - min_value);
             }
             
-            auto policy = this->policy->policy(values);
+            auto policy = this->policy->policy(values, mask);
             policy->include(state->action_constraint);
 
             auto action = policy->sample().squeeze(0);

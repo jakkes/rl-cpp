@@ -9,7 +9,8 @@ using namespace rl::agents::dqn::trainers;
 namespace seed_impl
 {
     Trainer::Trainer(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<rl::env::Factory> env_factory,
         std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler,
@@ -17,7 +18,8 @@ namespace seed_impl
     ) : options{options}
     {
         this->module = module;
-        this->target_module = module->clone();
+        this->target_module = std::dynamic_pointer_cast<rl::agents::dqn::Module>(module->clone());
+        this->value_parser = value_parser;
         this->optimizer = optimizer;
         this->env_factory = env_factory;
         this->sampler = sampler;
@@ -60,36 +62,38 @@ namespace seed_impl
         auto sample_storage = sampler->sample(options.batch_size);
         const auto &sample{*sample_storage};
 
-        auto output = module->forward(sample[0].to(options.network_device));
-        output->apply_mask(sample[1].to(options.network_device));
+        auto outputs = module->forward(sample[0].to(options.network_device));
+        auto masks = sample[1].to(options.network_device);
 
-        std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
+        torch::Tensor next_outputs;
         torch::Tensor next_actions;
 
+        auto next_states = sample[5].to(options.network_device);
+        auto next_masks = sample[6].to(options.network_device);
         {
             torch::InferenceMode guard{};
-            auto next_state = sample[5].to(options.network_device);
-            auto next_mask = sample[6].to(options.network_device);
-            next_output = target_module->forward(next_state);
-            next_output->apply_mask(next_mask);
+            next_outputs = target_module->forward(next_states);
 
             if (options.double_dqn) {
-                auto tmp_output = module->forward(next_state);
-                tmp_output->apply_mask(next_mask);
-                next_actions = tmp_output->greedy_action();
+                auto tmp_output = module->forward(next_states);
+                next_actions = value_parser->values(tmp_output, next_masks).argmax(-1);
             } else {
-                next_actions = next_output->greedy_action();
+                next_actions = value_parser->values(next_outputs, next_masks).argmax(-1);
             }
         }
 
-        auto loss = output->loss(
+        auto loss = value_parser->loss(
+            outputs,
+            masks,
             sample[2].to(options.network_device),
             sample[3].to(options.network_device),
             sample[4].to(options.network_device),
-            *next_output,
+            next_outputs,
+            next_masks,
             next_actions,
             std::pow(options.discount, options.n_step)
         );
+
         loss = loss.mean();
         optimizer->zero_grad();
         loss.backward();

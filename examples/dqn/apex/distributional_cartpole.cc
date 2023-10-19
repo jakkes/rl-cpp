@@ -9,8 +9,9 @@ using namespace rl;
 class Module : public agents::dqn::Module, public torch::nn::Cloneable<Module>
 {
     public:
-        Module() { reset(); }
-
+        Module() {
+            reset();
+        }
         void reset() override {
             net = register_module(
                 "net",
@@ -23,15 +24,16 @@ class Module : public agents::dqn::Module, public torch::nn::Cloneable<Module>
                 }
             );
 
-            atoms_ = register_buffer("atoms", torch::linspace(0.0f, 100.0f, 51));
+            atoms_ = register_buffer("atoms", torch::linspace(0.0f, 200.0f, 51));
         }
-        
-        torch::Tensor forward(const torch::Tensor &states) override {
-            return net->forward(states).view({-1, 2, 51});
+        torch::Tensor forward(const torch::Tensor &x) override {
+            return net->forward(x).view({-1, 2, 51});
+        }
+
+        const torch::Tensor &atoms() const {
+            return atoms_;
         }
     
-        const torch::Tensor &atoms() const { return atoms_; }
-
     private:
         torch::nn::Sequential net;
         torch::Tensor atoms_;
@@ -45,7 +47,7 @@ int main()
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
     model->to(torch::kCUDA);
-    auto value_parser = std::make_shared<agents::dqn::value_parsers::Distributional>(model->atoms(), false);
+    auto value_parser = std::make_shared<agents::dqn::value_parsers::Distributional>(model->atoms(), true);
     auto optimizer = std::make_shared<torch::optim::Adam>(model->parameters(), torch::optim::AdamOptions{}.weight_decay(1e-5));
     auto policy = std::make_shared<agents::dqn::policies::EpsilonGreedy>(0.01);
 
@@ -59,7 +61,7 @@ int main()
             .batch_size_(64)
             .discount_(0.99)
             .double_dqn_(true)
-            .workers_(1)
+            .workers_(8)
             .worker_batchsize_(32)
             .inference_replay_size_(10000)
             .logger_(logger)
@@ -70,6 +72,7 @@ int main()
             .network_device_(torch::kCUDA)
             .replay_device_(torch::kCPU)
             .environment_device_(torch::kCPU)
+            .enable_cuda_graph_(true)
     };
 
     trainer.run(3600);

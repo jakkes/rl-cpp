@@ -62,6 +62,8 @@ namespace rl::agents::dqn::trainers
         // tensor. Therefore, if states or masks are to be modified, first clone
         // the tensors.
         RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
+        // If true, and cuda is used, run in cuda graph mode.
+        RL_OPTION(bool, enable_cuda_graph) = true;
     };
 
     class Apex

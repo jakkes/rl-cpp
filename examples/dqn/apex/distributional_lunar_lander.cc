@@ -43,7 +43,7 @@ class Module : public agents::dqn::Module, public torch::nn::Cloneable<Module>
 int main()
 {
     auto logger = std::make_shared<logging::client::EMA>(std::initializer_list<double>{0.6, 0.9, 0.99, 0.999}, 1);
-    auto env_factory = std::make_shared<rl::remote_env::LunarLanderFactory>("localhost:50051");
+    auto env_factory = std::make_shared<rl::remote_env::LunarLanderFactory>("localhost", 50500, 16);
     env_factory->set_logger(logger);
     auto model = std::make_shared<Module>();
     model->to(torch::kCUDA);
@@ -72,7 +72,9 @@ int main()
             .network_device_(torch::kCUDA)
             .replay_device_(torch::kCPU)
             .environment_device_(torch::kCPU)
+            .enable_inference_cuda_graph_(true)
+            .enable_training_cuda_graph_(true)
     };
 
-    trainer.run(3600);
+    trainer.run(360000);
 }

@@ -1,5 +1,4 @@
 #include <rl/rl.h>
-#include <rl/remote_env/remote_env.h>
 #include <torchdebug.h>
 
 
@@ -72,7 +71,8 @@ int main()
             .network_device_(torch::kCUDA)
             .replay_device_(torch::kCPU)
             .environment_device_(torch::kCPU)
-            .enable_cuda_graph_(true)
+            .enable_training_cuda_graph_(true)
+            .enable_inference_cuda_graph_(true)
     };
 
     trainer.run(3600);

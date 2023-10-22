@@ -23,7 +23,7 @@ namespace rl::agents::dqn::trainers::apex_impl
                 const ApexOptions &options
             ) : 
                 rl::torchutils::ExecutionUnit{
-                    options.worker_batchsize, options.network_device, options.enable_cuda_graph
+                    options.worker_batchsize, options.network_device, options.enable_inference_cuda_graph
                 },
                 module{module},
                 value_parser{value_parser}
@@ -56,7 +56,7 @@ namespace rl::agents::dqn::trainers::apex_impl
                 const ApexOptions &options
             ) : 
                 rl::torchutils::ExecutionUnit{
-                    options.batch_size, options.network_device, options.enable_cuda_graph
+                    options.batch_size, options.network_device, options.enable_training_cuda_graph
                 }, options{options}
             {
                 this->module = module;

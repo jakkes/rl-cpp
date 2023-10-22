@@ -57,8 +57,10 @@ namespace rl::agents::dqn::trainers
         // the (possibly modified sequence) is added to the replay buffer. If false is
         // returned, then the sequence is not added to the buffer.
         RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
-        // If true, and cuda is used, run in cuda graph mode.
-        RL_OPTION(bool, enable_cuda_graph) = true;
+        // If true, and cuda is used, run inference in cuda graph mode.
+        RL_OPTION(bool, enable_inference_cuda_graph) = true;
+        // If true, and cuda is used, run training in cuda graph mode.
+        RL_OPTION(bool, enable_training_cuda_graph) = true;
     };
 
     /**

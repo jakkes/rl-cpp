@@ -24,7 +24,7 @@ namespace rl::agents::dqn::trainers
                 std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 const BasicOptions &options
-            ) : ExecutionUnit(options.batch_size, options.network_device, options.enable_cuda_graph),
+            ) : ExecutionUnit(options.batch_size, options.network_device, options.enable_training_cuda_graph),
                 options{options}
             {
                 this->module = module;
@@ -113,7 +113,7 @@ namespace rl::agents::dqn::trainers
             InferenceUnit(
                 std::shared_ptr<rl::agents::dqn::Module> module,
                 const BasicOptions &options
-            ) : ExecutionUnit(1, options.network_device, options.enable_cuda_graph)
+            ) : ExecutionUnit(1, options.network_device, options.enable_inference_cuda_graph)
             {
                 this->module = module;
             }

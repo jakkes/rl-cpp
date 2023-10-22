@@ -68,7 +68,8 @@ int main()
             .replay_device_(torch::kCPU)
             .target_network_lr_(1e-3)
             .n_step_(3)
-            .enable_cuda_graph_(true)
+            .enable_training_cuda_graph_(true)
+            .enable_inference_cuda_graph_(true)
     };
 
     trainer.run(3600);

@@ -5,7 +5,6 @@
 #include <memory>
 
 #include <rl/policies/categorical.h>
-#include <rl/agents/dqn/modules/base.h>
 
 namespace rl::agents::dqn::policies
 {
@@ -23,12 +22,15 @@ namespace rl::agents::dqn::policies
              * @brief Constructs a discrete action policy from the output of a DQN
              * module.
              * 
-             * @param output DQN output
+             * @param values DQN values
+             * @param masks Masks for valid actions
              * @return std::unique_ptr<rl::policies::Base> Action policy
              */
             virtual
             std::unique_ptr<rl::policies::Categorical> policy(
-                        const rl::agents::dqn::modules::BaseOutput &output) = 0;
+                const torch::Tensor &values,
+                const torch::Tensor &masks
+            ) = 0;
     };
 }
 

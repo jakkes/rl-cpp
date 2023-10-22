@@ -62,16 +62,28 @@ namespace rl::remote_env
         public:
             LunarLanderFactory(
                 const std::string &host,
+                int base_port,
+                int number_of_hosts,
                 const LunarLanderOptions &options={}
-            ) : options{options}, host{host} {}
+            ) : 
+                options{options}, host{host},
+                base_port{base_port}, number_of_hosts{number_of_hosts}
+            {}
         
         private:
             const LunarLanderOptions options;
             const std::string host;
+            const int base_port;
+            const int number_of_hosts;
+            mutable int i = -1;    
         
         private:
             std::unique_ptr<rl::env::Base> get_impl() const override {
-                return std::make_unique<LunarLander>(host, options);
+                i = (i + 1) % number_of_hosts;
+                auto port = base_port + i;
+                auto host_port = host + ":" + std::to_string(port);
+
+                return std::make_unique<LunarLander>(host_port, options);
             }
     };
 }

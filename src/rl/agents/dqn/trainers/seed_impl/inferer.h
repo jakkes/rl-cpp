@@ -13,7 +13,7 @@
 #include <thread_safe/collections/queue.h>
 
 #include <rl/agents/dqn/trainers/seed.h>
-#include <rl/agents/dqn/modules/base.h>
+#include <rl/agents/dqn/module.h>
 #include <rl/agents/dqn/policies/base.h>
 #include <rl/policies/categorical.h>
 
@@ -32,7 +32,8 @@ namespace seed_impl
     {
         public:
             InferenceBatch(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::function<void(InferenceBatch*)> stale_callback,
                 const rl::agents::dqn::trainers::SEEDOptions *options
@@ -53,7 +54,8 @@ namespace seed_impl
             void execute();
 
         private:
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::function<void(InferenceBatch*)> stale_callback;
             const rl::agents::dqn::trainers::SEEDOptions *options;
@@ -107,7 +109,8 @@ namespace seed_impl
     {
         public:
             Inferer(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 const rl::agents::dqn::trainers::SEEDOptions &options
             );
@@ -121,7 +124,8 @@ namespace seed_impl
             void stop();
         
         private:
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             const rl::agents::dqn::trainers::SEEDOptions options;
 

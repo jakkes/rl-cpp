@@ -7,8 +7,9 @@
 #include <torch/torch.h>
 
 #include <rl/option.h>
-#include <rl/agents/dqn/modules/base.h>
+#include <rl/agents/dqn/module.h>
 #include <rl/agents/dqn/policies/base.h>
+#include <rl/agents/dqn/value_parsers/base.h>
 #include <rl/agents/dqn/utils/hindsight_replay.h>
 #include <rl/env/base.h>
 
@@ -61,13 +62,18 @@ namespace rl::agents::dqn::trainers
         // tensor. Therefore, if states or masks are to be modified, first clone
         // the tensors.
         RL_OPTION(rl::agents::dqn::utils::HindsightReplayCallback, hindsight_replay_callback) = nullptr;
+        // If true, and cuda is used, run inference in cuda graph mode.
+        RL_OPTION(bool, enable_inference_cuda_graph) = true;
+        // If true, and cuda is used, run training in cuda graph mode.
+        RL_OPTION(bool, enable_training_cuda_graph) = true;
     };
 
     class Apex
     {
         public:
             Apex(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::agents::dqn::policies::Base> policy,
                 std::shared_ptr<rl::env::Factory> env_factory,
@@ -78,7 +84,8 @@ namespace rl::agents::dqn::trainers
         
         private:
             const ApexOptions options;
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;

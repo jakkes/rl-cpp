@@ -37,8 +37,6 @@ namespace rl::agents::alpha_zero::modules
             value_logits.detach(),
             atoms,
             1.0,
-            v_min,
-            v_max,
             false
         );
     }

@@ -81,11 +81,11 @@ TORCH_TEST(distributional_loss, equal, device)
     auto atoms = torch::linspace(-1.0f, 1.0f, 21).to(device);
 
     auto output1 = rl::agents::utils::distributional_loss(
-        current_logits, rewards, not_terminals, next_logits, atoms, 0.99f, -1.0f, 1.0f, false
+        current_logits, rewards, not_terminals, next_logits, atoms, 0.99f, false
     );
 
     auto output2 = rl::agents::utils::distributional_loss(
-        current_logits, rewards, not_terminals, next_logits, atoms, 0.99f, -1.0f, 1.0f, true
+        current_logits, rewards, not_terminals, next_logits, atoms, 0.99f, true
     );
 
     auto output3 = working_distributional_loss(

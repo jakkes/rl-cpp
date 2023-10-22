@@ -7,7 +7,7 @@ using namespace rl::remote_env;
 
 TEST(remote, lunar_lander)
 {
-    LunarLanderFactory factory{"localhost:50051"};
+    LunarLanderFactory factory{"localhost", 50500, 1};
     std::unique_ptr<rl::env::Base> env;
 
     try {

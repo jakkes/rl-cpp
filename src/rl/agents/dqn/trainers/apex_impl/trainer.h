@@ -12,6 +12,8 @@
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
 
+#include "execution_units.h"
+
 
 using namespace rl::agents::dqn::trainers;
 
@@ -21,8 +23,7 @@ namespace rl::agents::dqn::trainers::apex_impl
     {
         public:
             Trainer(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
-                std::shared_ptr<torch::optim::Optimizer> optimizer,
+                std::shared_ptr<TrainingUnit> training_unit,
                 std::shared_ptr<rl::buffers::Tensor> replay_buffer,
                 const ApexOptions &options
             );
@@ -32,9 +33,7 @@ namespace rl::agents::dqn::trainers::apex_impl
 
         private:
             const ApexOptions options;
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
-            std::shared_ptr<rl::agents::dqn::modules::Base> target_module;
-            std::shared_ptr<torch::optim::Optimizer> optimizer;
+            std::shared_ptr<TrainingUnit> training_unit;
             std::shared_ptr<rl::agents::dqn::policies::Base> policy;
             std::shared_ptr<rl::env::Factory> env_factory;
             std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> replay_buffer;
@@ -45,7 +44,6 @@ namespace rl::agents::dqn::trainers::apex_impl
         private:
             void worker();
             void step();
-            void target_network_update();
     };
 }
 

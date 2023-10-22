@@ -1,4 +1,7 @@
 import asyncio
+import multiprocessing
+import time
+import grpclib
 from typing import AsyncIterator
 
 import numpy as np
@@ -6,6 +9,10 @@ import gym
 from grpclib.server import Server
 
 from rlbuf.remote_env import lunar_lander
+
+
+WORKERS = 16
+BASE_PORT = 50500
 
 
 def state_to_proto(state: np.ndarray) -> lunar_lander.State:
@@ -37,12 +44,27 @@ class Service(lunar_lander.LunarLanderServiceBase):
             )
 
 
-async def main():
-    server = Server([Service()])
-    await server.start("localhost", 50051)
-    await server.wait_closed()
+class Worker(multiprocessing.Process):
+    def __init__(self, port: int):
+        super().__init__(daemon=True)
+        self._port = port
+
+    async def _run(self):
+        server = grpclib.server.Server([Service()])
+        await server.start("localhost", self._port)
+        await server.wait_closed()
+
+    def run(self) -> None:
+        super().run()
+        asyncio.run(self._run())
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    multiprocessing.set_start_method("spawn")
+    workers = [ Worker(BASE_PORT + i) for i in range(WORKERS) ]
+    for worker in workers:
+        worker.start()
+
+    while True:
+        time.sleep(1.0)
+

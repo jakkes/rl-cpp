@@ -81,8 +81,6 @@ namespace rl::agents::utils
         const torch::Tensor &next_logits,
         const torch::Tensor &atoms,
         float discount,
-        float v_min,
-        float v_max,
         bool allow_cuda_graph
     )
     {
@@ -90,6 +88,8 @@ namespace rl::agents::utils
         auto batchvec = torch::arange(batchsize, torch::TensorOptions{}.device(current_logits.device()));
         auto n_atoms = atoms.size(0);
         auto dz = atoms.index({1}) - atoms.index({0});
+        auto v_min = atoms.index({0});
+        auto v_max = atoms.index({-1});
 
         auto projection = rewards.view({-1, 1}) + not_terminals.view({-1, 1}) * discount * atoms.view({1, -1});
         projection.clamp_(v_min, v_max);

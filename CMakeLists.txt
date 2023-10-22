@@ -47,3 +47,7 @@ endif()
 if (RL_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+
+add_executable(tmp ./tmp.cc)
+target_link_libraries(tmp PRIVATE torch)

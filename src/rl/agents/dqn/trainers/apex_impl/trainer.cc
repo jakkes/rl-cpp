@@ -12,15 +12,12 @@ namespace rl::agents::dqn::trainers::apex_impl
     auto LOGGER = rl::cpputils::get_logger("ApexDQN-Trainer");
 
     Trainer::Trainer(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
-        std::shared_ptr<torch::optim::Optimizer> optimizer,
+        std::shared_ptr<TrainingUnit> training_unit,
         std::shared_ptr<rl::buffers::Tensor> replay_buffer,
         const ApexOptions &options
     ) : options{options}
     {
-        this->module = module;
-        this->target_module = module->clone();
-        this->optimizer = optimizer;
+        this->training_unit = training_unit;
         this->replay_buffer = std::make_shared<rl::buffers::samplers::Uniform<rl::buffers::Tensor>>(replay_buffer);
     }
 
@@ -47,7 +44,6 @@ namespace rl::agents::dqn::trainers::apex_impl
         LOGGER->info("Starting training");
         while (running) {
             step();
-            target_network_update();
         }
         LOGGER->info("Training stopped");
     }
@@ -57,59 +53,20 @@ namespace rl::agents::dqn::trainers::apex_impl
         auto sample_storage = replay_buffer->sample(options.batch_size);
         auto &samples = *sample_storage;
 
-        auto output = module->forward(samples[0].to(options.network_device));
-        output->apply_mask(samples[1].to(options.network_device));
-
-        std::unique_ptr<rl::agents::dqn::modules::BaseOutput> next_output;
-        torch::Tensor next_actions;
-        {
-            torch::InferenceMode guard{};
-            auto next_state = samples[5].to(options.network_device);
-            auto next_mask = samples[6].to(options.network_device);
-            next_output = target_module->forward(next_state);
-            next_output->apply_mask(next_mask);
-
-            if (options.double_dqn) {
-                auto tmp_output = module->forward(next_state);
-                tmp_output->apply_mask(next_mask);
-                next_actions = tmp_output->greedy_action();
-            } else {
-                next_actions = next_output->greedy_action();
-            }
-        }
-
-        auto loss = output->loss(
+        auto metrics = training_unit->operator()({
+            samples[0].to(options.network_device),
+            samples[1].to(options.network_device),
             samples[2].to(options.network_device),
             samples[3].to(options.network_device),
             samples[4].to(options.network_device),
-            *next_output,
-            next_actions,
-            std::pow(options.discount, options.n_step)
-        );
-        loss = loss.mean();
-        optimizer->zero_grad();
-        loss.backward();
-        auto grad_norm = rl::torchutils::compute_gradient_norm(optimizer);
-        if (grad_norm.item().toFloat() > options.max_gradient_norm) {
-            rl::torchutils::scale_gradients(optimizer, 1.0f / options.max_gradient_norm);
-        }
-        optimizer->step();
+            samples[5].to(options.network_device),
+            samples[6].to(options.network_device),
+        });
 
         if (options.logger) {
-            options.logger->log_scalar("ApexDQN/Loss", loss.item().toFloat());
-            options.logger->log_scalar("ApexDQN/Gradient norm", grad_norm.item().toFloat());
+            options.logger->log_scalar("ApexDQN/Loss", metrics.scalars[0].item().toFloat());
+            options.logger->log_scalar("ApexDQN/Gradient norm", metrics.scalars[1].item().toFloat());
             options.logger->log_frequency("ApexDQN/Update frequency", 1);
-        }
-    }
-
-    void Trainer::target_network_update()
-    {
-        torch::InferenceMode guard{};
-        auto target_parameters = target_module->parameters();
-        auto parameters = module->parameters();
-
-        for (int i = 0; i < parameters.size(); i++) {
-            target_parameters[i].add_(parameters[i] - target_parameters[i], options.target_network_lr);
         }
     }
 }

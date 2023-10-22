@@ -7,6 +7,8 @@
 #include <chrono>
 
 #include <rl/agents/dqn/trainers/seed.h>
+#include <rl/agents/dqn/module.h>
+#include <rl/agents/dqn/value_parsers/base.h>
 #include <rl/buffers/tensor.h>
 #include <rl/buffers/samplers/uniform.h>
 
@@ -18,7 +20,8 @@ namespace seed_impl
     {
         public:
             Trainer(
-                std::shared_ptr<rl::agents::dqn::modules::Base> module,
+                std::shared_ptr<rl::agents::dqn::Module> module,
+                std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
                 std::shared_ptr<torch::optim::Optimizer> optimizer,
                 std::shared_ptr<rl::env::Factory> env_factory,
                 std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler,
@@ -30,8 +33,9 @@ namespace seed_impl
 
         private:
             const SEEDOptions options;
-            std::shared_ptr<rl::agents::dqn::modules::Base> module;
-            std::shared_ptr<rl::agents::dqn::modules::Base> target_module;
+            std::shared_ptr<rl::agents::dqn::Module> module;
+            std::shared_ptr<rl::agents::dqn::Module> target_module;
+            std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser;
             std::shared_ptr<torch::optim::Optimizer> optimizer;
             std::shared_ptr<rl::env::Factory> env_factory;
             std::shared_ptr<rl::buffers::samplers::Uniform<rl::buffers::Tensor>> sampler;

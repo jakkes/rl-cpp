@@ -12,14 +12,14 @@ namespace rl::agents::dqn::trainers::apex_impl
     auto LOGGER = rl::cpputils::get_logger("ApexDQN-Worker");
 
     Worker::Worker(
-        std::shared_ptr<modules::Base> module,
+        std::shared_ptr<InferenceUnit> inference_unit,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         std::shared_ptr<rl::env::Factory> env_factory,
         std::shared_ptr<rl::buffers::Tensor> replay_buffer,
         const ApexOptions &options
     ) : options{options}
     {
-        this->module = module;
+        this->inference_unit = inference_unit;
         this->policy = policy;
         this->env_factory = env_factory;
         this->replay_buffer = replay_buffer;
@@ -83,24 +83,25 @@ namespace rl::agents::dqn::trainers::apex_impl
             masks[i] = get_mask(*this->states[i]->action_constraint);
         }
 
-        auto tstates = torch::stack(states, 0);
-        auto tmasks = torch::stack(masks, 0);
+        auto tstates = torch::stack(states, 0).to(options.network_device);
+        auto tmasks = torch::stack(masks, 0).to(options.network_device);
 
-        auto output = module->forward(tstates.to(options.network_device));
-        output->apply_mask(tmasks.to(options.network_device));
+        auto inference_output = inference_unit->operator()({tstates, tmasks});
+        auto &values = inference_output.tensors[0];
 
-        auto policy = this->policy->policy(*output);
-        policy->include(std::make_shared<rl::policies::constraints::CategoricalMask>(tmasks));
+        auto policy = this->policy->policy(values, tmasks);
 
         auto actions = policy->sample().to(options.environment_device);
-        auto values = std::get<0>(output->value().max(1));
 
         for (int i = 0; i < options.worker_batchsize; i++)
         {
             if (is_start_state[i]) {
                 is_start_state[i] = 0;
                 if (options.logger) {
-                    options.logger->log_scalar("ApexDQN/Start value", values.index({i}).item().toFloat());
+                    auto max_value = values.index({i}).max().item().toFloat();
+                    auto min_value = values.index({i}).where(~values.isneginf(), max_value).min().item().toFloat();
+                    options.logger->log_scalar("ApexDQN/StartValue", max_value);
+                    options.logger->log_scalar("ApexDQN/StartAdvantage", max_value - min_value);
                 }
             }
 
@@ -124,8 +125,11 @@ namespace rl::agents::dqn::trainers::apex_impl
                 this->is_start_state[i] = 1;
 
                 if (options.logger) {
-                    options.logger->log_frequency("ApexDQN/Episode rate", 1);
-                    options.logger->log_scalar("ApexDQN/End value", values.index({i}).item().toFloat());
+                    auto max_value = values.max().item().toFloat();
+                    auto min_value = values.where(~values.isneginf(), max_value).min().item().toFloat();
+                    options.logger->log_scalar("ApexDQN/EndValue", max_value);
+                    options.logger->log_scalar("ApexDQN/EndAdvantage", max_value - min_value);
+                    options.logger->log_frequency("ApexDQN/EpisodeRate", 1);
                 }
             }
             else {

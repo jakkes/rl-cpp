@@ -19,13 +19,15 @@ namespace rl::agents::dqn::trainers
 
 
     SEED::SEED(
-        std::shared_ptr<rl::agents::dqn::modules::Base> module,
+        std::shared_ptr<rl::agents::dqn::Module> module,
+        std::shared_ptr<rl::agents::dqn::value_parsers::Base> value_parser,
         std::shared_ptr<torch::optim::Optimizer> optimizer,
         std::shared_ptr<rl::agents::dqn::policies::Base> policy,
         std::shared_ptr<rl::env::Factory> env_factory,
         const SEEDOptions &options) : options{options}
     {
         this->module = module;
+        this->value_parser = value_parser;
         this->optimizer = optimizer;
         this->policy = policy;
         this->env_factory = env_factory;
@@ -34,7 +36,8 @@ namespace rl::agents::dqn::trainers
     void SEED::run(int64_t duration_seconds)
     {
         auto inferer = std::make_shared<Inferer>(
-            module, 
+            module,
+            value_parser, 
             policy,
             options
         );
@@ -58,7 +61,9 @@ namespace rl::agents::dqn::trainers
             env_threads.emplace_back(new EnvThread{env_factory, inferer, transition_queue, options});
         }
 
-        auto trainer = std::make_shared<Trainer>(module, optimizer, env_factory, sampler, options);
+        auto trainer = std::make_shared<Trainer>(
+            module, value_parser, optimizer, env_factory, sampler, options
+        );
 
         auto start_time = std::chrono::high_resolution_clock::now();
         auto end_time = start_time + std::chrono::seconds(duration_seconds);

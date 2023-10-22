@@ -222,21 +222,27 @@ namespace rl::agents::sac::trainers
         // Apply backward passes
         actor_optimizer->zero_grad();
         actor_loss.backward();
-        auto actor_grad_norm = rl::torchutils::compute_gradient_norm(actor_optimizer).item().toFloat();
-        if (actor_grad_norm > options.max_gradient_norm) {
-            rl::torchutils::scale_gradients(actor_optimizer, 1.0f / actor_grad_norm);
-        }
+        auto actor_grad_norm = rl::torchutils::compute_gradient_norm(actor_optimizer);
+        auto grad_norm_factor = torch::where(
+            actor_grad_norm > options.max_gradient_norm,
+            options.max_gradient_norm / actor_grad_norm,
+            torch::ones_like(actor_grad_norm)
+        );
+        rl::torchutils::scale_gradients(actor_optimizer, grad_norm_factor);
         actor_optimizer->step();
 
-        std::vector<float> critic_grad_norms{}; critic_grad_norms.resize(critics.size());
+        std::vector<torch::Tensor> critic_grad_norms{}; critic_grad_norms.resize(critics.size());
         for (int i = 0; i < critics.size(); i++)
         {
             critic_optimizers[i]->zero_grad();
             mean_critic_losses[i].backward();
-            critic_grad_norms[i] = rl::torchutils::compute_gradient_norm(critic_optimizers[i]).item().toFloat();
-            if (critic_grad_norms[i] > options.max_gradient_norm) {
-                rl::torchutils::scale_gradients(critic_optimizers[i], 1.0f / critic_grad_norms[i]);
-            }
+            critic_grad_norms[i] = rl::torchutils::compute_gradient_norm(critic_optimizers[i]);
+            auto grad_norm_factor = torch::where(
+                critic_grad_norms[i] > options.max_gradient_norm,
+                options.max_gradient_norm / critic_grad_norms[i],
+                torch::ones_like(critic_grad_norms[i])
+            );
+            rl::torchutils::scale_gradients(critic_optimizers[i], grad_norm_factor);
             critic_optimizers[i]->step();
         }
 
@@ -247,9 +253,9 @@ namespace rl::agents::sac::trainers
                 options.logger->log_scalar("SAC/CriticLoss" + std::to_string(i), mean_critic_losses[i].item().toFloat());
             }
 
-            options.logger->log_scalar("SAC/ActorGradNorm", actor_grad_norm);
+            options.logger->log_scalar("SAC/ActorGradNorm", actor_grad_norm.item().toFloat());
             for (int i = 0; i < critics.size(); i++) {
-                options.logger->log_scalar("SAC/CriticGradNorm" + std::to_string(i), critic_grad_norms[i]);
+                options.logger->log_scalar("SAC/CriticGradNorm" + std::to_string(i), critic_grad_norms[i].item().toFloat());
             }
         }
 

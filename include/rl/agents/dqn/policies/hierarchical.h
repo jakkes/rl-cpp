@@ -49,9 +49,7 @@ namespace rl::agents::dqn::policies {
             std::unique_ptr<rl::policies::Categorical> policy(
                 const torch::Tensor &values,
                 const torch::Tensor &masks
-            ) override {
-                
-            }
+            ) override;
 
         private:
             std::vector<std::shared_ptr<Base>> policies;

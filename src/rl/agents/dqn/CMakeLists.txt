@@ -5,6 +5,8 @@ target_sources(
         value_parsers/distributional.cc
 
         policies/epsilon_greedy.cc
+        policies/value_softmax.cc
+        policies/hierarchical.cc
 
         trainers/basic.cc
         trainers/seed.cc

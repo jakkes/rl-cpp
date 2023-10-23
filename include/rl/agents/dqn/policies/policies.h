@@ -4,6 +4,9 @@
 
 #include "base.h"
 #include "epsilon_greedy.h"
+#include "value_softmax.h"
+#include "greedy.h"
+#include "uniform.h"
 
 
 /**

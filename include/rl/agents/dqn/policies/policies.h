@@ -7,6 +7,7 @@
 #include "value_softmax.h"
 #include "greedy.h"
 #include "uniform.h"
+#include "hierarchical.h"
 
 
 /**

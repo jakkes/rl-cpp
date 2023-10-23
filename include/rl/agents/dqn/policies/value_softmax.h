@@ -16,8 +16,8 @@ namespace rl::agents::dqn::policies {
     class ValueSoftmax : public Base
     {
         public:
+            ValueSoftmax(std::shared_ptr<rl::utils::float_control::Base> temperature) : temperature(temperature) {}
             ValueSoftmax(float temperature) : ValueSoftmax(std::make_shared<rl::utils::float_control::Fixed>(temperature)) {}
-            ValueSoftmax(std::shared_ptr<rl::utils::float_control::Base> temperature);
             ~ValueSoftmax() = default;
 
             std::unique_ptr<rl::policies::Categorical> policy(

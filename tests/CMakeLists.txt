@@ -40,6 +40,7 @@ rl_append_test(torchutils torchutils/test_execution_unit.cc)
 
 rl_add_test_target(agents test_agents.cc)
 rl_append_test(agents agents/alpha_zero/test_mcts.cc)
+rl_append_test(agents agents/dqn/policies/test_uniform.cc)
 rl_append_test(agents agents/dqn/value_parsers/test_estimated_mean.cc)
 rl_append_test(agents agents/dqn/value_parsers/test_distributional.cc)
 rl_append_test(agents agents/utils/test_distributional_loss.cc)

@@ -49,10 +49,10 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(int, n_step) = 3;
         // Logging client
         RL_OPTION(std::shared_ptr<rl::logging::client::Base>, logger) = nullptr;
-        // // Checkpoint callback, called with number of seconds trained so far.
-        // RL_OPTION(std::function<void(size_t)>, checkpoint_callback) = nullptr;
-        // // Checkpoint callback period, in seconds.
-        // RL_OPTION(size_t, checkpoint_callback_period_seconds) = 3600;
+        // Checkpoint callback, called with (number of seconds trained so far, iteration).
+        RL_OPTION(std::function<void(size_t, size_t)>, checkpoint_callback) = nullptr;
+        // Checkpoint callback period, in seconds.
+        RL_OPTION(size_t, checkpoint_callback_period_seconds) = 3600;
         // If set, this method is called whenever an episode terminates. The argument
         // is a pointer to (a copy of) the episode. If the callback returns true, then
         // the (possibly modified sequence) is added to the replay buffer. If false is

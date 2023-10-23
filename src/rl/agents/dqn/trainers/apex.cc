@@ -118,12 +118,24 @@ namespace rl::agents::dqn::trainers
 
         auto start_time = std::chrono::high_resolution_clock::now();
         auto end_time = start_time + std::chrono::seconds(duration_seconds);
+        auto next_checkpoint = start_time + std::chrono::seconds(options.checkpoint_callback_period_seconds);
+        size_t checkpoint_version = 0;
+
         auto running = [&end_time] () {
             return std::chrono::high_resolution_clock::now() < end_time;
         };
 
         while (running()) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            if (options.checkpoint_callback && std::chrono::high_resolution_clock::now() >= next_checkpoint) {
+                checkpoint_version++;
+                options.checkpoint_callback(
+                    std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start_time).count(),
+                    checkpoint_version
+                );
+                next_checkpoint = std::chrono::high_resolution_clock::now() + std::chrono::seconds(options.checkpoint_callback_period_seconds);
+            }
         }
 
         trainer.stop();

@@ -25,7 +25,7 @@ namespace rl::agents::dqn::policies {
         return std::make_unique<rl::policies::Categorical>(
             torch::sum(
                 torch::stack(sub_policy_probabilities, 1) *
-                torch::tensor(probabilities).view({1, -1, 1}),
+                torch::tensor(probabilities, sub_policy_probabilities[0].options()).view({1, -1, 1}),
                 1
             )
         );

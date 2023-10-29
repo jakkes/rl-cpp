@@ -77,5 +77,11 @@ void tprint(torch::IntArrayRef &ref) {
 }
 void tprint(torch::IntArrayRef &&ref) { tprint(ref); }
 
+void tprintdtype(torch::Tensor &x) {
+    std::cout << x.dtype() << "\n";
+};
+
+void tprintdtype(torch::Tensor &&x) { tprintdtype(x); }
+
 
 #endif /* RL_TORCHDEBUG_H_ */

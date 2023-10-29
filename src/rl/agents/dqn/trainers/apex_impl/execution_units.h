@@ -10,6 +10,9 @@
 #include <rl/agents/dqn/module.h>
 #include <rl/agents/dqn/value_parsers/base.h>
 #include <rl/agents/dqn/trainers/apex.h>
+#include <rl/env/base.h>
+
+#include "helpers.h"
 
 
 namespace rl::agents::dqn::trainers::apex_impl
@@ -63,6 +66,51 @@ namespace rl::agents::dqn::trainers::apex_impl
                 this->target_module = std::dynamic_pointer_cast<rl::agents::dqn::Module>(module->clone());
                 this->value_parser = value_parser;
                 this->optimizer = optimizer;
+            }
+
+            void initialize_graph(const rl::env::State &example_state)
+            {
+                // Copy initial params
+                auto original_module_params = module->parameters();
+                auto original_target_module_params = target_module->parameters();
+                auto &opt_state = optimizer->state();
+                std::unordered_map<std::string, std::unique_ptr<torch::optim::OptimizerParamState>> original_opt_state{};
+
+                std::transform(original_module_params.cbegin(), original_module_params.cend(), original_module_params.begin(), [] (const torch::Tensor &p) { return p.clone(); });
+                std::transform(original_target_module_params.cbegin(), original_target_module_params.cend(), original_target_module_params.begin(), [] (const torch::Tensor &p) { return p.clone(); });
+                for (auto &param : opt_state) {
+                    original_opt_state[param.first] = std::move(param.second->clone());
+                }
+
+                auto state = example_state.state.to(options.network_device).unsqueeze(0);
+                auto mask = get_mask(*example_state.action_constraint).to(options.network_device).unsqueeze(0);
+                auto action = mask.to(torch::kLong).argmax(1);
+                auto reward = torch::zeros({1}).to(options.network_device).to(options.float_dtype);
+
+                operator()({
+                    state,
+                    mask,
+                    action,
+                    reward,
+                    torch::zeros(
+                        {1},
+                        torch::TensorOptions{}.dtype(torch::kBool).device(options.network_device)
+                    ),
+                    state,
+                    mask
+                });
+
+                // Revert training step just applied
+                torch::NoGradGuard guard{};
+                auto module_params = module->parameters();
+                auto target_module_params = target_module->parameters();
+                for (size_t i = 0; i < original_module_params.size(); i++) {
+                    module_params[i].copy_(original_module_params[i]);
+                    target_module_params[i].copy_(original_target_module_params[i]);
+                }
+                for (auto &p : original_opt_state) {
+                    opt_state[p.first] = std::move(p.second);
+                }
             }
 
         private:

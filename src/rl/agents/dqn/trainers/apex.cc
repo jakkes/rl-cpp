@@ -47,27 +47,9 @@ namespace rl::agents::dqn::trainers
             module, value_parser, optimizer, options
         );
 
-        auto env = env_factory->get();
-        auto reset_state = env->reset();
+        auto state = env_factory->get()->reset();
 
-        auto state = reset_state->state.to(options.network_device).unsqueeze(0);
-        auto mask = apex_impl::get_mask(*reset_state->action_constraint).to(options.network_device).unsqueeze(0);
-        auto action = mask.to(torch::kLong).argmax(1);
-        auto reward = torch::zeros({1}, torch::kFloat32).to(options.network_device);
-
-        training_unit->operator()({
-            state,
-            mask,
-            action,
-            reward,
-            torch::zeros(
-                {1},
-                torch::TensorOptions{}.dtype(torch::kBool).device(options.network_device)
-            ),
-            state,
-            mask
-        });
-
+        training_unit->initialize_graph(*state);
         return training_unit;
     }
 

@@ -163,7 +163,7 @@ namespace rl::agents::dqn::trainers::apex_impl
             transition.state->state.to(options.replay_device).unsqueeze(0),
             get_mask(*transition.state->action_constraint).to(options.replay_device).unsqueeze(0),
             transition.action.to(options.replay_device).unsqueeze(0),
-            torch::tensor(transition.reward).to(options.replay_device).unsqueeze(0),
+            torch::tensor(transition.reward).to(options.replay_device).to(options.float_dtype).unsqueeze(0),
             torch::tensor(!transition.terminal).to(options.replay_device).unsqueeze(0),
             transition.next_state->state.to(options.replay_device).unsqueeze(0),
             get_mask(*transition.next_state->action_constraint).to(options.replay_device).unsqueeze(0)

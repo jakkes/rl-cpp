@@ -29,6 +29,11 @@ namespace rl::torchutils
 
             ExecutionUnitOutput operator()(const std::vector<torch::Tensor> &inputs);
 
+            inline
+            bool running_in_cuda_graph() {
+                return stream != nullptr;
+            }
+
         protected:
             const c10::Device device;
 

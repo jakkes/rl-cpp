@@ -40,7 +40,7 @@ namespace rl::agents::dqn::trainers::apex_impl
         tensor_options.push_back(state->state.options().device(options.replay_device));
         tensor_options.push_back(mask_constraint.mask().options().device(options.replay_device));
         tensor_options.push_back(torch::TensorOptions{}.dtype(torch::kLong).device(options.replay_device));
-        tensor_options.push_back(torch::TensorOptions{}.dtype(torch::kFloat32).device(options.replay_device));
+        tensor_options.push_back(torch::TensorOptions{}.dtype(options.float_dtype).device(options.replay_device));
         tensor_options.push_back(torch::TensorOptions{}.dtype(torch::kBool).device(options.replay_device));
         tensor_options.push_back(state->state.options().device(options.replay_device));
         tensor_options.push_back(mask_constraint.mask().options().device(options.replay_device));

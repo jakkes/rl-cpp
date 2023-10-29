@@ -39,6 +39,9 @@ namespace rl::agents::dqn::trainers
         RL_OPTION(torch::Device, network_device) = torch::kCPU;
         // Device on which environment observations are located.
         RL_OPTION(torch::Device, environment_device) = torch::kCPU;
+        // Float precision level used. Network outputs and rewards are expected in this
+        // precision.
+        RL_OPTION(torch::Dtype, float_dtype) = torch::kFloat32;
         // Update rate of target network, value be in (0, 1).
         RL_OPTION(float, target_network_lr) = 1e-3;
         // Discount factor

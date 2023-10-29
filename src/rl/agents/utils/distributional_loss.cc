@@ -91,7 +91,7 @@ namespace rl::agents::utils
         auto v_min = atoms.index({0});
         auto v_max = atoms.index({-1});
 
-        auto projection = rewards.view({-1, 1}) + not_terminals.view({-1, 1}) * discount * atoms.view({1, -1});
+        auto projection = rewards.view({-1, 1}) + not_terminals.view({-1, 1}) * (discount * atoms.view({1, -1}));
         projection.clamp_(v_min, v_max);
         auto b = (projection - v_min) / dz;
 

@@ -64,7 +64,7 @@ namespace rl::policies
     torch::Tensor Categorical::sample() const
     {
         auto actions = (torch::rand(sample_shape, cumsummed.options()).unsqueeze_(1) > cumsummed).sum(1);
-        assert (actions.lt(dim).all().item().toBool());
+        actions.clamp_max_(dim - 1);
         auto out = values.index({batchvec, actions});
         return out.view(sample_shape);
     }

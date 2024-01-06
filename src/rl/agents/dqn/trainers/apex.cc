@@ -108,7 +108,7 @@ namespace rl::agents::dqn::trainers
         };
 
         while (running()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(5));
 
             if (options.checkpoint_callback && std::chrono::high_resolution_clock::now() >= next_checkpoint) {
                 checkpoint_version++;
@@ -117,6 +117,10 @@ namespace rl::agents::dqn::trainers
                     checkpoint_version
                 );
                 next_checkpoint = std::chrono::high_resolution_clock::now() + std::chrono::seconds(options.checkpoint_callback_period_seconds);
+            }
+
+            if (options.logger) {
+                options.logger->log_scalar("ApexDQN/Buffer size", replay->size());
             }
         }
 

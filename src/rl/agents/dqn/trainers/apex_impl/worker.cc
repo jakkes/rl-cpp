@@ -153,7 +153,7 @@ namespace rl::agents::dqn::trainers::apex_impl
         }
 
         if (options.logger) {
-            options.logger->log_frequency("ApexDQN/Inference step rate", options.batch_size);
+            options.logger->log_frequency("ApexDQN/Inference step rate", options.worker_batchsize);
         }
     }
 

@@ -45,6 +45,12 @@ torch::Tensor tdetach(torch::Tensor &&x) { return tdetach(x); }
 torch::Tensor tmax(torch::Tensor &x) { return x.max(); }
 torch::Tensor tmax(torch::Tensor &&x) { return tmax(x); }
 
+torch::Tensor tmin(torch::Tensor &x) { return x.min(); }
+torch::Tensor tmin(torch::Tensor &&x) { return tmin(x); }
+
+torch::Tensor targmin(torch::Tensor &x) { return x.argmin(); }
+torch::Tensor targmin(torch::Tensor &&x) { return targmin(x); }
+
 torch::Tensor tsum(torch::Tensor &x) { return x.sum(); }
 torch::Tensor tsum(torch::Tensor &&x) { return tsum(x); }
 

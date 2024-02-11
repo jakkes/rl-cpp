@@ -37,6 +37,8 @@ rl_append_test(buffers buffers/test_tensor_and_object.cc)
 
 rl_add_test_target(torchutils test_torchutils.cc)
 rl_append_test(torchutils torchutils/test_execution_unit.cc)
+rl_append_test(torchutils torchutils/test_gradient_norm.cc)
+rl_append_test(torchutils torchutils/test_scale_gradients.cc)
 
 rl_add_test_target(agents test_agents.cc)
 rl_append_test(agents agents/alpha_zero/test_mcts.cc)
